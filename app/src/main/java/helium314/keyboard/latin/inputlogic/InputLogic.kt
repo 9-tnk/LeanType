@@ -698,8 +698,14 @@ class InputLogic(
             KeyCode.CLIPBOARD_SELECT_WORD -> mConnection.selectWord(
                 inputTransaction.settingsValues.mSpacingAndPunctuations, currentKeyboardScript
             )
-            KeyCode.CLIPBOARD_COPY -> mConnection.copyText(true)
-            KeyCode.CLIPBOARD_COPY_ALL -> mConnection.copyText(false)
+            KeyCode.CLIPBOARD_COPY -> {
+                mConnection.copyText(true)
+                mLatinIME.mHandler.post { mLatinIME.tryShowClipboardSuggestion() }
+            }
+            KeyCode.CLIPBOARD_COPY_ALL -> {
+                mConnection.copyText(false)
+                mLatinIME.mHandler.post { mLatinIME.tryShowClipboardSuggestion() }
+            }
             KeyCode.CLIPBOARD_CLEAR_HISTORY -> mLatinIME.clipboardHistoryManager.clearHistory()
             KeyCode.CLIPBOARD_CUT -> {
                 if (mConnection.hasSelection()) {
@@ -1647,9 +1653,7 @@ class InputLogic(
         }
         val suggestedWords = holder.get(null, Constants.GET_SUGGESTED_WORDS_TIMEOUT.toLong())
         if (suggestedWords != null) {
-            if (!(suggestedWords.mInputStyle == SuggestedWords.INPUT_STYLE_BEGINNING_OF_SENTENCE_PREDICTION
-                    && mLatinIME.tryShowClipboardSuggestion())
-            ) {
+            if (!(suggestedWords.isPrediction && mLatinIME.tryShowClipboardSuggestion())) {
                 mSuggestionStripViewAccessor.setSuggestions(suggestedWords)
             }
             if (!suggestedWords.isEmpty && settingsValues.isSuggestionsEnabledPerUserSettings()

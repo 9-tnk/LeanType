@@ -413,8 +413,8 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
             isShowingEmojiSuggestions = false
         }
         if (isShowingEmojiSuggestions) return
-        if (isExternalSuggestionVisible && (suggestions.isEmpty || suggestions.isPunctuationSuggestions)) {
-            // Keep external suggestion (clipboard/screenshot) if new suggestions are empty or just punctuation
+        if (isExternalSuggestionVisible && (suggestions.isEmpty || suggestions.isPunctuationSuggestions || suggestions.isPrediction)) {
+            // Keep external suggestion (clipboard/screenshot/OTP) if new suggestions are empty, punctuation, or passive predictions
             return
         }
         clear()

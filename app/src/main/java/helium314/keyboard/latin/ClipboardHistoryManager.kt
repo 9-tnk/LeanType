@@ -268,6 +268,20 @@ class ClipboardHistoryManager(
         if (cachedScreenshotInfo != null && cachedScreenshotInfo?.uri?.toString() != lastDismissed) {
             dontShowCurrentSuggestion = false
         }
+        val clipData = try {
+            clipboardManager.primaryClip
+        } catch (e: Exception) {
+            null
+        }
+        val currentText = if (clipData != null && clipData.itemCount > 0) {
+            clipData.getItemAt(0)?.coerceToText(latinIME)?.toString()
+        } else {
+            null
+        }
+        val lastDismissedClipboard = prefs.getString("last_dismissed_clipboard_text", "")
+        if (!currentText.isNullOrEmpty() && currentText != lastDismissedClipboard && currentText != lastPrimaryClipText) {
+            dontShowCurrentSuggestion = false
+        }
         if (latinIME.mSettings.current.mSuggestScreenshots) {
             updateLatestScreenshotCache()
         }
@@ -301,8 +315,8 @@ class ClipboardHistoryManager(
     }
 
     override fun onPrimaryClipChanged() {
-        // Make sure we read clipboard content only if history settings is set
-        if (latinIME.mSettings.current.mClipboardHistoryEnabled) {
+        // Read clipboard content if history or suggestion setting is enabled
+        if (latinIME.mSettings.current.mClipboardHistoryEnabled || latinIME.mSettings.current.mSuggestClipboardContent) {
             // ponytail: ignore duplicate events where clipboard contents didn't actually change
             val clipData = try {
                 clipboardManager.primaryClip
@@ -333,18 +347,22 @@ class ClipboardHistoryManager(
                 lastPrimaryClipText = currentText
                 lastPrimaryClipUri = currentUri
                 lastPrimaryClipTimestamp = currentTimestamp
-
-                ExecutorUtils.getBackgroundExecutor(ExecutorUtils.KEYBOARD).execute {
-                    fetchPrimaryClip()
-                    mainHandler.post {
-                        if (latinIME.isInputViewShown) {
-                            latinIME.tryShowClipboardSuggestion()
-                        }
-                    }
-                }
                 dontShowCurrentSuggestion = false
                 val prefs = latinIME.prefs()
                 prefs.edit().remove("last_dismissed_clipboard_text").apply()
+
+                // Immediately update suggestion strip on UI thread without waiting for background DB I/O
+                mainHandler.post {
+                    if (latinIME.isInputViewShown) {
+                        latinIME.tryShowClipboardSuggestion()
+                    }
+                }
+
+                if (latinIME.mSettings.current.mClipboardHistoryEnabled) {
+                    ExecutorUtils.getBackgroundExecutor(ExecutorUtils.KEYBOARD).execute {
+                        fetchPrimaryClip()
+                    }
+                }
             }
         }
     }
