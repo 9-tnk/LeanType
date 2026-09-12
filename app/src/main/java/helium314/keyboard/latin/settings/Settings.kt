@@ -468,6 +468,7 @@ class Settings private constructor() : SharedPreferences.OnSharedPreferenceChang
         const val PREF_AUTO_SHOW_TOOLBAR = "auto_show_toolbar"
         const val PREF_AUTO_SHOW_TOOLBAR_ON_SELECT = "auto_show_toolbar_on_select"
         const val PREF_AUTO_HIDE_TOOLBAR = "auto_hide_toolbar"
+        const val PREF_AUTO_SHOW_TOOLBAR_NO_SUGGESTIONS = "auto_show_toolbar_no_suggestions"
         const val PREF_TOOLBAR_SWIPE_DOWN_DISMISS = "toolbar_swipe_down_dismiss"
         const val PREF_AUTO_HIDE_PINNED_KEYS = "auto_hide_pinned_keys"
         const val PREF_REMEMBER_TOOLBAR_STATE = "remember_toolbar_state"

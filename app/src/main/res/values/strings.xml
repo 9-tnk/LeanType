@@ -1502,6 +1502,10 @@ New dictionary:
     <string name="auto_hide_toolbar">Auto hide toolbar</string>
     <!-- Description of the setting for hiding the toolbar automatically -->
     <string name="auto_hide_toolbar_summary">Hide the toolbar when suggestions become available</string>
+    <!-- Title of the setting to auto show toolbar when there are no suggestions -->
+    <string name="auto_show_toolbar_no_suggestions">Auto show toolbar when no suggestions</string>
+    <!-- Description of the setting for showing the toolbar when there are no suggestions -->
+    <string name="auto_show_toolbar_no_suggestions_summary">Show the toolbar when no word suggestions are available</string>
     <!-- Title of the setting to swipe down on toolbar to dismiss keyboard -->
     <string name="toolbar_swipe_down_dismiss">Swipe down to close</string>
     <!-- Description of the setting for swiping down on toolbar to dismiss keyboard -->

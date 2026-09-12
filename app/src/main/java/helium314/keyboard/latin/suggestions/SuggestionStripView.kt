@@ -315,7 +315,7 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
     private lateinit var listener: Listener
     private var suggestedWords = SuggestedWords.getEmptyInstance()
     private var startIndexOfMoreSuggestions = 0
-    private var isExternalSuggestionVisible = false // Required to disable the more suggestions if other suggestions are visible
+    internal var isExternalSuggestionVisible = false // Required to disable the more suggestions if other suggestions are visible
     private val moreSuggestionsView = moreSuggestionsContainer.findViewById<MoreSuggestionsView>(R.id.more_suggestions_view).apply {
         val slidingListener = object : SimpleOnGestureListener() {
             override fun onScroll(down: MotionEvent?, me: MotionEvent, deltaX: Float, deltaY: Float): Boolean {
@@ -428,7 +428,13 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
         // Update toolbar visibility state
         val settingsValues = Settings.getValues()
         if (settingsValues.mToolbarMode == ToolbarMode.EXPANDABLE && !settingsValues.mSplitToolbar) {
-            setToolbarVisibility(isToolbarManuallyOpen, saveState = false)
+            val hasNoSuggestions = suggestions.isEmpty || suggestions.isPunctuationSuggestions
+            val shouldShow = when {
+                settingsValues.mAutoShowToolbarNoSuggestions && hasNoSuggestions -> true
+                settingsValues.mAutoHideToolbar && !hasNoSuggestions -> false
+                else -> isToolbarManuallyOpen
+            }
+            setToolbarVisibility(shouldShow, saveState = false)
         }
         updateSplitToolbarState()
     }
@@ -966,8 +972,8 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
         setSuggestions(newSuggestedWords, direction != 1)
         suggestionsStrip.isVisible = true
 
-        // Show the toolbar if no suggestions are left and the "Auto show toolbar" setting is enabled
-        if (this.suggestedWords.isEmpty && Settings.getValues().mAutoShowToolbar) {
+        // Show the toolbar if no suggestions are left and the auto-show setting is enabled
+        if (this.suggestedWords.isEmpty && (Settings.getValues().mAutoShowToolbarNoSuggestions || Settings.getValues().mAutoShowToolbar)) {
             setToolbarVisibility(true, saveState = false)
         }
     }

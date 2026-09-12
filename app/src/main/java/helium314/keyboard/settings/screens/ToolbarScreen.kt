@@ -83,6 +83,7 @@ fun ToolbarScreen(
         if (toolbarMode == ToolbarMode.EXPANDABLE && !isSplitToolbar) Settings.PREF_AUTO_SHOW_TOOLBAR else null,
         if (toolbarMode == ToolbarMode.EXPANDABLE && !isSplitToolbar) Settings.PREF_AUTO_SHOW_TOOLBAR_ON_SELECT else null,
         if (toolbarMode == ToolbarMode.EXPANDABLE && !isSplitToolbar) Settings.PREF_AUTO_HIDE_TOOLBAR else null,
+        if (toolbarMode == ToolbarMode.EXPANDABLE && !isSplitToolbar) Settings.PREF_AUTO_SHOW_TOOLBAR_NO_SUGGESTIONS else null,
         if (toolbarMode == ToolbarMode.EXPANDABLE && !isSplitToolbar) Settings.PREF_AUTO_HIDE_PINNED_KEYS else null,
         if (toolbarMode == ToolbarMode.EXPANDABLE) Settings.PREF_REMEMBER_TOOLBAR_STATE else null,
         if (toolbarMode != ToolbarMode.HIDDEN) Settings.PREF_SHOW_ONLY_TOOLBAR_WITH_HARDWARE_KEYBOARD else null,
@@ -190,6 +191,10 @@ fun createToolbarSettings(context: Context): List<Setting> {
         {
             SwitchPreference(it, Defaults.PREF_AUTO_HIDE_TOOLBAR)
         },
+        Setting(context, Settings.PREF_AUTO_SHOW_TOOLBAR_NO_SUGGESTIONS, R.string.auto_show_toolbar_no_suggestions, R.string.auto_show_toolbar_no_suggestions_summary)
+        {
+            SwitchPreference(it, Defaults.PREF_AUTO_SHOW_TOOLBAR_NO_SUGGESTIONS)
+        },
         Setting(context, Settings.PREF_AUTO_HIDE_PINNED_KEYS, R.string.auto_hide_pinned_keys, R.string.auto_hide_pinned_keys_summary)
         {
             SwitchPreference(it, Defaults.PREF_AUTO_HIDE_PINNED_KEYS) { _ ->
@@ -231,6 +236,7 @@ fun createToolbarSettings(context: Context): List<Setting> {
                         putBoolean(Settings.PREF_AUTO_SHOW_TOOLBAR, false)
                         putBoolean(Settings.PREF_AUTO_HIDE_TOOLBAR, false)
                         putBoolean(Settings.PREF_AUTO_SHOW_TOOLBAR_ON_SELECT, false)
+                        putBoolean(Settings.PREF_AUTO_SHOW_TOOLBAR_NO_SUGGESTIONS, false)
                         putBoolean(Settings.PREF_QUICK_PIN_TOOLBAR_KEYS, false)
                     }
                 } else {

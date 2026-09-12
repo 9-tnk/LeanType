@@ -158,6 +158,7 @@ open class SettingsValues(
     val mAutoShowToolbar: Boolean
     val mAutoShowToolbarOnSelect: Boolean
     val mAutoHideToolbar: Boolean
+    val mAutoShowToolbarNoSuggestions: Boolean
     val mToolbarSwipeDownDismiss: Boolean
     val mAutoHidePinnedKeys: Boolean
     val mRememberToolbarState: Boolean
@@ -398,6 +399,7 @@ open class SettingsValues(
         mAutoShowToolbarOnSelect = mToolbarMode == ToolbarMode.EXPANDABLE && !mSplitToolbar && prefs.getBoolean(Settings.PREF_AUTO_SHOW_TOOLBAR_ON_SELECT, Defaults.PREF_AUTO_SHOW_TOOLBAR_ON_SELECT)
         mAutoShowToolbar = mToolbarMode == ToolbarMode.EXPANDABLE && !mAutoShowToolbarOnSelect && prefs.getBoolean(Settings.PREF_AUTO_SHOW_TOOLBAR, Defaults.PREF_AUTO_SHOW_TOOLBAR)
         mAutoHideToolbar = mSuggestionsEnabledPerUserSettings && prefs.getBoolean(Settings.PREF_AUTO_HIDE_TOOLBAR, Defaults.PREF_AUTO_HIDE_TOOLBAR)
+        mAutoShowToolbarNoSuggestions = mToolbarMode == ToolbarMode.EXPANDABLE && !mSplitToolbar && prefs.getBoolean(Settings.PREF_AUTO_SHOW_TOOLBAR_NO_SUGGESTIONS, Defaults.PREF_AUTO_SHOW_TOOLBAR_NO_SUGGESTIONS)
         mToolbarSwipeDownDismiss = prefs.getBoolean(Settings.PREF_TOOLBAR_SWIPE_DOWN_DISMISS, Defaults.PREF_TOOLBAR_SWIPE_DOWN_DISMISS)
         mAutoHidePinnedKeys = mToolbarMode == ToolbarMode.EXPANDABLE && !mSplitToolbar && prefs.getBoolean(Settings.PREF_AUTO_HIDE_PINNED_KEYS, Defaults.PREF_AUTO_HIDE_PINNED_KEYS)
         mRememberToolbarState = prefs.getBoolean(Settings.PREF_REMEMBER_TOOLBAR_STATE, Defaults.PREF_REMEMBER_TOOLBAR_STATE)
