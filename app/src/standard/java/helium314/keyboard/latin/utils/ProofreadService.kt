@@ -824,7 +824,7 @@ class ProofreadService(private val context: Context) {
         language: String? = null,
         prompt: String? = null
     ): Result<String> {
-        val boundary = "==Boundary_${System.currentTimeMillis()}=="
+        val boundary = "----LeanTypeBoundary${System.currentTimeMillis()}"
         val lineEnd = "\r\n"
         val twoHyphens = "--"
 
