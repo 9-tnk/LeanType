@@ -388,6 +388,7 @@ class DictionaryFacilitatorImpl : DictionaryFacilitator {
         sessionWordBoost?.recordWord(suggestion, recordAsAutoCap)
 
         val words = suggestion.splitOnWhitespace().dropLastWhile { it.isEmpty() }
+        if (words.any { isMalformedWord(it) }) return
 
         // increase / decrease confidence
         if (words.size == 1) // ignore if more than a single word, which only happens with (badly working) spaceAwareGesture
@@ -481,7 +482,7 @@ class DictionaryFacilitatorImpl : DictionaryFacilitator {
     )
 
     private fun addToPersonalDictionaryIfInvalidButInHistory(word: String, wasAutoCapitalized: Boolean) {
-        if (word.length <= 1) return
+        if (word.length <= 1 || isMalformedWord(word)) return
         val dictionaryGroup = currentlyPreferredDictionaryGroup
         val userDict = dictionaryGroup.getSubDict(Dictionary.TYPE_USER) ?: return
 
@@ -1022,6 +1023,34 @@ class DictionaryFacilitatorImpl : DictionaryFacilitator {
 
         // Threshold delta for beam pruning next-word candidates below top candidate score.
         private const val BEAM_DELTA = 60
+
+        private val REPETITIVE_CONSONANT_REGEX = Regex("""([^aeiouyAEIOUY\d\s_]{2,})\1+""", RegexOption.IGNORE_CASE)
+        private val EXCESSIVE_REPEAT_REGEX = Regex("""(.)\1{4,}|(.{2,8}?)\2{3,}""", RegexOption.IGNORE_CASE)
+
+        fun isMalformedWord(word: String): Boolean {
+            if (word.length <= 1) return true
+            if (word.length > 48) return true
+
+            // Reject single char repeated 5+ times or chunk of 2-8 chars repeated 4+ times
+            if (EXCESSIVE_REPEAT_REGEX.containsMatchIn(word)) return true
+
+            // Reject repeating 2+ consecutive consonants (e.g., "ChCh...", "ThTh...", "StSt...") typical of IME duplication bugs
+            if (REPETITIVE_CONSONANT_REGEX.containsMatchIn(word)) return true
+
+            if (word.length >= 6) {
+                // Reject progressive prefix repetition where a chunk of length >= 4 repeats (e.g. "ChChChec" in "ChChChecChChChecCheck")
+                for (chunkLen in 4..(word.length / 2)) {
+                    val chunk = word.substring(0, chunkLen)
+                    val secondIndex = word.indexOf(chunk, chunkLen, ignoreCase = true)
+                    if (secondIndex != -1 && (chunkLen * 2 + (if (word.endsWith(chunk.take(3), ignoreCase = true)) 3 else 0)) >= word.length * 0.7) {
+                        if (REPETITIVE_CONSONANT_REGEX.containsMatchIn(chunk)) {
+                            return true
+                        }
+                    }
+                }
+            }
+            return false
+        }
 
         private fun createSubDict(
             dictType: String, context: Context, locale: Locale, dictFile: File?, dictNamePrefix: String

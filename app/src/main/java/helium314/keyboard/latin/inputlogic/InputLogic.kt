@@ -17,6 +17,7 @@ import android.view.KeyCharacterMap
 import android.view.KeyEvent
 import android.view.inputmethod.CorrectionInfo
 import android.view.inputmethod.EditorInfo
+import helium314.keyboard.compat.AppWorkarounds
 import helium314.keyboard.event.Event
 import helium314.keyboard.event.InputTransaction
 import helium314.keyboard.keyboard.Keyboard
@@ -94,6 +95,7 @@ class InputLogic(
     private var mLastExpandedCursorOffset = -1
     private var mJustRevertedExpandedShortcut: String? = null
     private var mJustRevertedACommit = false
+    private var mIsProcessingSelectionUpdate = false
 
     private var mAutoCommitSequenceNumber = 1
     private var mTextBeforeProofread: String? = null
@@ -164,41 +166,43 @@ class InputLogic(
         composingSpanStart: Int, composingSpanEnd: Int,
         settingsValues: SettingsValues
     ): Boolean {
-        if (mConnection.isBelatedExpectedUpdate(oldSelStart, newSelStart, oldSelEnd, newSelEnd, composingSpanStart, composingSpanEnd)) {
-            return false
-        }
-        mSpaceState = SpaceState.NONE
-
-        if (oldSelStart != newSelStart || oldSelEnd != newSelEnd) {
-            if (newSelStart != mLastExpandedCursorPosition) {
-                mLastExpandedText = null
-                mLastShortcutText = null
-                mLastExpandedCursorPosition = -1
-                mLastExpandedCursorOffset = -1
-                mJustRevertedExpandedShortcut = null
+        if (mIsProcessingSelectionUpdate) return false
+        mIsProcessingSelectionUpdate = true
+        try {
+            if (mConnection.isBelatedExpectedUpdate(oldSelStart, newSelStart, oldSelEnd, newSelEnd, composingSpanStart, composingSpanEnd)) {
+                return false
             }
-        }
+            mSpaceState = SpaceState.NONE
 
-        val selectionChangedOrSafeToReset = (oldSelStart != newSelStart || oldSelEnd != newSelEnd) || !mWordComposer.isComposingWord()
-        val hasOrHadSelection = (oldSelStart != oldSelEnd || newSelStart != newSelEnd)
-        val moveAmount = newSelStart - oldSelStart
-
-        if (hasOrHadSelection || !settingsValues.needsToLookupSuggestions() ||
-            (selectionChangedOrSafeToReset && !mWordComposer.moveCursorByAndReturnIfInsideComposingWord(moveAmount))) {
-            resetEntireInputState(newSelStart, newSelEnd, false)
-            val wordBeingCorrected = mWordBeingCorrectedByCursor
-            if (!wordBeingCorrected.isNullOrEmpty()) {
-                performAdditionToUserHistoryDictionary(settingsValues, wordBeingCorrected, NgramContext.EMPTY_PREV_WORDS_INFO)
+            if (oldSelStart != newSelStart || oldSelEnd != newSelEnd) {
+                if (newSelStart != mLastExpandedCursorPosition) {
+                    mLastExpandedText = null
+                    mLastShortcutText = null
+                    mLastExpandedCursorPosition = -1
+                    mLastExpandedCursorOffset = -1
+                    mJustRevertedExpandedShortcut = null
+                }
             }
-        } else {
-            mConnection.resetCachesUponCursorMoveAndReturnSuccess(newSelStart, newSelEnd, false)
-        }
 
-        mRecapitalizeStatus.enable()
-        mLatinIME.mHandler.postResumeSuggestions(true)
-        mRecapitalizeStatus.stop()
-        mWordBeingCorrectedByCursor = null
-        return true
+            val selectionChangedOrSafeToReset = (oldSelStart != newSelStart || oldSelEnd != newSelEnd) || !mWordComposer.isComposingWord()
+            val hasOrHadSelection = (oldSelStart != oldSelEnd || newSelStart != newSelEnd)
+            val moveAmount = newSelStart - oldSelStart
+
+            if (hasOrHadSelection || !settingsValues.needsToLookupSuggestions() ||
+                (selectionChangedOrSafeToReset && !mWordComposer.moveCursorByAndReturnIfInsideComposingWord(moveAmount))) {
+                resetEntireInputState(newSelStart, newSelEnd, false)
+            } else {
+                mConnection.resetCachesUponCursorMoveAndReturnSuccess(newSelStart, newSelEnd, false)
+            }
+
+            mRecapitalizeStatus.enable()
+            mLatinIME.mHandler.postResumeSuggestions(true)
+            mRecapitalizeStatus.stop()
+            mWordBeingCorrectedByCursor = null
+            return true
+        } finally {
+            mIsProcessingSelectionUpdate = false
+        }
     }
 
     fun moveCursorByAndReturnIfInsideComposingWord(distance: Int): Boolean {
@@ -915,7 +919,7 @@ class InputLogic(
             val text = mConnection.textBeforeCursorUntilLastWhitespaceOrDoubleSlash()
             val range = TextRange(text, 0, text.length, text.length, false)
             isComposingWord = true
-            restartSuggestions(range)
+            restartSuggestions(range, settingsValues)
         }
 
         if (SpaceState.PHANTOM == inputTransaction.spaceState
@@ -1716,10 +1720,10 @@ class InputLogic(
             mConnection.finishComposingText()
             return
         }
-        restartSuggestions(range)
+        restartSuggestions(range, settingsValues)
     }
 
-    private fun restartSuggestions(range: TextRange) {
+    private fun restartSuggestions(range: TextRange, settingsValues: SettingsValues) {
         val numberOfCharsInWordBeforeCursor = range.getNumberOfCharsInWordBeforeCursor()
         val expectedCursorPosition = mConnection.expectedSelectionStart
         if (numberOfCharsInWordBeforeCursor > expectedCursorPosition) return
@@ -1750,7 +1754,9 @@ class InputLogic(
                 }
             }
         }
-        if (!TextUtils.isDigitsOnly(typedWordString)) {
+        val isWeb = InputTypeUtils.isWebEditText(settingsValues.mInputAttributes.mInputType)
+                || AppWorkarounds.isWebBrowser(settingsValues.mInputAttributes.mTargetApplicationPackageName)
+        if (!TextUtils.isDigitsOnly(typedWordString) && !isWeb) {
             val codePoints = StringUtils.toCodePointArray(typedWordString)
             mWordComposer.setComposingWord(codePoints, mLatinIME.getCoordinatesForCurrentKeyboard(codePoints))
             mWordComposer.setCursorPositionWithinWord(typedWordString.codePointCount(0, numberOfCharsInWordBeforeCursor))
@@ -1959,7 +1965,7 @@ class InputLogic(
         mConnection.resetCachesUponCursorMoveAndReturnSuccess(newSelStart, newSelEnd, shouldFinishComposition)
     }
 
-    private fun resetComposingState(alsoResetLastComposedWord: Boolean) {
+    internal fun resetComposingState(alsoResetLastComposedWord: Boolean) {
         mWordComposer.reset()
         if (alsoResetLastComposedWord) {
             mLastComposedWord = LastComposedWord.NOT_A_COMPOSED_WORD

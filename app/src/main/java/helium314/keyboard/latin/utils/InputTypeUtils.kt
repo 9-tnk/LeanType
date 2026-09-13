@@ -39,6 +39,14 @@ object InputTypeUtils {
         return maskedInputType == InputType.TYPE_TEXT_VARIATION_URI || isEmailVariation(maskedInputType)
     }
 
+    fun isWebEditText(inputType: Int): Boolean {
+        if ((inputType and InputType.TYPE_MASK_CLASS) != InputType.TYPE_CLASS_TEXT) return false
+        val variation = inputType and InputType.TYPE_MASK_VARIATION
+        return variation == InputType.TYPE_TEXT_VARIATION_WEB_EDIT_TEXT
+                || variation == InputType.TYPE_TEXT_VARIATION_WEB_EMAIL_ADDRESS
+                || variation == InputType.TYPE_TEXT_VARIATION_WEB_PASSWORD
+    }
+
     // Please refer to TextView.isPasswordInputType
     fun isPasswordInputType(inputType: Int): Boolean {
         val maskedInputType = inputType and (InputType.TYPE_MASK_CLASS or InputType.TYPE_MASK_VARIATION)

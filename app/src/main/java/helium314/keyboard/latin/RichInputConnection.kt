@@ -160,6 +160,10 @@ class RichInputConnection(private val mParent: InputMethodService) : PrivateComm
         newSelEnd: Int,
         shouldFinishComposition: Boolean
     ): Boolean {
+        if (isConnected() && shouldFinishComposition) {
+            mIC?.finishComposingText()
+        }
+
         mComposingText.setLength(0)
 
         mExpectedSelStart = newSelStart
@@ -178,10 +182,6 @@ class RichInputConnection(private val mParent: InputMethodService) : PrivateComm
                 "resetCachesUponCursorMove: tried to set $newSelStart/$newSelEnd, " +
                         "but input field has $mExpectedSelStart/$mExpectedSelEnd"
             )
-        }
-
-        if (isConnected() && shouldFinishComposition) {
-            mIC?.finishComposingText()
         }
 
         return true
@@ -418,6 +418,9 @@ class RichInputConnection(private val mParent: InputMethodService) : PrivateComm
             !checkTextBeforeCursorConsistency(result)
         ) {
             Log.w(TAG, "cached text out of sync, reloading")
+            if (mComposingText.isNotEmpty() && mParent is LatinIME) {
+                mParent.inputLogic.resetComposingState(true)
+            }
             reloadCursorPosition()
             reloadTextCache()
         }
@@ -1040,8 +1043,10 @@ class RichInputConnection(private val mParent: InputMethodService) : PrivateComm
         composingSpanEnd: Int
     ): Boolean {
         if (mExpectedSelStart == newSelStart && mExpectedSelEnd == newSelEnd) {
-            if (composingSpanEnd - composingSpanStart < mComposingText.length) {
-                return false
+            if (composingSpanStart >= 0 && composingSpanEnd >= 0) {
+                if (composingSpanEnd - composingSpanStart < mComposingText.length) {
+                    return false
+                }
             }
             return true
         }
