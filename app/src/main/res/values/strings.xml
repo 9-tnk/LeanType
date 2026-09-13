@@ -566,6 +566,7 @@
     <string name="download_failed">Download failed</string>
     <string name="installed">Installed</string>
     <string name="voice" tools:keep="@string/voice">Voice input</string>
+    <string name="voice_input_title">Voice Input</string>
     <string name="offline_voice_title">Offline Voice Input</string>
     <string name="pref_offline_voice_summary">Dictate text offline using local speech models</string>
     <string name="pref_voice_language_title">Voice Recognition Language</string>

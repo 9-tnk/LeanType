@@ -137,16 +137,20 @@ fun LibrariesHubScreen(
                             icon = R.drawable.ic_ocr
                         ) { if (isOcrSupported) NextScreenIcon() }
 
-                        // Offline Voice Input
+                        // Voice Input
+                        val isOnlineVoice = (BuildConfig.FLAVOR == "standard" || BuildConfig.FLAVOR == "standardfull") &&
+                            prefs.getBoolean(com.leanbitlab.leantype.voice.VoiceConstants.PREF_VOICE_ONLINE_ENABLED, false)
+                        val isOfflineVoice = prefs.getBoolean(com.leanbitlab.leantype.voice.VoiceConstants.PREF_VOICE_OFFLINE_ENABLED, false)
                         val voicePluginManager = remember { helium314.keyboard.latin.voice.VoicePluginManager(context) }
                         val voiceInstalled = voicePluginManager.isPluginInstalled()
-                        val voiceSummary = if (voiceInstalled) {
-                            stringResource(R.string.libraries_status_active)
-                        } else {
-                            stringResource(R.string.libraries_status_not_installed)
+                        val voiceSummary = when {
+                            isOnlineVoice -> "Online AI"
+                            isOfflineVoice && voiceInstalled -> stringResource(R.string.libraries_status_active)
+                            voiceInstalled -> "Installed"
+                            else -> stringResource(R.string.libraries_status_not_installed)
                         }
                         Preference(
-                            name = stringResource(R.string.offline_voice_title),
+                            name = stringResource(R.string.voice_input_title),
                             description = voiceSummary,
                             onClick = onClickOfflineVoice,
                             icon = R.drawable.sym_keyboard_voice_holo
