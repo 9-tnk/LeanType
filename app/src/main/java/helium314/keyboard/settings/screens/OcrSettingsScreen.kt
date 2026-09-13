@@ -7,18 +7,13 @@ import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -112,15 +107,11 @@ fun OcrSettingsScreen(
         title = stringResource(R.string.ocr_settings_title),
         settings = settings
     ) {
-        Scaffold(
-            contentWindowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom)
-        ) { innerPadding ->
-            Column(
-                Modifier
-                    .verticalScroll(rememberScrollState())
-                    .padding(innerPadding)
-                    .padding(vertical = 8.dp)
-            ) {
+        Column(
+            Modifier
+                .verticalScroll(rememberScrollState())
+                .padding(vertical = 8.dp)
+        ) {
                 // Plugin Management Card
                 Card(
                     modifier = Modifier
@@ -300,7 +291,6 @@ fun OcrSettingsScreen(
             }
         }
     }
-}
 
 fun createOcrSettings(context: Context): List<Setting> {
     val scriptOptions = listOf(

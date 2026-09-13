@@ -4,18 +4,13 @@ package helium314.keyboard.settings.screens
 import android.content.Context
 import android.media.AudioManager
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -74,15 +69,11 @@ fun SoundSettingsScreen(
         title = stringResource(R.string.sound_packs_title),
         settings = emptyList(),
     ) {
-        Scaffold(
-            contentWindowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom)
-        ) { innerPadding ->
-            Column(
-                Modifier
-                    .verticalScroll(rememberScrollState())
-                    .padding(innerPadding)
-                    .padding(vertical = 8.dp)
-            ) {
+        Column(
+            Modifier
+                .verticalScroll(rememberScrollState())
+                .padding(vertical = 8.dp)
+        ) {
                 // Section 1: Master Audio Configuration
                 Card(
                     modifier = Modifier
@@ -301,4 +292,3 @@ fun SoundSettingsScreen(
             }
         }
     }
-}

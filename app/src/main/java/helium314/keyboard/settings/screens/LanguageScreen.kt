@@ -47,15 +47,10 @@ import helium314.keyboard.settings.SettingsActivity
 import helium314.keyboard.settings.SettingsDestination
 import helium314.keyboard.settings.Theme
 import helium314.keyboard.settings.initPreview
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.WindowInsetsSides
-import androidx.compose.foundation.layout.only
-import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Scaffold
 import helium314.keyboard.settings.NextScreenIcon
 import helium314.keyboard.settings.SearchSettingsScreen
 import helium314.keyboard.settings.preferences.Preference
@@ -80,15 +75,11 @@ fun LanguageScreen(
         title = stringResource(R.string.language_and_layouts_title),
         settings = listOf(Settings.PREF_APP_LANGUAGE)
     ) {
-        Scaffold(
-            contentWindowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom)
-        ) { innerPadding ->
-            Column(
-                Modifier
-                    .verticalScroll(rememberScrollState())
-                    .padding(innerPadding)
-                    .padding(vertical = 8.dp)
-            ) {
+        Column(
+            Modifier
+                .verticalScroll(rememberScrollState())
+                .padding(vertical = 8.dp)
+        ) {
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -121,7 +112,6 @@ fun LanguageScreen(
             }
         }
     }
-}
 
 fun createLanguageSettings(context: Context) = listOf(
     Setting(context, Settings.PREF_APP_LANGUAGE, R.string.app_language_title, R.string.app_language_summary) {
