@@ -5,7 +5,7 @@
 <resources xmlns:android="http://schemas.android.com/apk/res/android">
     <!-- System theming colors for LXX_Light theme, overriding some colors in main colors.xml -->
     <color name="highlight_color_lxx_light">@android:color/system_accent1_500</color>
-    <color name="gesture_trail_color_lxx_light">@android:color/system_accent1_200</color>
+    <color name="gesture_trail_color_lxx_light">@android:color/system_accent1_600</color>
 
     <!-- System theming colors for LXX_Dark theme, overriding some colors in main colors.xml -->
     <color name="highlight_color_lxx_dark">@android:color/system_accent1_500</color>

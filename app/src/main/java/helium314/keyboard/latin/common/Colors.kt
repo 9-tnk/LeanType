@@ -120,7 +120,7 @@ class DynamicColors(context: Context, override val themeStyle: String, override 
         context.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK == Configuration.UI_MODE_NIGHT_YES
 
     private fun getAccent(context: Context) = if (isNight(context)) ContextCompat.getColor(context, android.R.color.system_accent1_100)
-        else ContextCompat.getColor(context, android.R.color.system_accent1_200)
+        else ContextCompat.getColor(context, android.R.color.system_accent1_600)
     private fun getGesture(context: Context) = if (isNight(context)) accent
         else ContextCompat.getColor(context, android.R.color.system_accent1_600)
     private fun getBackground(context: Context) = if (isNight(context)) ContextCompat.getColor(context, android.R.color.system_neutral1_900)
@@ -207,7 +207,7 @@ class DynamicColors(context: Context, override val themeStyle: String, override 
     private var backgroundSetupDone = false
 
     init {
-        accentColorFilter = colorFilter(doubleAdjustedAccent)
+        accentColorFilter = if (!isNight) colorFilter(accent) else colorFilter(doubleAdjustedAccent)
 
         if (themeStyle == STYLE_HOLO && keyboardBackground == null) {
             val darkerBackground = adjustLuminosityAndKeepAlpha(background, -0.2f)
@@ -264,7 +264,7 @@ class DynamicColors(context: Context, override val themeStyle: String, override 
                 else pressedStateList(functionalKey, doubleAdjustedKeyBackground)
 
             actionKeyStateList =
-                if (!isNight) pressedStateList(gesture, accent)
+                if (!isNight) pressedStateList(brightenOrDarken(accent, true), accent)
                 else pressedStateList(doubleAdjustedAccent, accent)
 
             spaceBarStateList =
@@ -287,7 +287,7 @@ class DynamicColors(context: Context, override val themeStyle: String, override 
 
             actionKeyStateList =
                 if (themeStyle == STYLE_HOLO) pressedStateList(accent, Color.TRANSPARENT)
-                else if (!isNight) pressedStateList(gesture, accent)
+                else if (!isNight) pressedStateList(brightenOrDarken(accent, true), accent)
                 else pressedStateList(doubleAdjustedAccent, accent)
 
             val borderlessSpaceBar = androidx.core.graphics.ColorUtils.blendARGB(background, keyBackground, 0.45f)
@@ -311,7 +311,7 @@ class DynamicColors(context: Context, override val themeStyle: String, override 
         TOOL_BAR_KEY_ENABLED_BACKGROUND, EMOJI_CATEGORY_SELECTED, ACTION_KEY_BACKGROUND,
         CLIPBOARD_PIN, SHIFT_KEY_ICON -> accent
         AUTOFILL_BACKGROUND_CHIP, GESTURE_PREVIEW, POPUP_KEYS_BACKGROUND, MORE_SUGGESTIONS_BACKGROUND, KEY_PREVIEW_BACKGROUND -> adjustedBackground
-        TOOL_BAR_EXPAND_KEY_BACKGROUND -> if (!isNight) accent else doubleAdjustedBackground
+        TOOL_BAR_EXPAND_KEY_BACKGROUND -> doubleAdjustedBackground
         GESTURE_TRAIL -> gesture
         KEY_TEXT, SUGGESTION_AUTO_CORRECT, REMOVE_SUGGESTION_ICON, EMOJI_KEY_TEXT, KEY_PREVIEW_TEXT,
             KEY_ICON, ONE_HANDED_MODE_BUTTON, EMOJI_CATEGORY, TOOL_BAR_KEY, FUNCTIONAL_KEY_TEXT,
