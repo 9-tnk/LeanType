@@ -770,6 +770,68 @@ fun createAdvancedSettings(context: Context) = listOfNotNull(
             )
         }
     },
+    Setting(context, SettingsWithoutKey.VOICE_GEMINI_MODEL, R.string.voice_model_title, R.string.voice_model_summary) { setting ->
+        val ctx = LocalContext.current
+        val service = remember { helium314.keyboard.latin.utils.ProofreadService(ctx) }
+        var items by remember { mutableStateOf(listOf("Default (gemini-2.0-flash)" to "") + listOf("gemini-2.0-flash", "gemini-2.5-flash", "gemini-flash-latest", "gemini-1.5-flash").map { it to it }) }
+        var selectedModel by remember { mutableStateOf(service.getVoiceGeminiModel()) }
+
+        LaunchedEffect(Unit) {
+            val models = service.fetchAvailableVoiceModels(helium314.keyboard.latin.utils.ProofreadService.AIProvider.GEMINI)
+            items = listOf("Default (gemini-2.0-flash)" to "") + models.map { it to it }
+        }
+
+        ListPreference(
+            setting = setting,
+            items = items,
+            default = selectedModel,
+            onChanged = { newModel ->
+                service.setVoiceGeminiModel(newModel)
+                selectedModel = newModel
+            }
+        )
+    },
+    Setting(context, SettingsWithoutKey.VOICE_GROQ_MODEL, R.string.voice_model_title, R.string.voice_model_summary) { setting ->
+        val ctx = LocalContext.current
+        val service = remember { helium314.keyboard.latin.utils.ProofreadService(ctx) }
+        var items by remember { mutableStateOf(listOf("Default (whisper-large-v3-turbo)" to "") + helium314.keyboard.latin.utils.GroqModels.VOICE_MODELS.map { it to it }) }
+        var selectedModel by remember { mutableStateOf(service.getVoiceGroqModel()) }
+
+        LaunchedEffect(Unit) {
+            val models = service.fetchAvailableVoiceModels(helium314.keyboard.latin.utils.ProofreadService.AIProvider.GROQ)
+            items = listOf("Default (whisper-large-v3-turbo)" to "") + models.map { it to it }
+        }
+
+        ListPreference(
+            setting = setting,
+            items = items,
+            default = selectedModel,
+            onChanged = { newModel ->
+                service.setVoiceGroqModel(newModel)
+                selectedModel = newModel
+            }
+        )
+    },
+    Setting(context, SettingsWithoutKey.VOICE_HUGGINGFACE_MODEL, R.string.voice_model_title, R.string.voice_model_summary) { setting ->
+        var showDialog by rememberSaveable { mutableStateOf(false) }
+        val ctx = LocalContext.current
+        val service = remember { helium314.keyboard.latin.utils.ProofreadService(ctx) }
+        val currentModel = service.getVoiceHuggingFaceModel().ifBlank { "Default (whisper-1)" }
+        Preference(
+            name = setting.title,
+            description = currentModel,
+            onClick = { showDialog = true }
+        )
+        if (showDialog) {
+            TextInputDialog(
+                onDismissRequest = { showDialog = false },
+                textInputLabel = { Text("model-name") },
+                initialText = service.getVoiceHuggingFaceModel(),
+                onConfirmed = { service.setVoiceHuggingFaceModel(it) },
+                title = { Text(stringResource(R.string.voice_model_title)) }
+            )
+        }
+    },
     if (BuildConfig.FLAVOR == "standard" || BuildConfig.FLAVOR == "standardfull" || BuildConfig.FLAVOR == "offline") Setting(context, SettingsWithoutKey.CUSTOM_AI_KEYS, R.string.custom_ai_keys_title, R.string.custom_ai_keys_summary) {
         Preference(
             name = it.title,

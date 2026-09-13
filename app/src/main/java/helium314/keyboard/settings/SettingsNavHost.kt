@@ -193,7 +193,10 @@ fun SettingsNavHost(
             helium314.keyboard.settings.screens.BackgroundServicesScreen(onClickBack = ::goBack)
         }
         composable(SettingsDestination.OfflineVoice) {
-            helium314.keyboard.latin.voice.VoiceSettingsScreen(onClickBack = ::goBack)
+            helium314.keyboard.latin.voice.VoiceSettingsScreen(
+                onClickBack = ::goBack,
+                onClickAIIntegration = { navController.navigate(SettingsDestination.AIIntegration) }
+            )
         }
         composable(SettingsDestination.Translation) {
             helium314.keyboard.settings.screens.TranslationSettingsScreen(onClickBack = ::goBack)

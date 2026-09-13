@@ -691,7 +691,7 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
     override fun onSharedPreferenceChanged(prefs: SharedPreferences, key: String?) {
         setToolbarButtonsActivatedStateOnPrefChange(pinnedKeys, key)
         setToolbarButtonsActivatedStateOnPrefChange(toolbar, key)
-        if (key == VoiceConstants.PREF_VOICE_OFFLINE_ENABLED) {
+        if (key == VoiceConstants.PREF_VOICE_OFFLINE_ENABLED || key == VoiceConstants.PREF_VOICE_ONLINE_ENABLED) {
             updateVoiceKey()
         }
         if (key == Settings.PREF_PINNED_TOOLBAR_KEYS 

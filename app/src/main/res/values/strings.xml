@@ -581,6 +581,8 @@
     <string name="voice_status_processing">Processing…</string>
     <string name="voice_action_done">Done</string>
     <string name="voice_action_cancel">Cancel</string>
+    <string name="online_voice_title">Online Voice-to-Text</string>
+    <string name="pref_online_voice_summary">Dictate text online using your configured AI provider and voice model</string>
 
     <string name="numpad" tools:keep="@string/numpad" translatable="false">@string/layout_numpad</string>
     <string name="settings" tools:keep="@string/settings">Settings</string>
@@ -670,6 +672,7 @@
     <string name="config_groq_models_endpoint" translatable="false">https://api.groq.com/openai/v1/models</string>
     <string name="config_default_hf_endpoint" translatable="false">https://api.openai.com/v1/chat/completions</string>
     <string name="config_groq_chat_endpoint" translatable="false">https://api.groq.com/openai/v1/chat/completions</string>
+    <string name="config_groq_audio_transcriptions_endpoint" translatable="false">https://api.groq.com/openai/v1/audio/transcriptions</string>
     <string name="offline_keep_model_loaded_title">Keep model loaded</string>
     <string name="offline_keep_model_loaded_summary">Keep the offline AI model in memory to avoid reloading delay (uses more RAM)</string>
     <!-- Translation feature strings -->
@@ -682,6 +685,8 @@
     <string name="translate_target_language_summary">Select the language to translate to</string>
     <string name="translate_model_title">Translation Model</string>
     <string name="translate_model_summary">Select the AI model for translation. Leave empty to use proofreading model.</string>
+    <string name="voice_model_title">Voice Model</string>
+    <string name="voice_model_summary">Select the AI model for voice transcription</string>
     
     <string name="plugins_title">Plugins</string>
     <string name="translation_settings_title">Translation</string>

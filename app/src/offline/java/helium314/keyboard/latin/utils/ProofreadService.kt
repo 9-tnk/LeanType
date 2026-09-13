@@ -139,6 +139,7 @@ class ProofreadService(private val context: Context) {
     fun setProvider(provider: AIProvider) { /* No-op */ }
 
     suspend fun fetchAvailableModels(provider: AIProvider): List<String> = emptyList()
+    suspend fun fetchAvailableVoiceModels(provider: AIProvider): List<String> = emptyList()
 
     // API-compatible methods
     fun getApiKey(): String? = null
@@ -262,6 +263,18 @@ class ProofreadService(private val context: Context) {
 
     fun getTranslateGroqModel(): String = ""
     fun setTranslateGroqModel(modelName: String) { /* No-op */ }
+
+    fun getVoiceGeminiModel(): String = ""
+    fun setVoiceGeminiModel(modelName: String) { /* No-op */ }
+
+    fun getVoiceGroqModel(): String = ""
+    fun setVoiceGroqModel(modelName: String) { /* No-op */ }
+
+    fun getVoiceHuggingFaceModel(): String = ""
+    fun setVoiceHuggingFaceModel(modelName: String) { /* No-op */ }
+
+    suspend fun transcribeAudio(audioBytes: ByteArray, language: String? = null): Result<String> =
+        Result.failure(Exception("Online voice transcription is not supported in offline flavor"))
 
     fun unloadModel() {
         ModelHolder.unloadModel()
@@ -576,5 +589,7 @@ class ProofreadService(private val context: Context) {
         private const val KEY_DECODER_PATH = "offline_decoder_path"
         private const val KEY_TOKENIZER_PATH = "offline_tokenizer_path"
         val AVAILABLE_MODELS = listOf("GGUF Model (Local)")
+        const val DEFAULT_VOICE_GEMINI_MODEL = "gemini-2.0-flash"
+        const val DEFAULT_VOICE_HF_MODEL = "whisper-1"
     }
 }

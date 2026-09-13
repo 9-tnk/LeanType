@@ -1047,13 +1047,14 @@ class LatinIME : InputMethodService(),
         if (event.keyCode == KeyCode.SWITCH_TO_USER_IME) { switchToUserIme(); return }
         if (event.keyCode == KeyCode.VOICE_INPUT) {
             val offlineEnabled = prefs().getBoolean(VoiceConstants.PREF_VOICE_OFFLINE_ENABLED, false)
-            if (offlineEnabled) {
+            val onlineEnabled = prefs().getBoolean(VoiceConstants.PREF_VOICE_ONLINE_ENABLED, false)
+            if (offlineEnabled || onlineEnabled) {
                 if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
                     voiceInputManager?.let { vim ->
                         if (vim.isRecording()) vim.stopVoice() else vim.startVoice()
                     }
                 } else {
-                    Toast.makeText(this, "Microphone permission required for offline voice input. Enable in Settings -> Voice", Toast.LENGTH_LONG).show()
+                    Toast.makeText(this, "Microphone permission required for voice input. Enable in Settings -> Voice", Toast.LENGTH_LONG).show()
                 }
             } else {
                 richImm.switchToShortcutIme(this)

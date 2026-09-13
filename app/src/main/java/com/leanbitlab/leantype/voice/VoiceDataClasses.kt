@@ -72,6 +72,7 @@ object VoiceConstants {
     const val VOICE_ERROR_UNKNOWN = 1008
 
     const val PREF_VOICE_OFFLINE_ENABLED = "voice_offline_enabled"
+    const val PREF_VOICE_ONLINE_ENABLED = "voice_online_enabled"
     const val PREF_VOICE_MODE = "voice_mode"
     const val PREF_VOICE_HYBRID_TIMEOUT_MS = "voice_hybrid_timeout_ms"
     const val PREF_VOICE_HYBRID_FALLBACK = "voice_hybrid_fallback"

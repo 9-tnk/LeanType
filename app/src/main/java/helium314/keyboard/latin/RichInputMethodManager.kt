@@ -60,12 +60,17 @@ class RichInputMethodManager private constructor() {
 
     private var shortcuts = listOf<Shortcut>()
 
-    val isOfflineVoiceEnabled: Boolean
+    val isVoiceInputEnabled: Boolean
         get() = if (this::context.isInitialized) {
-            context.prefs().getBoolean(VoiceConstants.PREF_VOICE_OFFLINE_ENABLED, false)
+            val p = context.prefs()
+            p.getBoolean(VoiceConstants.PREF_VOICE_OFFLINE_ENABLED, false) ||
+            p.getBoolean(VoiceConstants.PREF_VOICE_ONLINE_ENABLED, false)
         } else false
 
-    val isShortcutImeReady get() = shortcuts.isNotEmpty() || isOfflineVoiceEnabled
+    val isOfflineVoiceEnabled: Boolean
+        get() = isVoiceInputEnabled
+
+    val isShortcutImeReady get() = shortcuts.isNotEmpty() || isVoiceInputEnabled
 
     fun getEnabledInputMethodSubtypes(imi: InputMethodInfo, allowsImplicitlySelectedSubtypes: Boolean) =
         inputMethodInfoCache.getEnabledInputMethodSubtypeList(imi, allowsImplicitlySelectedSubtypes)

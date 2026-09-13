@@ -30,6 +30,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -82,7 +83,8 @@ import java.net.URL
 
 @Composable
 fun VoiceSettingsScreen(
-    onClickBack: () -> Unit
+    onClickBack: () -> Unit,
+    onClickAIIntegration: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -371,6 +373,8 @@ fun VoiceSettingsScreen(
         }
     }
 
+    val isOnlineFlavor = BuildConfig.FLAVOR == "standard" || BuildConfig.FLAVOR == "standardfull"
+
     val offlineEnabledSetting = remember {
         Setting(
             key = VoiceConstants.PREF_VOICE_OFFLINE_ENABLED,
@@ -380,7 +384,31 @@ fun VoiceSettingsScreen(
             SwitchPreference(
                 setting = it,
                 default = false,
-                icon = R.drawable.sym_keyboard_voice_holo
+                icon = R.drawable.sym_keyboard_voice_holo,
+                onCheckedChange = { checked ->
+                    if (checked && isOnlineFlavor) {
+                        prefs.edit().putBoolean(VoiceConstants.PREF_VOICE_ONLINE_ENABLED, false).apply()
+                    }
+                }
+            )
+        }
+    }
+
+    val onlineEnabledSetting = remember {
+        Setting(
+            key = VoiceConstants.PREF_VOICE_ONLINE_ENABLED,
+            title = context.getString(R.string.online_voice_title),
+            description = context.getString(R.string.pref_online_voice_summary)
+        ) {
+            SwitchPreference(
+                setting = it,
+                default = false,
+                icon = R.drawable.sym_keyboard_voice_holo,
+                onCheckedChange = { checked ->
+                    if (checked) {
+                        prefs.edit().putBoolean(VoiceConstants.PREF_VOICE_OFFLINE_ENABLED, false).apply()
+                    }
+                }
             )
         }
     }
@@ -663,7 +691,7 @@ fun VoiceSettingsScreen(
                     )
                 ) {
                     Column {
-                        PreferenceCategory("Plugin Management")
+                        PreferenceCategory("Offline Voice (Plugin)")
 
                         offlineEnabledSetting.Preference()
 
@@ -682,6 +710,40 @@ fun VoiceSettingsScreen(
                             icon = R.drawable.sym_keyboard_voice_holo,
                             onClick = { showVoicePluginDialog = true }
                         )
+                    }
+                }
+
+                if (isOnlineFlavor) {
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 6.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceContainer
+                        )
+                    ) {
+                        Column {
+                            PreferenceCategory(stringResource(R.string.online_voice_title))
+
+                            onlineEnabledSetting.Preference()
+
+                            val service = remember { helium314.keyboard.latin.utils.ProofreadService(context) }
+                            val provider = service.getProvider()
+                            val voiceModelName = when (provider) {
+                                helium314.keyboard.latin.utils.ProofreadService.AIProvider.GROQ ->
+                                    service.getVoiceGroqModel().ifBlank { helium314.keyboard.latin.utils.GroqModels.DEFAULT_VOICE_MODEL }
+                                helium314.keyboard.latin.utils.ProofreadService.AIProvider.GEMINI ->
+                                    service.getVoiceGeminiModel().ifBlank { helium314.keyboard.latin.utils.ProofreadService.DEFAULT_VOICE_GEMINI_MODEL }
+                                helium314.keyboard.latin.utils.ProofreadService.AIProvider.OPENAI ->
+                                    service.getVoiceHuggingFaceModel().ifBlank { helium314.keyboard.latin.utils.ProofreadService.DEFAULT_VOICE_HF_MODEL }
+                            }
+                            Preference(
+                                name = "AI Provider & Voice Model",
+                                description = "${provider.name} • $voiceModelName",
+                                icon = R.drawable.ic_proofread,
+                                onClick = onClickAIIntegration
+                            )
+                        }
                     }
                 }
 

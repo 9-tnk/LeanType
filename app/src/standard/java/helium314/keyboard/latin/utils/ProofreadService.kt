@@ -16,6 +16,10 @@ import com.google.ai.client.generativeai.type.generationConfig
 import com.google.ai.client.generativeai.type.BlockThreshold
 import com.google.ai.client.generativeai.type.HarmCategory
 import com.google.ai.client.generativeai.type.SafetySetting
+import com.google.ai.client.generativeai.type.Content
+import com.google.ai.client.generativeai.type.BlobPart
+import com.google.ai.client.generativeai.type.TextPart
+import com.leanbitlab.leantype.voice.VoiceConstants
 import helium314.keyboard.keyboard.KeyboardSwitcher
 import helium314.keyboard.latin.R
 import kotlinx.coroutines.Dispatchers
@@ -99,6 +103,28 @@ class ProofreadService(private val context: Context) {
             AIProvider.GEMINI -> fetchGeminiModels()
             AIProvider.GROQ -> fetchGroqModels()
             else -> emptyList()
+        }
+    }
+
+    suspend fun fetchAvailableVoiceModels(provider: AIProvider): List<String> = withContext(Dispatchers.IO) {
+        when (provider) {
+            AIProvider.GEMINI -> {
+                val all = fetchGeminiModels()
+                val voice = all.filter {
+                    it.contains("flash", ignoreCase = true) ||
+                    it.contains("gemini-2", ignoreCase = true) ||
+                    it.contains("gemini-1.5", ignoreCase = true)
+                }
+                voice.ifEmpty { listOf(DEFAULT_VOICE_GEMINI_MODEL, "gemini-2.5-flash", "gemini-flash-latest", "gemini-1.5-flash") }
+            }
+            AIProvider.GROQ -> {
+                val all = fetchGroqModels()
+                val voice = all.filter { it.contains("whisper", ignoreCase = true) }
+                voice.ifEmpty { GroqModels.VOICE_MODELS }
+            }
+            AIProvider.OPENAI -> {
+                listOf(DEFAULT_VOICE_HF_MODEL)
+            }
         }
     }
 
@@ -194,6 +220,12 @@ class ProofreadService(private val context: Context) {
         securePrefs.edit().putString(KEY_TRANSLATE_MODEL_NAME, modelName).apply()
     }
 
+    fun getVoiceGeminiModel(): String = securePrefs.getString(KEY_VOICE_GEMINI_MODEL, DEFAULT_VOICE_GEMINI_MODEL) ?: DEFAULT_VOICE_GEMINI_MODEL
+
+    fun setVoiceGeminiModel(modelName: String) {
+        securePrefs.edit().putString(KEY_VOICE_GEMINI_MODEL, modelName.trim()).apply()
+    }
+
     // Target language
     fun getTargetLanguage(): String {
         val lang = securePrefs.getString(KEY_TARGET_LANGUAGE, DEFAULT_TARGET_LANGUAGE) ?: DEFAULT_TARGET_LANGUAGE
@@ -229,6 +261,23 @@ class ProofreadService(private val context: Context) {
 
     fun setTranslateHuggingFaceModel(model: String) {
         securePrefs.edit().putString(KEY_TRANSLATE_HF_MODEL, model.trim()).apply()
+    }
+
+    fun getVoiceHuggingFaceModel(): String = securePrefs.getString(KEY_VOICE_HF_MODEL, DEFAULT_VOICE_HF_MODEL) ?: DEFAULT_VOICE_HF_MODEL
+
+    fun setVoiceHuggingFaceModel(model: String) {
+        securePrefs.edit().putString(KEY_VOICE_HF_MODEL, model.trim()).apply()
+    }
+
+    fun getHuggingFaceAudioEndpoint(): String {
+        val endpoint = getHuggingFaceEndpoint()
+        return if (endpoint.contains("/chat/completions")) {
+            endpoint.replace("/chat/completions", "/audio/transcriptions")
+        } else if (endpoint.endsWith("/v1") || endpoint.endsWith("/v1/")) {
+            endpoint.trimEnd('/') + "/audio/transcriptions"
+        } else {
+            "https://api.openai.com/v1/audio/transcriptions"
+        }
     }
 
     // HuggingFace API endpoint
@@ -476,6 +525,12 @@ class ProofreadService(private val context: Context) {
         securePrefs.edit().putString(KEY_TRANSLATE_GROQ_MODEL, model.trim()).apply()
     }
 
+    fun getVoiceGroqModel(): String = securePrefs.getString(KEY_VOICE_GROQ_MODEL, GroqModels.DEFAULT_VOICE_MODEL) ?: GroqModels.DEFAULT_VOICE_MODEL
+
+    fun setVoiceGroqModel(model: String) {
+        securePrefs.edit().putString(KEY_VOICE_GROQ_MODEL, model.trim()).apply()
+    }
+
     // ======================== HuggingFace/Groq Implementation ========================
 
     private fun huggingFaceRequest(prompt: String, showThinking: Boolean = false, isTranslate: Boolean = false): Result<String> {
@@ -676,6 +731,186 @@ class ProofreadService(private val context: Context) {
         return result.map { cleanTranslationOutput(text, it) }
     }
 
+    // ======================== Voice Audio Transcription ========================
+
+    suspend fun transcribeAudio(audioBytes: ByteArray, language: String? = null): Result<String> = withContext(Dispatchers.IO) {
+        when (getProvider()) {
+            AIProvider.GEMINI -> geminiTranscribe(audioBytes, language)
+            AIProvider.GROQ -> groqTranscribe(audioBytes, language)
+            AIProvider.OPENAI -> openAiTranscribe(audioBytes, language)
+        }
+    }
+
+    private suspend fun geminiTranscribe(audioBytes: ByteArray, language: String?): Result<String> {
+        val apiKey = getApiKey()
+        if (apiKey.isNullOrBlank()) {
+            return Result.failure(ProofreadException(context.getString(R.string.proofread_no_api_key)))
+        }
+        return try {
+            val modelName = getVoiceGeminiModel().ifBlank { DEFAULT_VOICE_GEMINI_MODEL }
+            val model = GenerativeModel(
+                modelName = modelName,
+                apiKey = apiKey,
+                generationConfig = generationConfig {
+                    temperature = 0.1f
+                    topK = 1
+                    topP = 0.95f
+                    maxOutputTokens = 2048
+                },
+                safetySettings = listOf(
+                    SafetySetting(HarmCategory.HARASSMENT, BlockThreshold.NONE),
+                    SafetySetting(HarmCategory.HATE_SPEECH, BlockThreshold.NONE),
+                    SafetySetting(HarmCategory.SEXUALLY_EXPLICIT, BlockThreshold.NONE),
+                    SafetySetting(HarmCategory.DANGEROUS_CONTENT, BlockThreshold.NONE)
+                )
+            )
+
+            val customPrompt = context.prefs().getString(VoiceConstants.PREF_VOICE_CUSTOM_PROMPT, "")?.trim()
+            val basePrompt = if (language.isNullOrBlank() || language == "auto" || language == VoiceConstants.VOICE_LANG_FOLLOW_KEYBOARD) {
+                "Generate a precise transcript of the speech in this audio. Output only the verbatim transcription, with proper punctuation and capitalization, and nothing else. Do not explain, describe background sounds, or summarize."
+            } else {
+                "Generate a precise transcript of the speech in this audio in language '$language'. Output only the verbatim transcription, with proper punctuation and capitalization, and nothing else. Do not explain, describe background sounds, or summarize."
+            }
+            val prompt = if (!customPrompt.isNullOrBlank()) "$basePrompt\nVocabulary hints: $customPrompt" else basePrompt
+
+            val inputContent = Content(
+                role = "user",
+                parts = listOf(
+                    BlobPart("audio/wav", audioBytes),
+                    TextPart(prompt)
+                )
+            )
+
+            val response = model.generateContent(inputContent)
+            val text = response.text?.trim()?.removeSurrounding("\"")?.trim()
+            if (text.isNullOrBlank()) {
+                Result.failure(ProofreadException("Empty transcription received from Gemini"))
+            } else {
+                Result.success(text)
+            }
+        } catch (e: Exception) {
+            Log.e("ProofreadService", "Gemini audio transcription failed", e)
+            Result.failure(ProofreadException("Gemini transcription failed: ${e.message}"))
+        }
+    }
+
+    private fun groqTranscribe(audioBytes: ByteArray, language: String?): Result<String> {
+        val token = getGroqToken()
+        if (token.isNullOrBlank()) {
+            return Result.failure(ProofreadException(context.getString(R.string.huggingface_no_token)))
+        }
+        val model = getVoiceGroqModel().ifBlank { GroqModels.DEFAULT_VOICE_MODEL }
+        val endpoint = context.getString(R.string.config_groq_audio_transcriptions_endpoint)
+        val prompt = context.prefs().getString(VoiceConstants.PREF_VOICE_CUSTOM_PROMPT, "")?.trim()
+        return uploadAudioMultipart(endpoint, token, model, audioBytes, language, prompt)
+    }
+
+    private fun openAiTranscribe(audioBytes: ByteArray, language: String?): Result<String> {
+        val token = getHuggingFaceToken()
+        if (token.isNullOrBlank()) {
+            return Result.failure(ProofreadException(context.getString(R.string.huggingface_no_token)))
+        }
+        val model = getVoiceHuggingFaceModel().ifBlank { DEFAULT_VOICE_HF_MODEL }
+        val endpoint = getHuggingFaceAudioEndpoint()
+        val prompt = context.prefs().getString(VoiceConstants.PREF_VOICE_CUSTOM_PROMPT, "")?.trim()
+        return uploadAudioMultipart(endpoint, token, model, audioBytes, language, prompt)
+    }
+
+    private fun uploadAudioMultipart(
+        endpoint: String,
+        token: String,
+        modelName: String,
+        audioBytes: ByteArray,
+        language: String? = null,
+        prompt: String? = null
+    ): Result<String> {
+        val boundary = "==Boundary_${System.currentTimeMillis()}=="
+        val lineEnd = "\r\n"
+        val twoHyphens = "--"
+
+        val isHttp = endpoint.startsWith("http://", ignoreCase = true)
+        val allowInsecure = isAllowInsecureConnections()
+        if (isHttp && !allowInsecure) {
+            return Result.failure(ProofreadException(context.getString(R.string.insecure_connection_blocked)))
+        }
+
+        val url = URL(endpoint)
+        val connection = url.openConnection() as HttpURLConnection
+        if (allowInsecure && connection is javax.net.ssl.HttpsURLConnection) {
+            bypassSSLVerification(connection)
+        }
+
+        return try {
+            connection.connectTimeout = 15000
+            connection.readTimeout = 30000
+            connection.doInput = true
+            connection.doOutput = true
+            connection.useCaches = false
+            connection.requestMethod = "POST"
+            connection.setRequestProperty("Connection", "Keep-Alive")
+            connection.setRequestProperty("User-Agent", "LeanType/1.0")
+            connection.setRequestProperty("Authorization", "Bearer $token")
+            connection.setRequestProperty("Content-Type", "multipart/form-data; boundary=$boundary")
+
+            connection.outputStream.use { os ->
+                fun writeFormField(fieldName: String, value: String) {
+                    os.write((twoHyphens + boundary + lineEnd).toByteArray(Charsets.UTF_8))
+                    os.write(("Content-Disposition: form-data; name=\"$fieldName\"$lineEnd$lineEnd").toByteArray(Charsets.UTF_8))
+                    os.write(value.toByteArray(Charsets.UTF_8))
+                    os.write(lineEnd.toByteArray(Charsets.UTF_8))
+                }
+
+                writeFormField("model", modelName)
+                writeFormField("response_format", "json")
+
+                if (!language.isNullOrBlank() && language != "auto" && language != VoiceConstants.VOICE_LANG_FOLLOW_KEYBOARD) {
+                    val langCode = language.substringBefore('-').lowercase()
+                    writeFormField("language", langCode)
+                }
+
+                if (!prompt.isNullOrBlank()) {
+                    writeFormField("prompt", prompt)
+                }
+
+                os.write((twoHyphens + boundary + lineEnd).toByteArray(Charsets.UTF_8))
+                os.write(("Content-Disposition: form-data; name=\"file\"; filename=\"audio.wav\"$lineEnd").toByteArray(Charsets.UTF_8))
+                os.write(("Content-Type: audio/wav$lineEnd$lineEnd").toByteArray(Charsets.UTF_8))
+                os.write(audioBytes)
+                os.write(lineEnd.toByteArray(Charsets.UTF_8))
+
+                os.write((twoHyphens + boundary + twoHyphens + lineEnd).toByteArray(Charsets.UTF_8))
+                os.flush()
+            }
+
+            val responseCode = connection.responseCode
+            val stream = if (responseCode in 200..299) connection.inputStream else connection.errorStream
+            val responseText = stream?.bufferedReader()?.use { it.readText() }.orEmpty()
+
+            if (responseCode !in 200..299) {
+                val errorMsg = try {
+                    val errJson = JSONObject(responseText)
+                    errJson.optJSONObject("error")?.optString("message") ?: responseText
+                } catch (_: Exception) {
+                    responseText.ifBlank { "HTTP $responseCode" }
+                }
+                return Result.failure(ProofreadException("Transcription failed ($responseCode): $errorMsg"))
+            }
+
+            val json = JSONObject(responseText)
+            val text = json.optString("text")
+            if (text.isNotBlank()) {
+                Result.success(text.trim())
+            } else {
+                Result.failure(ProofreadException("Empty transcription received"))
+            }
+        } catch (e: Exception) {
+            Log.e("ProofreadService", "Audio transcription request failed", e)
+            Result.failure(e)
+        } finally {
+            connection.disconnect()
+        }
+    }
+
     class ProofreadException(message: String) : Exception(message)
     class TranslateException(message: String) : Exception(message)
 
@@ -693,8 +928,13 @@ class ProofreadService(private val context: Context) {
         private const val KEY_GROQ_TOKEN = "groq_token"
         private const val KEY_GROQ_MODEL = "groq_model"
         private const val KEY_TRANSLATE_GROQ_MODEL = "translate_groq_model"
+        private const val KEY_VOICE_GROQ_MODEL = "voice_groq_model"
+        private const val KEY_VOICE_GEMINI_MODEL = "voice_gemini_model"
+        private const val KEY_VOICE_HF_MODEL = "voice_huggingface_model"
         private const val DEFAULT_TARGET_LANGUAGE = "en"
         private const val DEFAULT_HF_MODEL = "gpt-4o-mini"
+        const val DEFAULT_VOICE_GEMINI_MODEL = "gemini-2.0-flash"
+        const val DEFAULT_VOICE_HF_MODEL = "whisper-1"
         
         val AVAILABLE_MODELS = listOf(
             "gemini-2.5-flash",
