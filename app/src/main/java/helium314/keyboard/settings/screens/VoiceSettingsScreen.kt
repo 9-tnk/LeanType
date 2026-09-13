@@ -54,11 +54,6 @@ import com.leanbitlab.leantype.voice.VoiceEngineInfo
 import helium314.keyboard.latin.BuildConfig
 import helium314.keyboard.latin.R
 import helium314.keyboard.latin.common.Links
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.WindowInsetsSides
-import androidx.compose.foundation.layout.only
-import androidx.compose.foundation.layout.safeDrawing
-import androidx.compose.material3.Scaffold
 import helium314.keyboard.settings.preferences.PreferenceCategory
 import helium314.keyboard.latin.utils.Log
 import helium314.keyboard.latin.utils.prefs
@@ -678,16 +673,12 @@ fun VoiceSettingsScreen(
         title = context.getString(R.string.voice_input_title),
         settings = emptyList()
     ) {
-        Scaffold(
-            contentWindowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom)
-        ) { innerPadding ->
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(innerPadding)
-                    .verticalScroll(rememberScrollState())
-                    .padding(vertical = 8.dp)
-            ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
+                .padding(vertical = 8.dp)
+        ) {
                 // Card 1: Offline Voice (Plugin)
                 Card(
                     modifier = Modifier
@@ -877,10 +868,11 @@ fun VoiceSettingsScreen(
                         }
                     }
                 }
+
+                Spacer(modifier = Modifier.height(16.dp))
             }
         }
     }
-}
 
 private val WHISPER_LANGUAGE_CODES = arrayOf(
     "af", "am", "ar", "as", "az", "ba", "be", "bg", "bn", "bo", "br", "bs", "ca", "cs", "cy", "da",
