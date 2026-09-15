@@ -1,0 +1,5 @@
+- Web Typing Fixes: Resolved contenteditable duplication, cursor jump, and stutter bugs in browsers.
+- Online AI Voice Input: Optional cloud speech-to-text (Groq, Gemini, OpenAI) in standard flavor.
+- Procedural Soft Sound Packs: Added 6 new custom sound packs including restored Soft Pudding (Synth).
+- Shift & Caps Lock Icons: Distinct arrow icons for unshifted, shifted, and locked states.
+- UI Polish: Instant clipboard paste suggestions, action key corner radius slider, and bug fixes.

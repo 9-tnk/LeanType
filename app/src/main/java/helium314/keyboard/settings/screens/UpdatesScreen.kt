@@ -72,10 +72,11 @@ import java.net.HttpURLConnection
 import java.net.URL
 
 private val currentChangelogItems = listOf(
-    "• Auto-Correction Restoration: Fixed critical regression where personal dictionary entries hijacked everyday words in sentences (e.g. replacing 'how' with 'huewail')",
-    "• Accurate Contextual Gating: Correctly scoped contextual bigram gating to next-word predictions without dampening history during active typing",
-    "• Suggestion Balance Integrity: Restored natural spatial and edit-distance weighting for personal dictionary entries without artificial score inflation",
-    "• Full Kotlin Engine & Quality: Complete 100% Kotlin code base with all 206 core engine and suggestion tests passing"
+    "• Web & Browser Typing Stability: Fixed contenteditable word duplication, cursor jump desyncs, and stutter syllable predictions in web fields",
+    "• Online AI Voice Input: Optional cloud-based speech-to-text supporting Groq Whisper, Gemini, and OpenAI-compatible endpoints in standard flavor",
+    "• Procedural Soft Sound Packs: Added 6 new zero-latency custom sound packs to the fallback catalog, including the restored Soft Pudding (Synth)",
+    "• Visual Shift & Caps Lock Distinction: Redesigned Shift arrow icons with distinct visual states for unshifted, shifted, and locked Caps Lock",
+    "• Immediate Clipboard Suggestions & Theme Polish: Instant copy suggestion strip, dedicated Action key corner radius slider, and bug fixes"
 )
 
 @Composable
