@@ -167,6 +167,60 @@ object SoundPackUrls {
             versionName = "1.0.0",
             downloadUrl = "https://raw.githubusercontent.com/LeanBitLab/LeanType-SoundPacks/main/dist/pizzicato.zip",
             sizeBytes = 30498
+        ),
+        RemoteSoundPack(
+            id = "dev.leantype.sounds.soft-pudding-synth",
+            name = "Soft Pudding (Synth)",
+            summary = "Procedurally recreated soft dampened tap from v4.1.8.",
+            author = "LeanType Sound Lab",
+            versionName = "1.0.0",
+            downloadUrl = "https://raw.githubusercontent.com/LeanBitLab/LeanType-SoundPacks/main/dist/soft-pudding-synth.zip",
+            sizeBytes = 17024
+        ),
+        RemoteSoundPack(
+            id = "dev.leantype.sounds.muted-marshmallow",
+            name = "Muted Marshmallow",
+            summary = "Ultra-dead, heavy sub-bass thud. Extremely soft.",
+            author = "LeanType Sound Lab",
+            versionName = "1.0.0",
+            downloadUrl = "https://raw.githubusercontent.com/LeanBitLab/LeanType-SoundPacks/main/dist/muted-marshmallow.zip",
+            sizeBytes = 16888
+        ),
+        RemoteSoundPack(
+            id = "dev.leantype.sounds.felted-thock",
+            name = "Felted Thock",
+            summary = "Classic dampened enthusiast keyboard sound.",
+            author = "LeanType Sound Lab",
+            versionName = "1.0.0",
+            downloadUrl = "https://raw.githubusercontent.com/LeanBitLab/LeanType-SoundPacks/main/dist/felted-thock.zip",
+            sizeBytes = 18027
+        ),
+        RemoteSoundPack(
+            id = "dev.leantype.sounds.membrane-squish",
+            name = "Membrane Squish",
+            summary = "Retro rubber dome office keyboard feel.",
+            author = "LeanType Sound Lab",
+            versionName = "1.0.0",
+            downloadUrl = "https://raw.githubusercontent.com/LeanBitLab/LeanType-SoundPacks/main/dist/membrane-squish.zip",
+            sizeBytes = 17122
+        ),
+        RemoteSoundPack(
+            id = "dev.leantype.sounds.cork-tap",
+            name = "Cork Tap",
+            summary = "Earthy, dry tap on soft wood or cork.",
+            author = "LeanType Sound Lab",
+            versionName = "1.0.0",
+            downloadUrl = "https://raw.githubusercontent.com/LeanBitLab/LeanType-SoundPacks/main/dist/cork-tap.zip",
+            sizeBytes = 17767
+        ),
+        RemoteSoundPack(
+            id = "dev.leantype.sounds.velvet-whisper",
+            name = "Velvet Whisper",
+            summary = "Airy, ASMR-style quiet tap with smooth release.",
+            author = "LeanType Sound Lab",
+            versionName = "1.0.0",
+            downloadUrl = "https://raw.githubusercontent.com/LeanBitLab/LeanType-SoundPacks/main/dist/velvet-whisper.zip",
+            sizeBytes = 17924
         )
     )
 
