@@ -685,7 +685,7 @@ class RichInputConnection(private val mParent: InputMethodService) : PrivateComm
         }
     }
 
-    fun setComposingRegion(start: Int, end: Int) {
+    fun setComposingRegion(start: Int, end: Int): Boolean {
         if (DEBUG_BATCH_NESTING) checkBatchEdit()
         if (DEBUG_PREVIOUS_TEXT) checkConsistencyForDebug()
 
@@ -711,8 +711,10 @@ class RichInputConnection(private val mParent: InputMethodService) : PrivateComm
             )
         }
 
-        if (isConnected()) {
-            mIC?.setComposingRegion(start, end)
+        return if (isConnected()) {
+            mIC?.setComposingRegion(start, end) ?: false
+        } else {
+            false
         }
     }
 

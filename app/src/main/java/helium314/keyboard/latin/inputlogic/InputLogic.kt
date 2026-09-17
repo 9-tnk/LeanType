@@ -172,6 +172,19 @@ class InputLogic(
             if (mConnection.isBelatedExpectedUpdate(oldSelStart, newSelStart, oldSelEnd, newSelEnd, composingSpanStart, composingSpanEnd)) {
                 return false
             }
+
+            val isWeb = InputTypeUtils.isWebEditor(getCurrentInputEditorInfo())
+            if (isWeb && mWordComposer.isComposingWord() && composingSpanStart == -1 && composingSpanEnd == -1) {
+                // The web editor / contenteditable JS destroyed our composing span in the DOM.
+                // Reclaim the region if possible; otherwise reset composing state to prevent duplicate characters.
+                val wordLength = mWordComposer.size()
+                val reclaimed = if (wordLength > 0 && newSelStart >= wordLength) {
+                    mConnection.setComposingRegion(newSelStart - wordLength, newSelStart)
+                } else false
+                if (!reclaimed) {
+                    resetEntireInputState(newSelStart, newSelEnd, false)
+                }
+            }
             mSpaceState = SpaceState.NONE
 
             if (oldSelStart != newSelStart || oldSelEnd != newSelEnd) {
@@ -1362,32 +1375,43 @@ class InputLogic(
                     }
                     StatsUtils.onBackspacePressed(totalDeletedLength)
                 } else {
+                    val isWeb = InputTypeUtils.isWebEditor(getCurrentInputEditorInfo())
                     val codePointBeforeCursor = mConnection.codePointBeforeCursor
                     if (codePointBeforeCursor == Constants.NOT_A_CODE) {
-                        if ((getCurrentInputEditorInfo().inputType and InputType.TYPE_MASK_VARIATION) == InputType.TYPE_TEXT_VARIATION_WEB_EDIT_TEXT) {
+                        if (isWeb) {
                             sendDownUpKeyEvent(KeyEvent.KEYCODE_DEL)
                         } else {
                             mConnection.deleteTextBeforeCursor(1)
                         }
                         return
                     }
-                    val lengthToDelete = if (codePointBeforeCursor > 0xFE00 || StringUtils.mightBeEmoji(codePointBeforeCursor)) {
+                    val isEmoji = codePointBeforeCursor > 0xFE00 || StringUtils.mightBeEmoji(codePointBeforeCursor)
+                    val lengthToDelete = if (isEmoji) {
                         mConnection.charCountToDeleteBeforeCursor
                     } else {
                         1
                     }
-                    mConnection.deleteTextBeforeCursor(lengthToDelete)
+                    if (isWeb && !isEmoji) {
+                        sendDownUpKeyEvent(KeyEvent.KEYCODE_DEL)
+                    } else {
+                        mConnection.deleteTextBeforeCursor(lengthToDelete)
+                    }
                     var totalDeletedLength = lengthToDelete
                     if (mDeleteCount > Constants.DELETE_ACCELERATE_AT) {
                         hasUnlearnedWordBeingDeleted = hasUnlearnedWordBeingDeleted or unlearnWordBeingDeleted(inputTransaction.settingsValues)
                         val codePointBeforeCursorToDeleteAgain = mConnection.codePointBeforeCursor
                         if (codePointBeforeCursorToDeleteAgain != Constants.NOT_A_CODE) {
-                            val lengthToDeleteAgain = if (codePointBeforeCursorToDeleteAgain > 0xFE00 || StringUtils.mightBeEmoji(codePointBeforeCursorToDeleteAgain)) {
+                            val isEmojiAgain = codePointBeforeCursorToDeleteAgain > 0xFE00 || StringUtils.mightBeEmoji(codePointBeforeCursorToDeleteAgain)
+                            val lengthToDeleteAgain = if (isEmojiAgain) {
                                 mConnection.charCountToDeleteBeforeCursor
                             } else {
                                 1
                             }
-                            mConnection.deleteTextBeforeCursor(lengthToDeleteAgain)
+                            if (isWeb && !isEmojiAgain) {
+                                sendDownUpKeyEvent(KeyEvent.KEYCODE_DEL)
+                            } else {
+                                mConnection.deleteTextBeforeCursor(lengthToDeleteAgain)
+                            }
                             totalDeletedLength += lengthToDeleteAgain
                         }
                     }
@@ -1754,8 +1778,7 @@ class InputLogic(
                 }
             }
         }
-        val isWeb = InputTypeUtils.isWebEditText(settingsValues.mInputAttributes.mInputType)
-                || AppWorkarounds.isWebBrowser(settingsValues.mInputAttributes.mTargetApplicationPackageName)
+        val isWeb = InputTypeUtils.isWebEditor(getCurrentInputEditorInfo())
         if (!TextUtils.isDigitsOnly(typedWordString) && !isWeb) {
             val codePoints = StringUtils.toCodePointArray(typedWordString)
             mWordComposer.setComposingWord(codePoints, mLatinIME.getCoordinatesForCurrentKeyboard(codePoints))
