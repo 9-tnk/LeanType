@@ -1046,18 +1046,22 @@ class LatinIME : InputMethodService(),
     fun onEvent(event: Event) {
         if (event.keyCode == KeyCode.SWITCH_TO_USER_IME) { switchToUserIme(); return }
         if (event.keyCode == KeyCode.VOICE_INPUT) {
-            val offlineEnabled = prefs().getBoolean(VoiceConstants.PREF_VOICE_OFFLINE_ENABLED, false)
-            val onlineEnabled = prefs().getBoolean(VoiceConstants.PREF_VOICE_ONLINE_ENABLED, false)
-            if (offlineEnabled || onlineEnabled) {
-                if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
-                    voiceInputManager?.let { vim ->
-                        if (vim.isRecording()) vim.stopVoice() else vim.startVoice()
+            when (richImm.currentVoiceProvider) {
+                VoiceConstants.VOICE_PROVIDER_OFFLINE, VoiceConstants.VOICE_PROVIDER_ONLINE -> {
+                    if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
+                        voiceInputManager?.let { vim ->
+                            if (vim.isRecording()) vim.stopVoice() else vim.startVoice()
+                        }
+                    } else {
+                        Toast.makeText(this, "Microphone permission required for voice input. Enable in Settings -> Voice Input", Toast.LENGTH_LONG).show()
                     }
-                } else {
-                    Toast.makeText(this, "Microphone permission required for voice input. Enable in Settings -> Voice", Toast.LENGTH_LONG).show()
                 }
-            } else {
-                richImm.switchToShortcutIme(this)
+                VoiceConstants.VOICE_PROVIDER_THIRD_PARTY -> {
+                    richImm.switchToShortcutIme(this)
+                }
+                VoiceConstants.VOICE_PROVIDER_NONE -> {
+                    // Voice input is disabled
+                }
             }
             return
         }

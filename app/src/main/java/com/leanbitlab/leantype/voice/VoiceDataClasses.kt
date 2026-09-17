@@ -73,6 +73,15 @@ object VoiceConstants {
 
     const val PREF_VOICE_OFFLINE_ENABLED = "voice_offline_enabled"
     const val PREF_VOICE_ONLINE_ENABLED = "voice_online_enabled"
+    const val PREF_VOICE_PROVIDER = "voice_provider"
+    const val VOICE_PROVIDER_OFFLINE = "offline"
+    const val VOICE_PROVIDER_ONLINE = "online"
+    const val VOICE_PROVIDER_THIRD_PARTY = "third_party"
+    const val VOICE_PROVIDER_NONE = "none"
+
+    const val PREF_VOICE_THIRD_PARTY_APP = "voice_third_party_app"
+    const val VOICE_APP_SYSTEM_DEFAULT = "system_default"
+
     const val PREF_VOICE_MODE = "voice_mode"
     const val PREF_VOICE_HYBRID_TIMEOUT_MS = "voice_hybrid_timeout_ms"
     const val PREF_VOICE_HYBRID_FALLBACK = "voice_hybrid_fallback"

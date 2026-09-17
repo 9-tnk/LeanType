@@ -129,16 +129,19 @@ fun LibrariesHubScreen(
                         ) { if (isOcrSupported) NextScreenIcon() }
 
                         // Voice Input
-                        val isOnlineVoice = (BuildConfig.FLAVOR == "standard" || BuildConfig.FLAVOR == "standardfull") &&
-                            prefs.getBoolean(com.leanbitlab.leantype.voice.VoiceConstants.PREF_VOICE_ONLINE_ENABLED, false)
-                        val isOfflineVoice = prefs.getBoolean(com.leanbitlab.leantype.voice.VoiceConstants.PREF_VOICE_OFFLINE_ENABLED, false)
+                        val richImm = remember { helium314.keyboard.latin.RichInputMethodManager.getInstance() }
+                        val voiceProvider = richImm.currentVoiceProvider
                         val voicePluginManager = remember { helium314.keyboard.latin.voice.VoicePluginManager(context) }
                         val voiceInstalled = voicePluginManager.isPluginInstalled()
-                        val voiceSummary = when {
-                            isOnlineVoice -> "Online AI"
-                            isOfflineVoice && voiceInstalled -> stringResource(R.string.libraries_status_active)
-                            voiceInstalled -> "Installed"
-                            else -> stringResource(R.string.libraries_status_not_installed)
+                        val voiceSummary = when (voiceProvider) {
+                            com.leanbitlab.leantype.voice.VoiceConstants.VOICE_PROVIDER_ONLINE -> "Online AI"
+                            com.leanbitlab.leantype.voice.VoiceConstants.VOICE_PROVIDER_OFFLINE -> {
+                                if (voiceInstalled) stringResource(R.string.libraries_status_active)
+                                else stringResource(R.string.libraries_status_not_installed)
+                            }
+                            com.leanbitlab.leantype.voice.VoiceConstants.VOICE_PROVIDER_THIRD_PARTY -> "System / Third-Party"
+                            com.leanbitlab.leantype.voice.VoiceConstants.VOICE_PROVIDER_NONE -> stringResource(R.string.voice_provider_none)
+                            else -> if (voiceInstalled) "Installed" else stringResource(R.string.libraries_status_not_installed)
                         }
                         Preference(
                             name = stringResource(R.string.voice_input_title),

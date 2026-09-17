@@ -53,6 +53,7 @@ import com.leanbitlab.leantype.voice.VoiceConstants
 import com.leanbitlab.leantype.voice.VoiceEngineInfo
 import helium314.keyboard.latin.BuildConfig
 import helium314.keyboard.latin.R
+import helium314.keyboard.latin.RichInputMethodManager
 import helium314.keyboard.latin.common.Links
 import helium314.keyboard.settings.preferences.PreferenceCategory
 import helium314.keyboard.latin.utils.Log
@@ -89,8 +90,13 @@ fun VoiceSettingsScreen(
     val prefs = context.prefs()
 
     val prefChangeCounter = (context.getActivity() as? SettingsActivity)?.prefChanged?.collectAsState()
-    val isOfflineVoiceEnabled = (prefChangeCounter?.value ?: 0) >= 0 && prefs.getBoolean(VoiceConstants.PREF_VOICE_OFFLINE_ENABLED, false)
-    val isOnlineVoiceEnabled = (prefChangeCounter?.value ?: 0) >= 0 && prefs.getBoolean(VoiceConstants.PREF_VOICE_ONLINE_ENABLED, false)
+    val isOnlineFlavor = BuildConfig.FLAVOR == "standard" || BuildConfig.FLAVOR == "standardfull"
+    val richImm = remember { RichInputMethodManager.getInstance() }
+    val currentProvider = remember(prefChangeCounter?.value) { richImm.currentVoiceProvider }
+    val isOfflineVoiceEnabled = currentProvider == VoiceConstants.VOICE_PROVIDER_OFFLINE
+    val isOnlineVoiceEnabled = isOnlineFlavor && currentProvider == VoiceConstants.VOICE_PROVIDER_ONLINE
+    val isThirdPartyVoiceEnabled = currentProvider == VoiceConstants.VOICE_PROVIDER_THIRD_PARTY
+    val isVoiceDisabled = currentProvider == VoiceConstants.VOICE_PROVIDER_NONE
 
     var isMicPermissionGranted by remember {
         mutableStateOf(
@@ -375,42 +381,66 @@ fun VoiceSettingsScreen(
         }
     }
 
-    val isOnlineFlavor = BuildConfig.FLAVOR == "standard" || BuildConfig.FLAVOR == "standardfull"
+    val providerItems = remember(isOnlineFlavor) {
+        val list = mutableListOf<Pair<String, String>>()
+        list.add(context.getString(R.string.voice_provider_offline) to VoiceConstants.VOICE_PROVIDER_OFFLINE)
+        if (isOnlineFlavor) {
+            list.add(context.getString(R.string.voice_provider_online) to VoiceConstants.VOICE_PROVIDER_ONLINE)
+        }
+        list.add(context.getString(R.string.voice_provider_third_party) to VoiceConstants.VOICE_PROVIDER_THIRD_PARTY)
+        list.add(context.getString(R.string.voice_provider_none) to VoiceConstants.VOICE_PROVIDER_NONE)
+        list
+    }
 
-    val offlineEnabledSetting = remember {
+    val providerSetting = remember(isOnlineFlavor, currentProvider) {
         Setting(
-            key = VoiceConstants.PREF_VOICE_OFFLINE_ENABLED,
-            title = context.getString(R.string.offline_voice_title),
-            description = context.getString(R.string.pref_offline_voice_summary)
+            key = VoiceConstants.PREF_VOICE_PROVIDER,
+            title = context.getString(R.string.voice_provider_title),
+            description = context.getString(R.string.voice_provider_summary)
         ) {
-            SwitchPreference(
+            ListPreference(
                 setting = it,
-                default = false,
+                items = providerItems,
+                default = currentProvider,
                 icon = R.drawable.sym_keyboard_voice_holo,
-                onCheckedChange = { checked ->
-                    if (checked && isOnlineFlavor) {
-                        prefs.edit().putBoolean(VoiceConstants.PREF_VOICE_ONLINE_ENABLED, false).apply()
-                    }
+                onChanged = { newProvider ->
+                    richImm.setVoiceProvider(newProvider)
                 }
             )
         }
     }
 
-    val onlineEnabledSetting = remember {
+    val voiceAppItems = remember(context, prefChangeCounter?.value) {
+        val pm = context.packageManager
+        val imis = mutableMapOf<String, String>()
+        richImm.shortcuts.forEach {
+            val label = it.imi.loadLabel(pm)?.toString() ?: it.imi.packageName
+            imis[it.imi.id] = label
+        }
+        richImm.getInstalledVoiceImis().forEach {
+            val label = it.loadLabel(pm)?.toString() ?: it.packageName
+            if (!imis.containsKey(it.id)) {
+                imis[it.id] = label
+            }
+        }
+        val list = mutableListOf<Pair<String, String>>()
+        list.add(context.getString(R.string.voice_third_party_system_default) to VoiceConstants.VOICE_APP_SYSTEM_DEFAULT)
+        imis.forEach { (id, label) ->
+            list.add(label to id)
+        }
+        list
+    }
+
+    val voiceAppSetting = remember(voiceAppItems) {
         Setting(
-            key = VoiceConstants.PREF_VOICE_ONLINE_ENABLED,
-            title = context.getString(R.string.online_voice_title),
-            description = context.getString(R.string.pref_online_voice_summary)
+            key = VoiceConstants.PREF_VOICE_THIRD_PARTY_APP,
+            title = context.getString(R.string.voice_third_party_app_title)
         ) {
-            SwitchPreference(
+            ListPreference(
                 setting = it,
-                default = false,
-                icon = R.drawable.sym_keyboard_voice_holo,
-                onCheckedChange = { checked ->
-                    if (checked) {
-                        prefs.edit().putBoolean(VoiceConstants.PREF_VOICE_OFFLINE_ENABLED, false).apply()
-                    }
-                }
+                items = voiceAppItems,
+                default = VoiceConstants.VOICE_APP_SYSTEM_DEFAULT,
+                icon = R.drawable.ic_settings_preferences
             )
         }
     }
@@ -679,7 +709,7 @@ fun VoiceSettingsScreen(
                 .verticalScroll(rememberScrollState())
                 .padding(vertical = 8.dp)
         ) {
-                // Card 1: Offline Voice (Plugin)
+                // Card 1: Voice Input Provider & Routing
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -689,9 +719,9 @@ fun VoiceSettingsScreen(
                     )
                 ) {
                     Column {
-                        PreferenceCategory("Offline Voice (Plugin)")
+                        PreferenceCategory(stringResource(R.string.voice_provider_title))
 
-                        offlineEnabledSetting.Preference()
+                        providerSetting.Preference()
 
                         if (isOfflineVoiceEnabled) {
                             val voicePluginSummary = remember(isPluginInstalled, isPluginConnected, pluginVersion, updateAvailable, remoteVersion) {
@@ -710,10 +740,72 @@ fun VoiceSettingsScreen(
                                 onClick = { showVoicePluginDialog = true }
                             )
                         }
+
+                        if (isOnlineVoiceEnabled) {
+                            val service = remember { helium314.keyboard.latin.utils.ProofreadService(context) }
+                            val provider = service.getProvider()
+                            val voiceModelName = when (provider) {
+                                helium314.keyboard.latin.utils.ProofreadService.AIProvider.GROQ ->
+                                    service.getVoiceGroqModel().ifBlank { helium314.keyboard.latin.utils.GroqModels.DEFAULT_VOICE_MODEL }
+                                helium314.keyboard.latin.utils.ProofreadService.AIProvider.GEMINI ->
+                                    service.getVoiceGeminiModel().ifBlank { helium314.keyboard.latin.utils.ProofreadService.DEFAULT_VOICE_GEMINI_MODEL }
+                                helium314.keyboard.latin.utils.ProofreadService.AIProvider.OPENAI ->
+                                    service.getVoiceHuggingFaceModel().ifBlank { helium314.keyboard.latin.utils.ProofreadService.DEFAULT_VOICE_HF_MODEL }
+                            }
+                            Preference(
+                                name = "AI Provider & Voice Model",
+                                description = "${provider.name} • $voiceModelName",
+                                icon = R.drawable.ic_proofread,
+                                onClick = onClickAIIntegration
+                            )
+                        }
+
+                        if (isThirdPartyVoiceEnabled) {
+                            if (voiceAppItems.size <= 1 && !richImm.hasInstalledVoiceImis()) {
+                                Preference(
+                                    name = stringResource(R.string.voice_no_app_found),
+                                    description = null,
+                                    icon = R.drawable.sym_keyboard_voice_holo,
+                                    onClick = {}
+                                )
+                            }
+                            voiceAppSetting.Preference()
+                            Preference(
+                                name = stringResource(R.string.voice_open_system_settings),
+                                description = stringResource(R.string.voice_provider_third_party_summary),
+                                icon = R.drawable.ic_settings_preferences,
+                                onClick = {
+                                    val intent = Intent(android.provider.Settings.ACTION_VOICE_INPUT_SETTINGS).apply {
+                                        flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                                    }
+                                    try {
+                                        context.startActivity(intent)
+                                    } catch (_: Exception) {
+                                        try {
+                                            context.startActivity(Intent(android.provider.Settings.ACTION_INPUT_METHOD_SETTINGS).apply {
+                                                flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                                            })
+                                        } catch (e: Exception) {
+                                            Toast.makeText(context, "Could not open settings: ${e.message}", Toast.LENGTH_SHORT).show()
+                                        }
+                                    }
+                                }
+                            )
+                        }
+
+                        if (isVoiceDisabled) {
+                            Preference(
+                                name = stringResource(R.string.voice_provider_none),
+                                description = stringResource(R.string.voice_provider_none_summary),
+                                icon = R.drawable.sym_keyboard_voice_holo,
+                                onClick = {}
+                            )
+                        }
                     }
                 }
 
-                if (isOnlineFlavor) {
+                if (isOfflineVoiceEnabled || isOnlineVoiceEnabled) {
+                    // Card 2: Permissions
                     Card(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -723,148 +815,113 @@ fun VoiceSettingsScreen(
                         )
                     ) {
                         Column {
-                            PreferenceCategory(stringResource(R.string.online_voice_title))
-
-                            onlineEnabledSetting.Preference()
-
-                            if (isOnlineVoiceEnabled) {
-                                val service = remember { helium314.keyboard.latin.utils.ProofreadService(context) }
-                                val provider = service.getProvider()
-                                val voiceModelName = when (provider) {
-                                    helium314.keyboard.latin.utils.ProofreadService.AIProvider.GROQ ->
-                                        service.getVoiceGroqModel().ifBlank { helium314.keyboard.latin.utils.GroqModels.DEFAULT_VOICE_MODEL }
-                                    helium314.keyboard.latin.utils.ProofreadService.AIProvider.GEMINI ->
-                                        service.getVoiceGeminiModel().ifBlank { helium314.keyboard.latin.utils.ProofreadService.DEFAULT_VOICE_GEMINI_MODEL }
-                                    helium314.keyboard.latin.utils.ProofreadService.AIProvider.OPENAI ->
-                                        service.getVoiceHuggingFaceModel().ifBlank { helium314.keyboard.latin.utils.ProofreadService.DEFAULT_VOICE_HF_MODEL }
-                                }
-                                Preference(
-                                    name = "AI Provider & Voice Model",
-                                    description = "${provider.name} • $voiceModelName",
-                                    icon = R.drawable.ic_proofread,
-                                    onClick = onClickAIIntegration
-                                )
-                            }
-                        }
-                    }
-                }
-
-                // Card 2: Permissions
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 6.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceContainer
-                    )
-                ) {
-                    Column {
-                        PreferenceCategory("Permissions")
-
-                        Preference(
-                            name = "Microphone Permission",
-                            description = if (isMicPermissionGranted) "Permission granted" else "Tap to grant microphone permission for voice dictation",
-                            onClick = {
-                                if (!isMicPermissionGranted) {
-                                    permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
-                                }
-                            },
-                            icon = R.drawable.sym_keyboard_voice_holo
-                        )
-                    }
-                }
-
-                // Card 3: Engine & Models / Speech Language
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 6.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceContainer
-                    )
-                ) {
-                    Column {
-                        PreferenceCategory(if (isOfflineVoiceEnabled) "Engine & Models" else "Speech Language")
-
-                        if (isOfflineVoiceEnabled) {
-                            val (badgeText, badgeContainerColor, badgeContentColor) = when (whisperState?.state) {
-                                ModelState.STATE_READY -> Triple("Ready", MaterialTheme.colorScheme.primaryContainer, MaterialTheme.colorScheme.onPrimaryContainer)
-                                ModelState.STATE_LOADING -> Triple("Loading…", MaterialTheme.colorScheme.tertiaryContainer, MaterialTheme.colorScheme.onTertiaryContainer)
-                                ModelState.STATE_ERROR -> Triple("Error", MaterialTheme.colorScheme.errorContainer, MaterialTheme.colorScheme.onErrorContainer)
-                                else -> if (isPluginConnected) {
-                                    Triple("No model", MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.colorScheme.onSurfaceVariant)
-                                } else if (isInitialConnectionPending) {
-                                    Triple("Connecting…", MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.colorScheme.onSurfaceVariant)
-                                } else {
-                                    Triple("Disconnected", MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.colorScheme.onSurfaceVariant)
-                                }
-                            }
+                            PreferenceCategory("Permissions")
 
                             Preference(
-                                name = "Manage & Download Models",
-                                description = null,
-                                icon = R.drawable.sym_keyboard_voice_holo,
+                                name = "Microphone Permission",
+                                description = if (isMicPermissionGranted) "Permission granted" else "Tap to grant microphone permission for voice dictation",
                                 onClick = {
-                                    showModelDownloadDialog = true
-                                },
-                                value = {
-                                    androidx.compose.material3.Surface(
-                                        shape = androidx.compose.foundation.shape.RoundedCornerShape(8.dp),
-                                        color = badgeContainerColor
-                                    ) {
-                                        Text(
-                                            text = badgeText,
-                                            color = badgeContentColor,
-                                            style = MaterialTheme.typography.labelMedium,
-                                            fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold,
-                                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
-                                        )
+                                    if (!isMicPermissionGranted) {
+                                        permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
                                     }
-                                }
+                                },
+                                icon = R.drawable.sym_keyboard_voice_holo
                             )
                         }
-
-                        voiceLanguageSetting.Preference()
                     }
-                }
 
-                // Card 4: Dictation & Behavior
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 6.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceContainer
-                    )
-                ) {
-                    Column {
-                        PreferenceCategory("Dictation & Behavior")
+                    // Card 3: Engine & Models / Speech Language
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 6.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceContainer
+                        )
+                    ) {
+                        Column {
+                            PreferenceCategory(if (isOfflineVoiceEnabled) "Engine & Models" else "Speech Language")
 
-                        smartPunctuationSetting.Preference()
-                        silenceTimeoutSetting.Preference()
-                        micSensitivitySetting.Preference()
-                        maxDurationSetting.Preference()
-                    }
-                }
+                            if (isOfflineVoiceEnabled) {
+                                val (badgeText, badgeContainerColor, badgeContentColor) = when (whisperState?.state) {
+                                    ModelState.STATE_READY -> Triple("Ready", MaterialTheme.colorScheme.primaryContainer, MaterialTheme.colorScheme.onPrimaryContainer)
+                                    ModelState.STATE_LOADING -> Triple("Loading…", MaterialTheme.colorScheme.tertiaryContainer, MaterialTheme.colorScheme.onTertiaryContainer)
+                                    ModelState.STATE_ERROR -> Triple("Error", MaterialTheme.colorScheme.errorContainer, MaterialTheme.colorScheme.onErrorContainer)
+                                    else -> if (isPluginConnected) {
+                                        Triple("No model", MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.colorScheme.onSurfaceVariant)
+                                    } else if (isInitialConnectionPending) {
+                                        Triple("Connecting…", MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.colorScheme.onSurfaceVariant)
+                                    } else {
+                                        Triple("Disconnected", MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.colorScheme.onSurfaceVariant)
+                                    }
+                                }
 
-                // Card 5: Performance & Advanced
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 6.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceContainer
-                    )
-                ) {
-                    Column {
-                        PreferenceCategory("Performance & Advanced")
+                                Preference(
+                                    name = "Manage & Download Models",
+                                    description = null,
+                                    icon = R.drawable.sym_keyboard_voice_holo,
+                                    onClick = {
+                                        showModelDownloadDialog = true
+                                    },
+                                    value = {
+                                        androidx.compose.material3.Surface(
+                                            shape = androidx.compose.foundation.shape.RoundedCornerShape(8.dp),
+                                            color = badgeContainerColor
+                                        ) {
+                                            Text(
+                                                text = badgeText,
+                                                color = badgeContentColor,
+                                                style = MaterialTheme.typography.labelMedium,
+                                                fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold,
+                                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                                            )
+                                        }
+                                    }
+                                )
+                            }
 
-                        if (isOfflineVoiceEnabled) {
-                            cpuThreadsSetting.Preference()
+                            voiceLanguageSetting.Preference()
                         }
-                        customPromptSetting.Preference()
-                        if (isOfflineVoiceEnabled) {
-                            whisperKeepLoadedSetting.Preference()
+                    }
+
+                    // Card 4: Dictation & Behavior
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 6.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceContainer
+                        )
+                    ) {
+                        Column {
+                            PreferenceCategory("Dictation & Behavior")
+
+                            smartPunctuationSetting.Preference()
+                            silenceTimeoutSetting.Preference()
+                            micSensitivitySetting.Preference()
+                            maxDurationSetting.Preference()
+                        }
+                    }
+
+                    // Card 5: Performance & Advanced
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 6.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceContainer
+                        )
+                    ) {
+                        Column {
+                            PreferenceCategory("Performance & Advanced")
+
+                            if (isOfflineVoiceEnabled) {
+                                cpuThreadsSetting.Preference()
+                            }
+                            customPromptSetting.Preference()
+                            if (isOfflineVoiceEnabled) {
+                                whisperKeepLoadedSetting.Preference()
+                            }
                         }
                     }
                 }

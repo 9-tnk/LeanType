@@ -5,12 +5,15 @@
  */
 package helium314.keyboard.latin
 
+import android.content.ComponentName
 import android.content.Context
 import android.inputmethodservice.InputMethodService
 import android.os.Build
+import android.provider.Settings as AndroidSettings
 import android.view.inputmethod.InputMethodInfo
 import android.view.inputmethod.InputMethodManager
 import android.view.inputmethod.InputMethodSubtype
+import android.widget.Toast
 import com.leanbitlab.leantype.voice.VoiceConstants
 import helium314.keyboard.compat.locale
 import helium314.keyboard.latin.common.Constants
@@ -28,6 +31,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.util.Locale
 
 /** Enrichment class for InputMethodManager to simplify interaction and add functionality. */
@@ -58,19 +62,128 @@ class RichInputMethodManager private constructor() {
         return imm
     }
 
-    private var shortcuts = listOf<Shortcut>()
+    internal var shortcuts = listOf<Shortcut>()
+
+    internal fun setShortcutsForTesting(list: List<Shortcut>) {
+        shortcuts = list
+    }
+
+    val isOnlineFlavor: Boolean
+        get() = BuildConfig.FLAVOR == "standard" || BuildConfig.FLAVOR == "standardfull"
+
+    val currentVoiceProvider: String
+        get() {
+            if (!this::context.isInitialized) return VoiceConstants.VOICE_PROVIDER_THIRD_PARTY
+            val p = context.prefs()
+            val provider = p.getString(VoiceConstants.PREF_VOICE_PROVIDER, null)
+            val raw = provider ?: when {
+                p.getBoolean(VoiceConstants.PREF_VOICE_OFFLINE_ENABLED, false) -> VoiceConstants.VOICE_PROVIDER_OFFLINE
+                isOnlineFlavor && p.getBoolean(VoiceConstants.PREF_VOICE_ONLINE_ENABLED, false) -> VoiceConstants.VOICE_PROVIDER_ONLINE
+                else -> VoiceConstants.VOICE_PROVIDER_THIRD_PARTY
+            }
+            return if (!isOnlineFlavor && raw == VoiceConstants.VOICE_PROVIDER_ONLINE) {
+                VoiceConstants.VOICE_PROVIDER_OFFLINE
+            } else {
+                raw
+            }
+        }
+
+    fun setVoiceProvider(provider: String) {
+        if (!this::context.isInitialized) return
+        val target = if (!isOnlineFlavor && provider == VoiceConstants.VOICE_PROVIDER_ONLINE) {
+            VoiceConstants.VOICE_PROVIDER_OFFLINE
+        } else {
+            provider
+        }
+        val p = context.prefs()
+        p.edit().apply {
+            putString(VoiceConstants.PREF_VOICE_PROVIDER, target)
+            putBoolean(VoiceConstants.PREF_VOICE_OFFLINE_ENABLED, target == VoiceConstants.VOICE_PROVIDER_OFFLINE)
+            putBoolean(VoiceConstants.PREF_VOICE_ONLINE_ENABLED, target == VoiceConstants.VOICE_PROVIDER_ONLINE)
+            apply()
+        }
+    }
 
     val isVoiceInputEnabled: Boolean
-        get() = if (this::context.isInitialized) {
-            val p = context.prefs()
-            p.getBoolean(VoiceConstants.PREF_VOICE_OFFLINE_ENABLED, false) ||
-            p.getBoolean(VoiceConstants.PREF_VOICE_ONLINE_ENABLED, false)
-        } else false
+        get() = currentVoiceProvider != VoiceConstants.VOICE_PROVIDER_NONE
 
     val isOfflineVoiceEnabled: Boolean
-        get() = isVoiceInputEnabled
+        get() = currentVoiceProvider == VoiceConstants.VOICE_PROVIDER_OFFLINE
 
-    val isShortcutImeReady get() = shortcuts.isNotEmpty() || isVoiceInputEnabled
+    val isShortcutImeReady: Boolean
+        get() {
+            return when (currentVoiceProvider) {
+                VoiceConstants.VOICE_PROVIDER_OFFLINE, VoiceConstants.VOICE_PROVIDER_ONLINE -> true
+                VoiceConstants.VOICE_PROVIDER_THIRD_PARTY -> shortcuts.isNotEmpty() || hasInstalledVoiceImis()
+                VoiceConstants.VOICE_PROVIDER_NONE -> false
+                else -> shortcuts.isNotEmpty()
+            }
+        }
+
+    fun hasInstalledVoiceImis(): Boolean = getInstalledVoiceImis().isNotEmpty()
+
+    fun getInstalledVoiceImis(): List<InputMethodInfo> {
+        if (!this::imm.isInitialized || !this::context.isInitialized) return emptyList()
+        val ourPkg = context.packageName
+        return try {
+            imm.inputMethodList.filter { imi ->
+                imi.packageName != ourPkg && (0 until imi.subtypeCount).any { idx ->
+                    imi.getSubtypeAt(idx).mode == "voice"
+                }
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to query installed IMEs", e)
+            emptyList()
+        }
+    }
+
+    fun getDefaultVoicePackage(ctx: Context): String? {
+        try {
+            val voiceService = AndroidSettings.Secure.getString(ctx.contentResolver, "voice_recognition_service")
+            if (!voiceService.isNullOrBlank()) {
+                val pkg = ComponentName.unflattenFromString(voiceService)?.packageName
+                    ?: voiceService.substringBefore('/')
+                if (pkg.isNotBlank()) return pkg
+            }
+            val assistant = AndroidSettings.Secure.getString(ctx.contentResolver, "assistant")
+            if (!assistant.isNullOrBlank()) {
+                val pkg = ComponentName.unflattenFromString(assistant)?.packageName
+                    ?: assistant.substringBefore('/')
+                if (pkg.isNotBlank()) return pkg
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to read default voice service from settings", e)
+        }
+        return null
+    }
+
+    internal fun getTargetShortcut(): Shortcut? {
+        if (shortcuts.isEmpty()) return null
+        val p = context.prefs()
+        val selectedApp = p.getString(VoiceConstants.PREF_VOICE_THIRD_PARTY_APP, VoiceConstants.VOICE_APP_SYSTEM_DEFAULT)
+
+        // 1. Explicit user selection
+        if (!selectedApp.isNullOrEmpty() && selectedApp != VoiceConstants.VOICE_APP_SYSTEM_DEFAULT) {
+            val userMatch = shortcuts.firstOrNull { it.imi.id == selectedApp || it.imi.packageName == selectedApp }
+            if (userMatch != null) return userMatch
+        }
+
+        // 2. System default voice recognition service
+        val defaultPackage = getDefaultVoicePackage(context)
+        if (!defaultPackage.isNullOrEmpty()) {
+            val sysMatch = shortcuts.firstOrNull { it.imi.packageName == defaultPackage }
+            if (sysMatch != null) return sysMatch
+        }
+
+        // 3. Fallback: if there is an enabled voice IME that is not Google, prefer it if defaultPackage was unspecified
+        val nonGoogle = shortcuts.firstOrNull { !it.imi.packageName.contains("google") }
+        if (nonGoogle != null && defaultPackage == null) {
+            return nonGoogle
+        }
+
+        // 4. Final fallback: first available
+        return shortcuts.firstOrNull()
+    }
 
     fun getEnabledInputMethodSubtypes(imi: InputMethodInfo, allowsImplicitlySelectedSubtypes: Boolean) =
         inputMethodInfoCache.getEnabledInputMethodSubtypeList(imi, allowsImplicitlySelectedSubtypes)
@@ -143,12 +256,32 @@ class RichInputMethodManager private constructor() {
     }
 
     fun switchToShortcutIme(inputMethodService: InputMethodService) = scope.launch {
-        val imiId = shortcuts.firstOrNull()?.imi?.id ?: return@launch
+        val target = getTargetShortcut()
+        if (target == null) {
+            withContext(Dispatchers.Main) {
+                val installed = getInstalledVoiceImis()
+                if (installed.isNotEmpty()) {
+                    Toast.makeText(
+                        inputMethodService,
+                        inputMethodService.getString(R.string.voice_app_not_enabled),
+                        Toast.LENGTH_LONG
+                    ).show()
+                } else {
+                    Toast.makeText(
+                        inputMethodService,
+                        inputMethodService.getString(R.string.voice_no_app_found),
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
+            }
+            return@launch
+        }
+        val imiId = target.imi.id
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-            inputMethodService.switchInputMethod(imiId, shortcuts.first().subtype)
+            inputMethodService.switchInputMethod(imiId, target.subtype)
         } else {
             val token = inputMethodService.window.window?.attributes?.token ?: return@launch
-            @Suppress("Deprecation") imm.setInputMethodAndSubtype(token, imiId, shortcuts.first().subtype)
+            @Suppress("Deprecation") imm.setInputMethodAndSubtype(token, imiId, target.subtype)
         }
     }
 
@@ -166,10 +299,29 @@ class RichInputMethodManager private constructor() {
         LanguageOnSpacebarUtils.onSubtypeChanged(richSubtype, implicitlyEnabledSubtype, systemLocale)
         LanguageOnSpacebarUtils.setEnabledSubtypes(SubtypeSettings.getEnabledSubtypes(true))
 
-        // TODO: Update an icon for shortcut IME
-        shortcuts = inputMethodManager.shortcutInputMethodsAndSubtypes.entries.flatMap { (imi, subtypes) ->
-            subtypes.map { Shortcut(imi, it) }
+        val list = mutableListOf<Shortcut>()
+        try {
+            inputMethodManager.shortcutInputMethodsAndSubtypes.forEach { (imi, subtypes) ->
+                subtypes.forEach { list.add(Shortcut(imi, it)) }
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to get shortcutInputMethodsAndSubtypes", e)
         }
+
+        try {
+            val ourPkg = context.packageName
+            inputMethodManager.enabledInputMethodList.filter { it.packageName != ourPkg }.forEach { imi ->
+                if (list.none { it.imi.id == imi.id }) {
+                    (0 until imi.subtypeCount).map { imi.getSubtypeAt(it) }
+                        .filter { it.mode == "voice" }
+                        .forEach { list.add(Shortcut(imi, it)) }
+                }
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to scan enabledInputMethodList for voice subtypes", e)
+        }
+        shortcuts = list
+
         if (DEBUG) {
             val new = shortcuts.joinToString("; ") { "${it.imi.id}: ${it.subtype.locale()}, ${it.subtype.mode}" }
             Log.d(TAG, ("Update shortcut IMEs to: $new"))
@@ -306,4 +458,4 @@ private class InputMethodInfoCache(private val imm: InputMethodManager, private 
     }
 }
 
-private class Shortcut(val imi: InputMethodInfo, val subtype: InputMethodSubtype)
+internal class Shortcut(val imi: InputMethodInfo, val subtype: InputMethodSubtype)

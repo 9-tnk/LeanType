@@ -584,6 +584,21 @@
     <string name="voice_action_cancel">Cancel</string>
     <string name="online_voice_title">Online Voice-to-Text</string>
     <string name="pref_online_voice_summary">Dictate text online using your configured AI provider and voice model</string>
+    <string name="voice_provider_title">Voice Input Provider</string>
+    <string name="voice_provider_summary">Select how voice dictation is processed</string>
+    <string name="voice_provider_offline">Offline Voice Input (Plugin)</string>
+    <string name="voice_provider_offline_summary">Private on-device Whisper speech-to-text</string>
+    <string name="voice_provider_online">Online AI Voice Input</string>
+    <string name="voice_provider_online_summary">High-accuracy cloud AI speech-to-text</string>
+    <string name="voice_provider_third_party">System / Third-Party Voice Input</string>
+    <string name="voice_provider_third_party_summary">Use your system default or installed voice typing app</string>
+    <string name="voice_provider_none">Disabled</string>
+    <string name="voice_provider_none_summary">Turn off voice input and hide microphone key</string>
+    <string name="voice_third_party_app_title">Voice Typing App</string>
+    <string name="voice_third_party_system_default">System Default (Auto-detect)</string>
+    <string name="voice_open_system_settings">Open Android Voice Settings</string>
+    <string name="voice_app_not_enabled">Voice typing app is installed but not enabled. Enable it in Android Settings → On-screen keyboard.</string>
+    <string name="voice_no_app_found">No voice typing app found. Install an app like FUTO Voice Input or enable Offline Voice in LeanType Settings.</string>
 
     <string name="numpad" tools:keep="@string/numpad" translatable="false">@string/layout_numpad</string>
     <string name="settings" tools:keep="@string/settings">Settings</string>

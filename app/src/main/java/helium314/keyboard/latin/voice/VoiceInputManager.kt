@@ -88,8 +88,9 @@ class VoiceInputManager(
     fun isRecording(): Boolean = state == VoiceState.RECORDING || state == VoiceState.STARTING_SESSION
 
     fun canStartVoice(): Boolean {
-        val offlineEnabled = ims.prefs().getBoolean(VoiceConstants.PREF_VOICE_OFFLINE_ENABLED, false)
-        val onlineEnabled = ims.prefs().getBoolean(VoiceConstants.PREF_VOICE_ONLINE_ENABLED, false)
+        val provider = RichInputMethodManager.getInstance().currentVoiceProvider
+        val offlineEnabled = provider == VoiceConstants.VOICE_PROVIDER_OFFLINE
+        val onlineEnabled = provider == VoiceConstants.VOICE_PROVIDER_ONLINE
         if (!offlineEnabled && !onlineEnabled) {
             Log.w(TAG, "canStartVoice: Voice input not enabled in preferences")
             return false
@@ -129,7 +130,7 @@ class VoiceInputManager(
             }
         }
 
-        val onlineEnabled = ims.prefs().getBoolean(VoiceConstants.PREF_VOICE_ONLINE_ENABLED, false)
+        val onlineEnabled = RichInputMethodManager.getInstance().currentVoiceProvider == VoiceConstants.VOICE_PROVIDER_ONLINE
         if (onlineEnabled) {
             val service = ProofreadService(ims)
             val provider = service.getProvider()
