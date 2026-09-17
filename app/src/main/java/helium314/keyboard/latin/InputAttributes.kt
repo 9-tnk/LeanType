@@ -13,6 +13,7 @@ import helium314.keyboard.compat.AppQuirksManager
 import helium314.keyboard.latin.common.Constants.ImeOption.NO_FLOATING_GESTURE_PREVIEW
 import helium314.keyboard.latin.common.Constants.ImeOption.NO_MICROPHONE
 import helium314.keyboard.latin.common.containsValueWhenSplit
+import helium314.keyboard.latin.define.DebugFlags
 import helium314.keyboard.latin.utils.InputTypeUtils
 import helium314.keyboard.latin.utils.Log
 import java.util.Arrays
@@ -47,7 +48,9 @@ class InputAttributes(
 
         if (inputClass != InputType.TYPE_CLASS_TEXT) {
             if (editorInfo == null) {
-                Log.w(TAG, "No editor info for this field. Bug?")
+                if (DebugFlags.DEBUG_ENABLED) {
+                    Log.d(TAG, "No editor info available (unattached/startup)")
+                }
             } else if (InputType.TYPE_NULL == mInputType) {
                 Log.i(TAG, "InputType.TYPE_NULL is specified")
             } else if (inputClass == 0) {

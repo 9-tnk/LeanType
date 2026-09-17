@@ -54,6 +54,7 @@ object BrowserDetector {
                 }
             }
             isInitialized = true
+            Log.i(TAG, "BrowserDetector initialized with ${discoveredBrowsers.size} known/discovered browsers")
         } catch (e: Exception) {
             Log.w(TAG, "Failed to query browser packages via PackageManager, falling back to defaults", e)
         }

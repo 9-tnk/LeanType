@@ -27,6 +27,7 @@ object AppQuirksManager {
             prefs = p
             loadFromPrefs(p)
             isInitialized = true
+            Log.i(TAG, "AppQuirksManager initialized with ${userQuirks.size} user profile overrides")
         } catch (e: Exception) {
             Log.w(TAG, "Failed to initialize AppQuirksManager prefs", e)
         }

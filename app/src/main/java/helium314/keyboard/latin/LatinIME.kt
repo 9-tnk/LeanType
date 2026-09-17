@@ -572,6 +572,7 @@ class LatinIME : InputMethodService(),
 
     fun onStartInputInternal(editorInfo: EditorInfo?, restarting: Boolean) {
         super.onStartInput(editorInfo, restarting)
+        inputLogic.connection.onStartInput()
         if (editorInfo == null || editorInfo.inputType == android.text.InputType.TYPE_NULL) {
             if (!Settings.getInstance().current.mPersistFloatingKeyboard) {
                 floatingKeyboardManager?.takeIf { it.isFloating }?.hide(false)
@@ -736,6 +737,7 @@ class LatinIME : InputMethodService(),
         }
         dictionaryFacilitator.onFinishInput()
         keyboardSwitcher.mainKeyboardView?.closing()
+        inputLogic.connection.onFinishInput()
     }
 
     fun onFinishInputViewInternal(finishingInput: Boolean) {

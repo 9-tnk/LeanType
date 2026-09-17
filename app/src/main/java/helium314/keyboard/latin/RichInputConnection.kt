@@ -67,8 +67,15 @@ class RichInputConnection(private val mParent: InputMethodService) : PrivateComm
     private val mTempObjectForCommitText = SpannableStringBuilder()
 
     private var mLastSlowInputConnectionTime = -SLOW_INPUTCONNECTION_PERSIST_MS
+    @Volatile private var mIsActive = false
 
-    fun isConnected(): Boolean = mIC != null
+    fun isConnected(): Boolean {
+        if (!mIsActive) return false
+        if (mIC == null) {
+            mIC = mParent.currentInputConnection
+        }
+        return mIC != null
+    }
 
     fun hasSlowInputConnection(): Boolean {
         return (SystemClock.uptimeMillis() - mLastSlowInputConnectionTime) <= SLOW_INPUTCONNECTION_PERSIST_MS
@@ -76,6 +83,14 @@ class RichInputConnection(private val mParent: InputMethodService) : PrivateComm
 
     fun onStartInput() {
         mLastSlowInputConnectionTime = -SLOW_INPUTCONNECTION_PERSIST_MS
+        mNestLevel = 0
+        mIsActive = true
+        mIC = mParent.currentInputConnection
+    }
+
+    fun onFinishInput() {
+        mIsActive = false
+        mIC = null
         mNestLevel = 0
     }
 
@@ -151,13 +166,6 @@ class RichInputConnection(private val mParent: InputMethodService) : PrivateComm
     fun ensureBatchEditClosed() {
         if (mNestLevel > 0 && isConnected()) {
             mIC?.endBatchEdit()
-            if (InputTypeUtils.isWebEditor(mParent.currentInputEditorInfo)) {
-                try {
-                    mIC?.requestCursorUpdates(InputConnection.CURSOR_UPDATE_IMMEDIATE)
-                } catch (e: Exception) {
-                    Log.w(TAG, "Failed to request cursor updates in web editor", e)
-                }
-            }
         }
         mNestLevel = 0
     }
@@ -223,7 +231,7 @@ class RichInputConnection(private val mParent: InputMethodService) : PrivateComm
         if (textBeforeCursor == null) {
             mExpectedSelStart = INVALID_CURSOR_POSITION
             mExpectedSelEnd = INVALID_CURSOR_POSITION
-            Log.w(TAG, "Unable to connect to the editor to retrieve text.")
+            Log.d(TAG, "Unable to retrieve text before cursor (connection inactive or pending retry).")
             return false
         }
 
@@ -352,7 +360,7 @@ class RichInputConnection(private val mParent: InputMethodService) : PrivateComm
         } else {
             if (mCommittedTextBeforeComposingText.isEmpty() && mExpectedSelStart != 0) {
                 if (!reloadTextCache()) {
-                    Log.w(TAG, "Unable to connect to the editor. Setting caps mode without knowing text.")
+                    Log.d(TAG, "Setting caps mode with default fallback (text cache unavailable).")
                 }
             }
             mCommittedTextBeforeComposingText.toString()
@@ -465,7 +473,22 @@ class RichInputConnection(private val mParent: InputMethodService) : PrivateComm
             result != null &&
             !checkTextBeforeCursorConsistency(result)
         ) {
-            Log.w(TAG, "cached text out of sync, reloading")
+            val pkg = mParent.currentInputEditorInfo?.packageName ?: "unknown"
+            val inputTypeHex = Integer.toHexString(mParent.currentInputEditorInfo?.inputType ?: 0)
+            val expectedSel = "$mExpectedSelStart-$mExpectedSelEnd"
+            val lastCached = when {
+                mComposingText.isNotEmpty() -> mComposingText.last().toString()
+                mCommittedTextBeforeComposingText.isNotEmpty() -> mCommittedTextBeforeComposingText.last().toString()
+                else -> "<empty>"
+            }
+            val lastActual = if (result.isNotEmpty()) result.last().toString() else "<empty>"
+            val sampleActual = if (result.length > 20) result.substring(result.length - 20) else result.toString()
+            Log.w(
+                TAG,
+                "cached text out of sync, reloading: pkg=$pkg, inputType=0x$inputTypeHex, sel=$expectedSel, " +
+                    "compLen=${mComposingText.length}, commitLen=${mCommittedTextBeforeComposingText.length}, " +
+                    "actualLen=${result.length}, lastCached='$lastCached', lastActual='$lastActual', actualTail='$sampleActual'"
+            )
             if (mComposingText.isNotEmpty() && mParent is LatinIME) {
                 mParent.inputLogic.resetComposingState(true)
             }
