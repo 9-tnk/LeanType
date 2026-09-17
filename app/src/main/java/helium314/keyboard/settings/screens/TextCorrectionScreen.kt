@@ -79,6 +79,11 @@ fun TextCorrectionScreen(
         Settings.PREF_AUTOSPACE_AFTER_SUGGESTION,
         Settings.PREF_SHIFT_REMOVES_AUTOSPACE,
         Settings.PREF_PRESERVE_SPACE_BEFORE_PUNCTUATION,
+        R.string.switch_keyboard_after,
+        Settings.PREF_ABC_AFTER_SYMBOL_SPACE,
+        Settings.PREF_ABC_AFTER_NUMPAD_SPACE,
+        Settings.PREF_ABC_AFTER_EMOJI,
+        Settings.PREF_ABC_AFTER_CLIP,
         R.string.settings_category_suggestions,
         if (suggestionsVisible) Settings.PREF_SHOW_SUGGESTIONS else null,
         if (suggestionsEnabled) Settings.PREF_ALWAYS_SHOW_SUGGESTIONS else null,
@@ -193,6 +198,22 @@ fun createCorrectionSettings(context: Context) = listOf(
     },
     Setting(context, Settings.PREF_PRESERVE_SPACE_BEFORE_PUNCTUATION, R.string.preserve_space_before_punctuation, R.string.preserve_space_before_punctuation_summary) {
         SwitchPreference(it, Defaults.PREF_PRESERVE_SPACE_BEFORE_PUNCTUATION)
+    },
+    Setting(context, Settings.PREF_ABC_AFTER_SYMBOL_SPACE,
+        R.string.switch_keyboard_after, R.string.after_symbol_and_space)
+    {
+        SwitchPreference(it, Defaults.PREF_ABC_AFTER_SYMBOL_SPACE)
+    },
+    Setting(context, Settings.PREF_ABC_AFTER_NUMPAD_SPACE,
+        R.string.switch_keyboard_after, R.string.after_numpad_and_space)
+    {
+        SwitchPreference(it, Defaults.PREF_ABC_AFTER_NUMPAD_SPACE)
+    },
+    Setting(context, Settings.PREF_ABC_AFTER_EMOJI, R.string.switch_keyboard_after, R.string.after_emoji) {
+        SwitchPreference(it, Defaults.PREF_ABC_AFTER_EMOJI)
+    },
+    Setting(context, Settings.PREF_ABC_AFTER_CLIP, R.string.switch_keyboard_after, R.string.after_clip) {
+        SwitchPreference(it, Defaults.PREF_ABC_AFTER_CLIP)
     },
     Setting(context, Settings.PREF_SHOW_SUGGESTIONS,
         R.string.prefs_show_suggestions, R.string.prefs_show_suggestions_summary

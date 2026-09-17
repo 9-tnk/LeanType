@@ -32,11 +32,6 @@ import helium314.keyboard.keyboard.KeyboardActionListener
 import helium314.keyboard.keyboard.KeyboardLayoutSet
 import helium314.keyboard.keyboard.KeyboardSwitcher
 import helium314.keyboard.keyboard.emoji.SupportedEmojis
-import helium314.keyboard.keyboard.internal.keyboard_parser.POPUP_KEYS_ALL
-import helium314.keyboard.keyboard.internal.keyboard_parser.POPUP_KEYS_MAIN
-import helium314.keyboard.keyboard.internal.keyboard_parser.POPUP_KEYS_MORE
-import helium314.keyboard.keyboard.internal.keyboard_parser.POPUP_KEYS_NORMAL
-import helium314.keyboard.keyboard.internal.keyboard_parser.morePopupKeysResId
 import helium314.keyboard.latin.BuildConfig
 import helium314.keyboard.latin.R
 import helium314.keyboard.latin.SystemBroadcastReceiver
@@ -89,31 +84,21 @@ fun AdvancedSettingsScreen(
     val items = listOfNotNull(
         Settings.PREF_ALWAYS_INCOGNITO_MODE,
         Settings.PREF_DISABLE_NETWORK,
-        Settings.PREF_KEY_LONGPRESS_TIMEOUT,
         if (Settings.readHorizontalSpaceSwipe(prefs) == KeyboardActionListener.SWIPE_SWITCH_LANGUAGE
             || Settings.readVerticalSpaceSwipe(prefs) == KeyboardActionListener.SWIPE_SWITCH_LANGUAGE)
             Settings.PREF_LANGUAGE_SWIPE_DISTANCE else null,
-        Settings.PREF_SPACE_TO_CHANGE_LANG,
-        Settings.PREFS_LONG_PRESS_SYMBOLS_FOR_NUMPAD,
         Settings.PREF_ENABLE_EMOJI_ALT_PHYSICAL_KEY,
         Settings.PREF_PHYSICAL_KEYBOARD_SUGGESTION_SHORTCUTS,
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) Settings.PREF_SHOW_SETUP_WIZARD_ICON else null,
-        Settings.PREF_ABC_AFTER_SYMBOL_SPACE,
-        Settings.PREF_ABC_AFTER_NUMPAD_SPACE,
-        Settings.PREF_ABC_AFTER_EMOJI,
-        Settings.PREF_ABC_AFTER_CLIP,
         Settings.PREF_CUSTOM_CURRENCY_KEY,
-        Settings.PREF_MORE_POPUP_KEYS,
         Settings.PREF_TIMESTAMP_FORMAT,
         SettingsWithoutKey.BACKGROUND_SERVICES,
-        SettingsWithoutKey.APP_QUIRKS,
         SettingsWithoutKey.BACKUP_RESTORE,
         if (BuildConfig.DEBUG || prefs.getBoolean(DebugSettings.PREF_SHOW_DEBUG_SETTINGS, Defaults.PREF_SHOW_DEBUG_SETTINGS))
             SettingsWithoutKey.DEBUG_SETTINGS else null,
         R.string.settings_category_experimental,
         Settings.PREF_EMOJI_MAX_SDK,
         Settings.PREF_URL_DETECTION,
-
     )
     SearchSettingsScreen(
         onClickBack = onClickBack,
@@ -129,16 +114,6 @@ fun createAdvancedSettings(context: Context) = listOfNotNull(
     {
         SwitchPreference(it, Defaults.PREF_ALWAYS_INCOGNITO_MODE) { KeyboardSwitcher.getInstance().setThemeNeedsReload() }
     },
-    Setting(context, Settings.PREF_KEY_LONGPRESS_TIMEOUT, R.string.prefs_key_longpress_timeout_settings) { setting ->
-        SliderPreference(
-            name = setting.title,
-            key = setting.key,
-            default = Defaults.PREF_KEY_LONGPRESS_TIMEOUT,
-            range = 100f..700f,
-            description = { stringResource(R.string.abbreviation_unit_milliseconds, it.toString()) }
-        )
-    },
-
     Setting(context, Settings.PREF_LANGUAGE_SWIPE_DISTANCE, R.string.prefs_language_swipe_distance) { setting ->
         SliderPreference(
             name = setting.title,
@@ -147,16 +122,6 @@ fun createAdvancedSettings(context: Context) = listOfNotNull(
             range = 2f..18f,
             description = { it.toString() }
         )
-    },
-
-    Setting(context, Settings.PREF_SPACE_TO_CHANGE_LANG,
-        R.string.prefs_long_press_keyboard_to_change_lang,
-        R.string.prefs_long_press_keyboard_to_change_lang_summary)
-    {
-        SwitchPreference(it, Defaults.PREF_SPACE_TO_CHANGE_LANG)
-    },
-    Setting(context, Settings.PREFS_LONG_PRESS_SYMBOLS_FOR_NUMPAD, R.string.prefs_long_press_symbol_for_numpad) {
-        SwitchPreference(it, Defaults.PREFS_LONG_PRESS_SYMBOLS_FOR_NUMPAD)
     },
     Setting(context, Settings.PREF_ENABLE_EMOJI_ALT_PHYSICAL_KEY, R.string.prefs_enable_emoji_alt_physical_key,
         R.string.prefs_enable_emoji_alt_physical_key_summary)
@@ -176,22 +141,6 @@ fun createAdvancedSettings(context: Context) = listOfNotNull(
     Setting(context, Settings.PREF_SHOW_SETUP_WIZARD_ICON, R.string.show_setup_wizard_icon, R.string.show_setup_wizard_icon_summary) {
         val ctx = LocalContext.current
         SwitchPreference(it, Defaults.PREF_SHOW_SETUP_WIZARD_ICON) { SystemBroadcastReceiver.toggleAppIcon(ctx) }
-    },
-    Setting(context, Settings.PREF_ABC_AFTER_SYMBOL_SPACE,
-        R.string.switch_keyboard_after, R.string.after_symbol_and_space)
-    {
-        SwitchPreference(it, Defaults.PREF_ABC_AFTER_SYMBOL_SPACE)
-    },
-    Setting(context, Settings.PREF_ABC_AFTER_NUMPAD_SPACE,
-        R.string.switch_keyboard_after, R.string.after_numpad_and_space)
-    {
-        SwitchPreference(it, Defaults.PREF_ABC_AFTER_NUMPAD_SPACE)
-    },
-    Setting(context, Settings.PREF_ABC_AFTER_EMOJI, R.string.switch_keyboard_after, R.string.after_emoji) {
-        SwitchPreference(it, Defaults.PREF_ABC_AFTER_EMOJI)
-    },
-    Setting(context, Settings.PREF_ABC_AFTER_CLIP, R.string.switch_keyboard_after, R.string.after_clip) {
-        SwitchPreference(it, Defaults.PREF_ABC_AFTER_EMOJI)
     },
     Setting(context, Settings.PREF_CUSTOM_CURRENCY_KEY, R.string.customize_currencies) { setting ->
         var showDialog by rememberSaveable { mutableStateOf(false) }
@@ -213,12 +162,6 @@ fun createAdvancedSettings(context: Context) = listOfNotNull(
             )
         }
     },
-    Setting(context, Settings.PREF_MORE_POPUP_KEYS, R.string.show_popup_keys_title) {
-        val items = listOf(POPUP_KEYS_NORMAL, POPUP_KEYS_MAIN, POPUP_KEYS_MORE, POPUP_KEYS_ALL).map { setting ->
-            stringResource(morePopupKeysResId(setting)) to setting
-        }
-        ListPreference(it, items, Defaults.PREF_MORE_POPUP_KEYS) { KeyboardLayoutSet.onSystemLocaleChanged() }
-    },
     Setting(context, SettingsWithoutKey.BACKUP_RESTORE, R.string.backup_restore_title) {
         BackupRestorePreference(it)
     },
@@ -227,13 +170,6 @@ fun createAdvancedSettings(context: Context) = listOfNotNull(
             name = "Background Services & Processes",
             description = "Manage active background services, memory locks, and observers",
             onClick = { SettingsDestination.navigateTo(SettingsDestination.BackgroundServices) }
-        ) { NextScreenIcon() }
-    },
-    Setting(context, SettingsWithoutKey.APP_QUIRKS, R.string.app_quirks_title) {
-        Preference(
-            name = stringResource(R.string.app_quirks_title),
-            description = stringResource(R.string.app_quirks_summary),
-            onClick = { SettingsDestination.navigateTo(SettingsDestination.AppQuirks) }
         ) { NextScreenIcon() }
     },
     Setting(context, Settings.PREF_TIMESTAMP_FORMAT, R.string.timestamp_format_title) { setting ->

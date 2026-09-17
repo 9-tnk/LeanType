@@ -36,6 +36,8 @@ import helium314.keyboard.settings.dialogs.CustomizeIconsDialog
 import helium314.keyboard.settings.initPreview
 import helium314.keyboard.settings.preferences.BackgroundImagePref
 import helium314.keyboard.settings.preferences.CustomFontPreference
+import helium314.keyboard.settings.preferences.ReorderSwitchPreference
+import helium314.keyboard.settings.preferences.SwitchPreferenceWithEmojiDictWarning
 import helium314.keyboard.settings.preferences.MultiSliderPreference
 import helium314.keyboard.settings.preferences.TextInputPreference
 import helium314.keyboard.settings.previewDark
@@ -57,6 +59,7 @@ fun AppearanceScreen(
         Settings.PREF_THEME_STYLE,
         Settings.PREF_ICON_STYLE,
         Settings.PREF_CUSTOM_ICON_NAMES,
+        Settings.PREF_CLEAR_CLIPBOARD_ICON,
         Settings.PREF_THEME_COLORS,
         Settings.PREF_THEME_KEY_BORDERS,
         if (prefs.getBoolean(Settings.PREF_THEME_KEY_BORDERS, Defaults.PREF_THEME_KEY_BORDERS))
@@ -71,11 +74,15 @@ fun AppearanceScreen(
         Settings.PREF_NAVBAR_COLOR,
         SettingsWithoutKey.BACKGROUND_IMAGE,
         SettingsWithoutKey.BACKGROUND_IMAGE_LANDSCAPE,
+        R.string.settings_category_key_appearance,
+        Settings.PREF_SHOW_HINTS,
+        if (prefs.getBoolean(Settings.PREF_SHOW_HINTS, Defaults.PREF_SHOW_HINTS))
+            Settings.PREF_POPUP_KEYS_LABELS_ORDER else null,
+        Settings.PREF_POPUP_KEYS_ORDER,
+        Settings.PREF_SHOW_POPUP_HINTS,
+        Settings.PREF_SHOW_TLD_POPUP_KEYS,
+        Settings.PREF_POPUP_ON,
         R.string.settings_category_miscellaneous,
-        Settings.PREF_PERSIST_FLOATING_KEYBOARD,
-        Settings.PREF_REMEMBER_FLOATING_KEYBOARD,
-        // ponytail: persist text edit mode settings item
-        Settings.PREF_PERSIST_TEXT_EDIT_MODE,
         Settings.PREF_ENABLE_SPLIT_KEYBOARD,
         Settings.PREF_FOLDABLE_MODE,
         Settings.PREF_ENABLE_SPLIT_KEYBOARD_LANDSCAPE,
@@ -94,10 +101,9 @@ fun AppearanceScreen(
         SettingsWithoutKey.CUSTOM_EMOJI_FONT,
         Settings.PREF_EMOJI_FONT_SCALE,
         Settings.PREF_USE_SYSTEM_EMOJI,
+        Settings.PREF_SHOW_EMOJI_DESCRIPTIONS,
         if (prefs.getFloat(Settings.PREF_EMOJI_FONT_SCALE, Defaults.PREF_EMOJI_FONT_SCALE) != 1f)
             Settings.PREF_EMOJI_KEY_FIT else null,
-        if (prefs.getInt(Settings.PREF_EMOJI_MAX_SDK, 0) >= 24)
-            Settings.PREF_EMOJI_SKIN_TONE else null,
     )
     SearchSettingsScreen(
         onClickBack = onClickBack,
@@ -149,6 +155,25 @@ fun createAppearanceSettings(context: Context) = listOf(
         if (showDialog) {
             KeyboardIconsSet.instance.loadIcons(LocalContext.current)
             CustomizeIconsDialog(setting.key) { showDialog = false }
+        }
+    },
+    Setting(context, Settings.PREF_CLEAR_CLIPBOARD_ICON, R.string.clear_clipboard_icon) { setting ->
+        val ctx = LocalContext.current
+        val items = listOf(
+            stringResource(R.string.clear_clipboard_icon_bin) to "bin",
+            stringResource(R.string.clear_clipboard_icon_sweep) to "sweep",
+            stringResource(R.string.clear_clipboard_icon_sweep_slanted) to "sweep_slanted",
+            stringResource(R.string.clear_clipboard_icon_clipboard_slash) to "clipboard_slash",
+            stringResource(R.string.clear_clipboard_icon_legacy) to "legacy"
+        )
+        ListPreference(
+            setting = setting,
+            items = items,
+            default = Defaults.PREF_CLEAR_CLIPBOARD_ICON
+        ) {
+            KeyboardIconsSet.needsReload = true
+            KeyboardIconsSet.instance.loadIcons(ctx)
+            KeyboardSwitcher.getInstance().setThemeNeedsReload()
         }
     },
     Setting(context, Settings.PREF_THEME_COLORS, R.string.theme_colors) { setting ->
@@ -259,15 +284,26 @@ fun createAppearanceSettings(context: Context) = listOf(
             KeyboardSwitcher.getInstance().reloadKeyboard()
         }
     },
-    Setting(context, Settings.PREF_PERSIST_FLOATING_KEYBOARD, R.string.persist_floating_keyboard_title, R.string.persist_floating_keyboard_summary) {
-        SwitchPreference(it, Defaults.PREF_PERSIST_FLOATING_KEYBOARD)
+    Setting(context, Settings.PREF_SHOW_HINTS, R.string.show_hints, R.string.show_hints_summary) {
+        SwitchPreference(it, Defaults.PREF_SHOW_HINTS) { KeyboardSwitcher.getInstance().reloadKeyboard() }
     },
-    Setting(context, Settings.PREF_REMEMBER_FLOATING_KEYBOARD, R.string.remember_floating_keyboard_title, R.string.remember_floating_keyboard_summary) {
-        SwitchPreference(it, Defaults.PREF_REMEMBER_FLOATING_KEYBOARD)
+    Setting(context, Settings.PREF_POPUP_KEYS_LABELS_ORDER, R.string.hint_source) {
+        ReorderSwitchPreference(it, Defaults.PREF_POPUP_KEYS_LABELS_ORDER)
     },
-    // ponytail: persist text edit mode preference widget
-    Setting(context, Settings.PREF_PERSIST_TEXT_EDIT_MODE, R.string.persist_text_edit_mode_title, R.string.persist_text_edit_mode_summary) {
-        SwitchPreference(it, Defaults.PREF_PERSIST_TEXT_EDIT_MODE)
+    Setting(context, Settings.PREF_POPUP_KEYS_ORDER, R.string.popup_order) {
+        ReorderSwitchPreference(it, Defaults.PREF_POPUP_KEYS_ORDER)
+    },
+    Setting(
+        context, Settings.PREF_SHOW_TLD_POPUP_KEYS, R.string.show_tld_popup_keys,
+        R.string.show_tld_popup_keys_summary
+    ) {
+        SwitchPreference(it, Defaults.PREF_SHOW_TLD_POPUP_KEYS) { KeyboardSwitcher.getInstance().setThemeNeedsReload() }
+    },
+    Setting(context, Settings.PREF_SHOW_POPUP_HINTS, R.string.show_popup_hints, R.string.show_popup_hints_summary) {
+        SwitchPreference(it, Defaults.PREF_SHOW_POPUP_HINTS) { KeyboardSwitcher.getInstance().setThemeNeedsReload() }
+    },
+    Setting(context, Settings.PREF_POPUP_ON, R.string.popup_on_keypress) {
+        SwitchPreference(it, Defaults.PREF_POPUP_ON) { KeyboardSwitcher.getInstance().reloadKeyboard() }
     },
     Setting(context, Settings.PREF_SPLIT_SPACER_SCALE_PREFIX, R.string.split_spacer_scale) { setting ->
         MultiSliderPreference(
@@ -362,16 +398,8 @@ fun createAppearanceSettings(context: Context) = listOf(
     Setting(context, Settings.PREF_EMOJI_KEY_FIT, R.string.prefs_emoji_key_fit) {
         SwitchPreference(it, Defaults.PREF_EMOJI_KEY_FIT) { KeyboardSwitcher.getInstance().setThemeNeedsReload() }
     },
-    Setting(context, Settings.PREF_EMOJI_SKIN_TONE, R.string.prefs_emoji_skin_tone) { setting ->
-        val items = listOf(
-            stringResource(R.string.prefs_emoji_skin_tone_neutral) to "",
-            "\uD83C\uDFFB" to "\uD83C\uDFFB",
-            "\uD83C\uDFFC" to "\uD83C\uDFFC",
-            "\uD83C\uDFFD" to "\uD83C\uDFFD",
-            "\uD83C\uDFFE" to "\uD83C\uDFFE",
-            "\uD83C\uDFFF" to "\uD83C\uDFFF"
-        )
-        ListPreference(setting, items, Defaults.PREF_EMOJI_SKIN_TONE) { KeyboardSwitcher.getInstance().setThemeNeedsReload() }
+    Setting(context, Settings.PREF_SHOW_EMOJI_DESCRIPTIONS, R.string.show_emoji_descriptions) {
+        SwitchPreferenceWithEmojiDictWarning(it, Defaults.PREF_SHOW_EMOJI_DESCRIPTIONS)
     },
 )
 

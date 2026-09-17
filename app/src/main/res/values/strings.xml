@@ -1660,9 +1660,13 @@ New dictionary:
     <string name="custom_ai_keys_tag_label">Tag / Label (e.g. \'French\', \'Grammar\', \'Rewrite\')</string>
     <string name="custom_ai_keys_selected_functions">Selected Keyword Functions:</string>
 
-    <!-- App Quirks Screen -->
-    <string name="app_quirks_title">App Quirks &amp; Overrides</string>
-    <string name="app_quirks_summary">Per-app web compatibility, automatic incognito, and enter key action overrides</string>
+    <string name="settings_category_app_profiles">App profiles</string>
+    <string name="settings_category_window_modes">Window &amp; floating modes</string>
+    <string name="settings_category_key_appearance">Key appearance &amp; hints</string>
+
+    <!-- App Profiles Screen -->
+    <string name="app_quirks_title">App Profiles</string>
+    <string name="app_quirks_summary">Per-app keyboard behavior, web compatibility, and auto-incognito</string>
     <string name="app_quirks_search_hint">Search apps by name or package</string>
     <string name="app_quirks_empty">No applications found</string>
     <string name="app_quirks_force_web_editor">Web Editor Compatibility</string>
@@ -1683,7 +1687,7 @@ New dictionary:
     <string name="app_quirks_badge_incognito">Incognito</string>
     <string name="app_quirks_badge_action">Action</string>
     <string name="app_quirks_badge_no_enter">No-Enter Strip</string>
-    <string name="app_quirks_badge_default">Default Quirk</string>
+    <string name="app_quirks_badge_default">Default Profile</string>
     <string name="app_quirks_filter_configured">Configured only</string>
     <string name="app_quirks_reset_default">Reset to Default</string>
     <string name="app_quirks_force_direct_commit">Force Direct Text Commit</string>

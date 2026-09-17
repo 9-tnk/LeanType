@@ -27,19 +27,24 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import helium314.keyboard.settings.preferences.Preference
-import helium314.keyboard.settings.preferences.ListPreference
-import helium314.keyboard.settings.Setting
-import helium314.keyboard.settings.preferences.ReorderSwitchPreference
+import helium314.keyboard.keyboard.internal.keyboard_parser.POPUP_KEYS_ALL
+import helium314.keyboard.keyboard.internal.keyboard_parser.POPUP_KEYS_MAIN
+import helium314.keyboard.keyboard.internal.keyboard_parser.POPUP_KEYS_MORE
+import helium314.keyboard.keyboard.internal.keyboard_parser.POPUP_KEYS_NORMAL
+import helium314.keyboard.keyboard.internal.keyboard_parser.morePopupKeysResId
+import helium314.keyboard.settings.NextScreenIcon
 import helium314.keyboard.settings.SearchSettingsScreen
+import helium314.keyboard.settings.Setting
 import helium314.keyboard.settings.SettingsActivity
-import helium314.keyboard.settings.preferences.SliderPreference
-import helium314.keyboard.settings.preferences.SwitchPreference
+import helium314.keyboard.settings.SettingsDestination
+import helium314.keyboard.settings.SettingsWithoutKey
 import helium314.keyboard.settings.Theme
 import helium314.keyboard.settings.initPreview
-import helium314.keyboard.settings.preferences.SwitchPreferenceWithEmojiDictWarning
+import helium314.keyboard.settings.preferences.ListPreference
+import helium314.keyboard.settings.preferences.Preference
+import helium314.keyboard.settings.preferences.SliderPreference
+import helium314.keyboard.settings.preferences.SwitchPreference
 import helium314.keyboard.settings.previewDark
-import java.io.File
 
 @Composable
 fun PreferencesScreen(
@@ -52,13 +57,10 @@ fun PreferencesScreen(
     val clipboardHistoryEnabled = prefs.getBoolean(Settings.PREF_ENABLE_CLIPBOARD_HISTORY, Defaults.PREF_ENABLE_CLIPBOARD_HISTORY)
     val items = listOf(
         R.string.settings_category_input,
-        Settings.PREF_SHOW_HINTS,
-        if (prefs.getBoolean(Settings.PREF_SHOW_HINTS, Defaults.PREF_SHOW_HINTS))
-            Settings.PREF_POPUP_KEYS_LABELS_ORDER else null,
-        Settings.PREF_POPUP_KEYS_ORDER,
-        Settings.PREF_SHOW_POPUP_HINTS,
-        Settings.PREF_SHOW_TLD_POPUP_KEYS,
-        Settings.PREF_POPUP_ON,
+        Settings.PREF_KEY_LONGPRESS_TIMEOUT,
+        Settings.PREF_MORE_POPUP_KEYS,
+        Settings.PREF_EMOJI_SKIN_TONE,
+        Settings.PREF_SHOW_EMOJI_KEY,
         if (AudioAndHapticFeedbackManager.getInstance().hasVibrator())
             Settings.PREF_VIBRATE_ON else null,
         if (prefs.getBoolean(Settings.PREF_VIBRATE_ON, Defaults.PREF_VIBRATE_ON))
@@ -67,8 +69,7 @@ fun PreferencesScreen(
             Settings.PREF_VIBRATION_AMPLITUDE_SETTINGS else null,
         if (prefs.getBoolean(Settings.PREF_VIBRATE_ON, Defaults.PREF_VIBRATE_ON))
             Settings.PREF_VIBRATE_IN_DND_MODE else null,
-        Settings.PREF_SAVE_SUBTYPE_PER_APP,
-        Settings.PREF_SHOW_EMOJI_DESCRIPTIONS,
+
         R.string.settings_category_additional_keys,
         Settings.PREF_SHOW_NUMBER_ROW,
         if (SubtypeSettings.getEnabledSubtypes(true).any { it.locale().language in localesWithLocalizedNumberRow })
@@ -81,17 +82,27 @@ fun PreferencesScreen(
         if (!prefs.getBoolean(Settings.PREF_SHOW_NUMBER_ROW, Defaults.PREF_SHOW_NUMBER_ROW)
             && prefs.getBoolean(Settings.PREF_SHOW_NUMBER_ROW_IN_SYMBOLS, Defaults.PREF_SHOW_NUMBER_ROW_IN_SYMBOLS))
             Settings.PREF_COMPACT_NUMBER_ROW_IN_SYMBOLS else null,
+        Settings.PREFS_LONG_PRESS_SYMBOLS_FOR_NUMPAD,
         Settings.PREF_SHOW_LANGUAGE_SWITCH_KEY,
         Settings.PREF_LANGUAGE_SWITCH_KEY,
+        Settings.PREF_SPACE_TO_CHANGE_LANG,
         Settings.PREF_DIRECT_IME_SWITCH_TARGET,
-        Settings.PREF_SHOW_EMOJI_KEY,
         Settings.PREF_REMOVE_REDUNDANT_POPUPS,
+
+        R.string.settings_category_app_profiles,
+        SettingsWithoutKey.APP_QUIRKS,
+        Settings.PREF_SAVE_SUBTYPE_PER_APP,
+
+        R.string.settings_category_window_modes,
+        Settings.PREF_PERSIST_FLOATING_KEYBOARD,
+        Settings.PREF_REMEMBER_FLOATING_KEYBOARD,
+        Settings.PREF_PERSIST_TEXT_EDIT_MODE,
+
         R.string.settings_category_clipboard_history,
         Settings.PREF_ENABLE_CLIPBOARD_HISTORY,
         if (clipboardHistoryEnabled) Settings.PREF_CLIPBOARD_HISTORY_RETENTION_TIME else null,
         if (clipboardHistoryEnabled) Settings.PREF_CLIPBOARD_HISTORY_PINNED_FIRST else null,
         if (clipboardHistoryEnabled) Settings.PREF_CLIPBOARD_FOLD_PINNED else null,
-        if (clipboardHistoryEnabled) Settings.PREF_CLEAR_CLIPBOARD_ICON else null
     )
     SearchSettingsScreen(
         onClickBack = onClickBack,
@@ -101,29 +112,41 @@ fun PreferencesScreen(
 }
 
 fun createPreferencesSettings(context: Context) = listOf(
+    Setting(context, Settings.PREF_KEY_LONGPRESS_TIMEOUT, R.string.prefs_key_longpress_timeout_settings) { setting ->
+        SliderPreference(
+            name = setting.title,
+            key = setting.key,
+            default = Defaults.PREF_KEY_LONGPRESS_TIMEOUT,
+            range = 100f..700f,
+            description = { stringResource(R.string.abbreviation_unit_milliseconds, it.toString()) }
+        )
+    },
+    Setting(context, Settings.PREF_MORE_POPUP_KEYS, R.string.show_popup_keys_title) {
+        val items = listOf(POPUP_KEYS_NORMAL, POPUP_KEYS_MAIN, POPUP_KEYS_MORE, POPUP_KEYS_ALL).map { setting ->
+            stringResource(morePopupKeysResId(setting)) to setting
+        }
+        ListPreference(it, items, Defaults.PREF_MORE_POPUP_KEYS) { KeyboardLayoutSet.onSystemLocaleChanged() }
+    },
+    Setting(context, Settings.PREF_EMOJI_SKIN_TONE, R.string.prefs_emoji_skin_tone) { setting ->
+        val items = listOf(
+            stringResource(R.string.prefs_emoji_skin_tone_neutral) to "",
+            "\uD83C\uDFFB" to "\uD83C\uDFFB",
+            "\uD83C\uDFFC" to "\uD83C\uDFFC",
+            "\uD83C\uDFFD" to "\uD83C\uDFFD",
+            "\uD83C\uDFFE" to "\uD83C\uDFFE",
+            "\uD83C\uDFFF" to "\uD83C\uDFFF"
+        )
+        ListPreference(setting, items, Defaults.PREF_EMOJI_SKIN_TONE) { KeyboardSwitcher.getInstance().setThemeNeedsReload() }
+    },
     Setting(context, Settings.PREF_SAVE_SUBTYPE_PER_APP, R.string.save_subtype_per_app) {
         SwitchPreference(it, Defaults.PREF_SAVE_SUBTYPE_PER_APP)
     },
-    Setting(context, Settings.PREF_SHOW_HINTS, R.string.show_hints, R.string.show_hints_summary) {
-        SwitchPreference(it, Defaults.PREF_SHOW_HINTS) { KeyboardSwitcher.getInstance().reloadKeyboard() }
-    },
-    Setting(context, Settings.PREF_POPUP_KEYS_LABELS_ORDER, R.string.hint_source) {
-        ReorderSwitchPreference(it, Defaults.PREF_POPUP_KEYS_LABELS_ORDER)
-    },
-    Setting(context, Settings.PREF_POPUP_KEYS_ORDER, R.string.popup_order) {
-        ReorderSwitchPreference(it, Defaults.PREF_POPUP_KEYS_ORDER)
-    },
-    Setting(
-        context, Settings.PREF_SHOW_TLD_POPUP_KEYS, R.string.show_tld_popup_keys,
-        R.string.show_tld_popup_keys_summary
-    ) {
-        SwitchPreference(it, Defaults.PREF_SHOW_TLD_POPUP_KEYS) { KeyboardSwitcher.getInstance().setThemeNeedsReload() }
-    },
-    Setting(context, Settings.PREF_SHOW_POPUP_HINTS, R.string.show_popup_hints, R.string.show_popup_hints_summary) {
-        SwitchPreference(it, Defaults.PREF_SHOW_POPUP_HINTS) { KeyboardSwitcher.getInstance().setThemeNeedsReload() }
-    },
-    Setting(context, Settings.PREF_POPUP_ON, R.string.popup_on_keypress) {
-        SwitchPreference(it, Defaults.PREF_POPUP_ON) { KeyboardSwitcher.getInstance().reloadKeyboard() }
+    Setting(context, SettingsWithoutKey.APP_QUIRKS, R.string.app_quirks_title) {
+        Preference(
+            name = stringResource(R.string.app_quirks_title),
+            description = stringResource(R.string.app_quirks_summary),
+            onClick = { SettingsDestination.navigateTo(SettingsDestination.AppQuirks) }
+        ) { NextScreenIcon() }
     },
     Setting(context, Settings.PREF_VIBRATE_ON, R.string.vibrate_on_keypress) {
         SwitchPreference(it, Defaults.PREF_VIBRATE_ON)
@@ -133,9 +156,6 @@ fun createPreferencesSettings(context: Context) = listOf(
     },
     Setting(context, Settings.PREF_SOUND_ON, R.string.sound_on_keypress) {
         SwitchPreference(it, Defaults.PREF_SOUND_ON)
-    },
-    Setting(context, Settings.PREF_SHOW_EMOJI_DESCRIPTIONS, R.string.show_emoji_descriptions) {
-        SwitchPreferenceWithEmojiDictWarning(it, Defaults.PREF_SHOW_EMOJI_DESCRIPTIONS)
     },
     Setting(context, Settings.PREF_SHOW_NUMBER_ROW, R.string.number_row, R.string.number_row_summary) {
         SwitchPreference(it, Defaults.PREF_SHOW_NUMBER_ROW) { KeyboardSwitcher.getInstance().setThemeNeedsReload() }
@@ -155,6 +175,9 @@ fun createPreferencesSettings(context: Context) = listOf(
     Setting(context, Settings.PREF_SHOW_NUMBER_ROW_HINTS, R.string.number_row_hints) {
         SwitchPreference(it, Defaults.PREF_SHOW_NUMBER_ROW_HINTS) { KeyboardSwitcher.getInstance().setThemeNeedsReload() }
     },
+    Setting(context, Settings.PREFS_LONG_PRESS_SYMBOLS_FOR_NUMPAD, R.string.prefs_long_press_symbol_for_numpad) {
+        SwitchPreference(it, Defaults.PREFS_LONG_PRESS_SYMBOLS_FOR_NUMPAD)
+    },
     Setting(context, Settings.PREF_SHOW_LANGUAGE_SWITCH_KEY, R.string.show_language_switch_key) {
         SwitchPreference(it, Defaults.PREF_SHOW_LANGUAGE_SWITCH_KEY) { KeyboardSwitcher.getInstance().reloadKeyboard() }
     },
@@ -168,6 +191,12 @@ fun createPreferencesSettings(context: Context) = listOf(
             ),
             Defaults.PREF_LANGUAGE_SWITCH_KEY
         ) { KeyboardSwitcher.getInstance().setThemeNeedsReload() }
+    },
+    Setting(context, Settings.PREF_SPACE_TO_CHANGE_LANG,
+        R.string.prefs_long_press_keyboard_to_change_lang,
+        R.string.prefs_long_press_keyboard_to_change_lang_summary)
+    {
+        SwitchPreference(it, Defaults.PREF_SPACE_TO_CHANGE_LANG)
     },
     Setting(context, Settings.PREF_DIRECT_IME_SWITCH_TARGET, R.string.direct_ime_switch_title, R.string.direct_ime_switch_summary) {
         ListPreference(
@@ -183,6 +212,15 @@ fun createPreferencesSettings(context: Context) = listOf(
         R.string.remove_redundant_popups, R.string.remove_redundant_popups_summary)
     {
         SwitchPreference(it, Defaults.PREF_REMOVE_REDUNDANT_POPUPS) { KeyboardSwitcher.getInstance().setThemeNeedsReload() }
+    },
+    Setting(context, Settings.PREF_PERSIST_FLOATING_KEYBOARD, R.string.persist_floating_keyboard_title, R.string.persist_floating_keyboard_summary) {
+        SwitchPreference(it, Defaults.PREF_PERSIST_FLOATING_KEYBOARD)
+    },
+    Setting(context, Settings.PREF_REMEMBER_FLOATING_KEYBOARD, R.string.remember_floating_keyboard_title, R.string.remember_floating_keyboard_summary) {
+        SwitchPreference(it, Defaults.PREF_REMEMBER_FLOATING_KEYBOARD)
+    },
+    Setting(context, Settings.PREF_PERSIST_TEXT_EDIT_MODE, R.string.persist_text_edit_mode_title, R.string.persist_text_edit_mode_summary) {
+        SwitchPreference(it, Defaults.PREF_PERSIST_TEXT_EDIT_MODE)
     },
     Setting(context, Settings.PREF_ENABLE_CLIPBOARD_HISTORY,
         R.string.enable_clipboard_history, R.string.enable_clipboard_history_summary)
@@ -208,25 +246,6 @@ fun createPreferencesSettings(context: Context) = listOf(
     },
     Setting(context, Settings.PREF_CLIPBOARD_FOLD_PINNED, R.string.clipboard_fold_pinned) {
         SwitchPreference(it, Defaults.PREF_CLIPBOARD_FOLD_PINNED)
-    },
-    Setting(context, Settings.PREF_CLEAR_CLIPBOARD_ICON, R.string.clear_clipboard_icon) { setting ->
-        val ctx = LocalContext.current
-        val items = listOf(
-            stringResource(R.string.clear_clipboard_icon_bin) to "bin",
-            stringResource(R.string.clear_clipboard_icon_sweep) to "sweep",
-            stringResource(R.string.clear_clipboard_icon_sweep_slanted) to "sweep_slanted",
-            stringResource(R.string.clear_clipboard_icon_clipboard_slash) to "clipboard_slash",
-            stringResource(R.string.clear_clipboard_icon_legacy) to "legacy"
-        )
-        ListPreference(
-            setting = setting,
-            items = items,
-            default = Defaults.PREF_CLEAR_CLIPBOARD_ICON
-        ) {
-            helium314.keyboard.keyboard.internal.KeyboardIconsSet.needsReload = true
-            helium314.keyboard.keyboard.internal.KeyboardIconsSet.instance.loadIcons(ctx)
-            KeyboardSwitcher.getInstance().setThemeNeedsReload()
-        }
     },
     Setting(context, Settings.PREF_VIBRATION_DURATION_SETTINGS, R.string.prefs_keypress_vibration_duration_settings) { setting ->
         SliderPreference(
