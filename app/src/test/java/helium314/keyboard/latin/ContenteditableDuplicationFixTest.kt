@@ -85,6 +85,27 @@ class ContenteditableDuplicationFixTest {
     }
 
     @Test
+    fun testInputTypeUtils_isWebEditor() {
+        val webEi = android.view.inputmethod.EditorInfo().apply {
+            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_WEB_EDIT_TEXT
+            packageName = "com.some.app"
+        }
+        val browserEi = android.view.inputmethod.EditorInfo().apply {
+            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_NORMAL
+            packageName = "com.android.chrome"
+        }
+        val nativeEi = android.view.inputmethod.EditorInfo().apply {
+            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_NORMAL
+            packageName = "org.telegram.messenger"
+        }
+
+        assertTrue(InputTypeUtils.isWebEditor(webEi))
+        assertTrue(InputTypeUtils.isWebEditor(browserEi))
+        assertFalse(InputTypeUtils.isWebEditor(nativeEi))
+        assertFalse(InputTypeUtils.isWebEditor(null))
+    }
+
+    @Test
     fun testIsBelatedExpectedUpdate_handlesMissingComposingSpan() {
         val mockIms = org.mockito.Mockito.mock(android.inputmethodservice.InputMethodService::class.java)
         val ric = RichInputConnection(mockIms)

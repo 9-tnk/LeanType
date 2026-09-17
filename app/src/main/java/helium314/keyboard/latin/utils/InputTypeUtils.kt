@@ -47,6 +47,11 @@ object InputTypeUtils {
                 || variation == InputType.TYPE_TEXT_VARIATION_WEB_PASSWORD
     }
 
+    fun isWebEditor(editorInfo: EditorInfo?): Boolean {
+        if (editorInfo == null) return false
+        return isWebEditText(editorInfo.inputType) || AppWorkarounds.isWebBrowser(editorInfo.packageName)
+    }
+
     // Please refer to TextView.isPasswordInputType
     fun isPasswordInputType(inputType: Int): Boolean {
         val maskedInputType = inputType and (InputType.TYPE_MASK_CLASS or InputType.TYPE_MASK_VARIATION)
