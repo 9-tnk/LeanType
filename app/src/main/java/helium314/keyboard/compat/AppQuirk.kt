@@ -12,9 +12,12 @@ data class AppQuirk(
     val stripNoEnterAction: Boolean = false,
     val forceEnterAction: Int? = null,
     val forceIncognito: Boolean = false,
+    val forceDirectCommit: Boolean = false,
+    val disableAutoSpace: Boolean = false,
 ) {
     fun hasCustomSettings(): Boolean =
-        forceWebEditor || stripNoEnterAction || (forceEnterAction != null) || forceIncognito
+        forceWebEditor || stripNoEnterAction || (forceEnterAction != null) || forceIncognito ||
+                forceDirectCommit || disableAutoSpace
 
     fun toJson(): JSONObject {
         val json = JSONObject()
@@ -23,6 +26,8 @@ data class AppQuirk(
         if (stripNoEnterAction) json.put("stripNoEnterAction", true)
         if (forceEnterAction != null) json.put("forceEnterAction", forceEnterAction)
         if (forceIncognito) json.put("forceIncognito", true)
+        if (forceDirectCommit) json.put("forceDirectCommit", true)
+        if (disableAutoSpace) json.put("disableAutoSpace", true)
         return json
     }
 
@@ -33,12 +38,16 @@ data class AppQuirk(
             val stripNoEnterAction = json.optBoolean("stripNoEnterAction", false)
             val forceEnterAction = if (json.has("forceEnterAction")) json.getInt("forceEnterAction") else null
             val forceIncognito = json.optBoolean("forceIncognito", false)
+            val forceDirectCommit = json.optBoolean("forceDirectCommit", false)
+            val disableAutoSpace = json.optBoolean("disableAutoSpace", false)
             return AppQuirk(
                 packageName = packageName,
                 forceWebEditor = forceWebEditor,
                 stripNoEnterAction = stripNoEnterAction,
                 forceEnterAction = forceEnterAction,
                 forceIncognito = forceIncognito,
+                forceDirectCommit = forceDirectCommit,
+                disableAutoSpace = disableAutoSpace,
             )
         }
     }

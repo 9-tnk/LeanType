@@ -118,7 +118,9 @@ fun AppQuirksScreen(
             }
 
             // Include configured packages or defaults that might not have launcher intents
-            val extraPackages = AppQuirksManager.getAllUserQuirks().keys + "com.google.android.apps.nexuslauncher"
+            val extraPackages = AppQuirksManager.getAllUserQuirks().keys +
+                    "com.google.android.apps.nexuslauncher" +
+                    "net.dinglisch.android.taskerm"
             for (pkg in extraPackages) {
                 if (visited.add(pkg)) {
                     try {
@@ -197,6 +199,20 @@ fun AppQuirksScreen(
                         stringResource(R.string.app_quirks_badge_incognito),
                         MaterialTheme.colorScheme.errorContainer,
                         MaterialTheme.colorScheme.onErrorContainer
+                    ))
+                }
+                if (effective?.forceDirectCommit == true) {
+                    badges.add(BadgeInfo(
+                        stringResource(R.string.app_quirks_badge_direct_commit),
+                        MaterialTheme.colorScheme.secondaryContainer,
+                        MaterialTheme.colorScheme.onSecondaryContainer
+                    ))
+                }
+                if (effective?.disableAutoSpace == true) {
+                    badges.add(BadgeInfo(
+                        stringResource(R.string.app_quirks_badge_no_auto_space),
+                        MaterialTheme.colorScheme.surfaceVariant,
+                        MaterialTheme.colorScheme.onSurfaceVariant
                     ))
                 }
                 if (effective?.stripNoEnterAction == true) {
@@ -345,6 +361,8 @@ private fun AppQuirkDialog(
     var forceWebEditor by remember { mutableStateOf(initialEffective.forceWebEditor) }
     var forceIncognito by remember { mutableStateOf(initialEffective.forceIncognito) }
     var stripNoEnterAction by remember { mutableStateOf(initialEffective.stripNoEnterAction) }
+    var forceDirectCommit by remember { mutableStateOf(initialEffective.forceDirectCommit) }
+    var disableAutoSpace by remember { mutableStateOf(initialEffective.disableAutoSpace) }
     var selectedAction by remember { mutableStateOf(initialEffective.forceEnterAction) }
 
     val options = listOf(
@@ -366,7 +384,9 @@ private fun AppQuirkDialog(
                 forceWebEditor = forceWebEditor,
                 stripNoEnterAction = stripNoEnterAction,
                 forceEnterAction = selectedAction,
-                forceIncognito = forceIncognito
+                forceIncognito = forceIncognito,
+                forceDirectCommit = forceDirectCommit,
+                disableAutoSpace = disableAutoSpace,
             )
             AppQuirksManager.saveQuirk(newQuirk)
             onSaved()
@@ -415,6 +435,18 @@ private fun AppQuirkDialog(
                     summary = stringResource(R.string.app_quirks_strip_no_enter_summary),
                     checked = stripNoEnterAction,
                     onCheckedChange = { stripNoEnterAction = it }
+                )
+                QuirkToggleRow(
+                    title = stringResource(R.string.app_quirks_force_direct_commit),
+                    summary = stringResource(R.string.app_quirks_force_direct_commit_summary),
+                    checked = forceDirectCommit,
+                    onCheckedChange = { forceDirectCommit = it }
+                )
+                QuirkToggleRow(
+                    title = stringResource(R.string.app_quirks_disable_auto_space),
+                    summary = stringResource(R.string.app_quirks_disable_auto_space_summary),
+                    checked = disableAutoSpace,
+                    onCheckedChange = { disableAutoSpace = it }
                 )
                 Spacer(modifier = Modifier.height(12.dp))
                 Text(

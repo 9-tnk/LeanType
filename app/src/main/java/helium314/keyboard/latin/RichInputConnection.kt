@@ -21,6 +21,7 @@ import android.view.inputmethod.ExtractedText
 import android.view.inputmethod.ExtractedTextRequest
 import android.view.inputmethod.InputConnection
 import android.view.inputmethod.InputMethodManager
+import helium314.keyboard.compat.AppQuirksManager
 import helium314.keyboard.keyboard.KeyboardSwitcher
 import helium314.keyboard.latin.common.Constants
 import helium314.keyboard.latin.common.StringUtils
@@ -278,33 +279,38 @@ class RichInputConnection(private val mParent: InputMethodService) : PrivateComm
         mComposingText.setLength(0)
 
         if (isConnected()) {
-            mTempObjectForCommitText.clear()
-            mTempObjectForCommitText.append(text)
+            val isDirectCommit = AppQuirksManager.isDirectCommitApp(mParent.currentInputEditorInfo?.packageName)
+            if (isDirectCommit) {
+                mIC?.commitText(text.toString(), newCursorPosition)
+            } else {
+                mTempObjectForCommitText.clear()
+                mTempObjectForCommitText.append(text)
 
-            val spans: Array<CharacterStyle> = mTempObjectForCommitText.getSpans(
-                0,
-                text.length,
-                CharacterStyle::class.java
-            )
+                val spans: Array<CharacterStyle> = mTempObjectForCommitText.getSpans(
+                    0,
+                    text.length,
+                    CharacterStyle::class.java
+                )
 
-            for (span in spans) {
-                val spanStart = mTempObjectForCommitText.getSpanStart(span)
-                val spanEnd = mTempObjectForCommitText.getSpanEnd(span)
-                val spanFlags = mTempObjectForCommitText.getSpanFlags(span)
+                for (span in spans) {
+                    val spanStart = mTempObjectForCommitText.getSpanStart(span)
+                    val spanEnd = mTempObjectForCommitText.getSpanEnd(span)
+                    val spanFlags = mTempObjectForCommitText.getSpanFlags(span)
 
-                if (0 < spanEnd && spanEnd < mTempObjectForCommitText.length) {
-                    val spanEndChar = mTempObjectForCommitText[spanEnd - 1]
-                    val nextChar = mTempObjectForCommitText[spanEnd]
+                    if (0 < spanEnd && spanEnd < mTempObjectForCommitText.length) {
+                        val spanEndChar = mTempObjectForCommitText[spanEnd - 1]
+                        val nextChar = mTempObjectForCommitText[spanEnd]
 
-                    if (UnicodeSurrogate.isLowSurrogate(spanEndChar) &&
-                        UnicodeSurrogate.isHighSurrogate(nextChar)
-                    ) {
-                        mTempObjectForCommitText.setSpan(span, spanStart, spanEnd + 1, spanFlags)
+                        if (UnicodeSurrogate.isLowSurrogate(spanEndChar) &&
+                            UnicodeSurrogate.isHighSurrogate(nextChar)
+                        ) {
+                            mTempObjectForCommitText.setSpan(span, spanStart, spanEnd + 1, spanFlags)
+                        }
                     }
                 }
-            }
 
-            mIC?.commitText(mTempObjectForCommitText, newCursorPosition)
+                mIC?.commitText(mTempObjectForCommitText, newCursorPosition)
+            }
             if (InputTypeUtils.isWebEditor(mParent.currentInputEditorInfo)) {
                 // Invalidate local committed text cache in web editors to prevent stale reads and insertion loops
                 mCommittedTextBeforeComposingText.setLength(0)

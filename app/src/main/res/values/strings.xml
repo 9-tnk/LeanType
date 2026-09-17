@@ -1686,4 +1686,10 @@ New dictionary:
     <string name="app_quirks_badge_default">Default Quirk</string>
     <string name="app_quirks_filter_configured">Configured only</string>
     <string name="app_quirks_reset_default">Reset to Default</string>
+    <string name="app_quirks_force_direct_commit">Force Direct Text Commit</string>
+    <string name="app_quirks_force_direct_commit_summary">Bypass composing spans and commit characters directly to input connection (fixes Tasker variable inputs, broken text watchers)</string>
+    <string name="app_quirks_disable_auto_space">Disable Auto-Spacing</string>
+    <string name="app_quirks_disable_auto_space_summary">Never insert automatic spaces before or after punctuation and symbols</string>
+    <string name="app_quirks_badge_direct_commit">Direct Commit</string>
+    <string name="app_quirks_badge_no_auto_space">No Auto-Space</string>
 </resources>

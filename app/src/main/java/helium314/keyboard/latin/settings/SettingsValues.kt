@@ -14,6 +14,7 @@ import android.content.res.Resources
 import android.text.InputType
 import android.view.inputmethod.EditorInfo
 import androidx.core.util.TypedValueCompat
+import helium314.keyboard.compat.AppQuirksManager
 import helium314.keyboard.compat.locale
 import helium314.keyboard.keyboard.KeyboardTheme
 import helium314.keyboard.keyboard.internal.keyboard_parser.POPUP_KEYS_NORMAL
@@ -451,8 +452,11 @@ open class SettingsValues(
         return mSpacingAndPunctuations.isUsuallyFollowedBySpace(code)
     }
 
+    val isDirectCommitApp: Boolean = AppQuirksManager.isDirectCommitApp(mInputAttributes.mTargetApplicationPackageName)
+    val isAutoSpaceDisabled: Boolean = AppQuirksManager.isAutoSpaceDisabled(mInputAttributes.mTargetApplicationPackageName)
+
     fun shouldInsertSpacesAutomatically(): Boolean {
-        return mInputAttributes.mShouldInsertSpacesAutomatically
+        return mInputAttributes.mShouldInsertSpacesAutomatically && !isAutoSpaceDisabled
     }
 
     fun isLanguageSwitchKeyEnabled(): Boolean {

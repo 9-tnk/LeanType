@@ -43,6 +43,13 @@ object AppQuirksManager {
                 packageName = packageName,
                 stripNoEnterAction = true
             )
+            // Tasker has custom text watchers for variable syntax highlighting (%var)
+            // and auto-selects fields, breaking on symbol pair wrapping and composing spans.
+            "net.dinglisch.android.taskerm" -> AppQuirk(
+                packageName = packageName,
+                forceDirectCommit = true,
+                disableAutoSpace = true
+            )
             else -> null
         }
     }
@@ -111,6 +118,22 @@ object AppQuirksManager {
     fun isIncognitoApp(packageName: String?): Boolean {
         if (packageName == null) return false
         return getEffectiveQuirk(packageName)?.forceIncognito == true
+    }
+
+    /**
+     * Returns whether direct text commit (without composing spans) should be forced.
+     */
+    fun isDirectCommitApp(packageName: String?): Boolean {
+        if (packageName == null) return false
+        return getEffectiveQuirk(packageName)?.forceDirectCommit == true
+    }
+
+    /**
+     * Returns whether automatic spacing is disabled for this application.
+     */
+    fun isAutoSpaceDisabled(packageName: String?): Boolean {
+        if (packageName == null) return false
+        return getEffectiveQuirk(packageName)?.disableAutoSpace == true
     }
 
     fun getUserQuirk(packageName: String): AppQuirk? = userQuirks[packageName]

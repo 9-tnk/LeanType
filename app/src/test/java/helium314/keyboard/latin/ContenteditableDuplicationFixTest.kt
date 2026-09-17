@@ -90,6 +90,34 @@ class ContenteditableDuplicationFixTest {
     }
 
     @Test
+    fun testAppQuirksManager_defaultTaskerQuirk() {
+        val tasker = "net.dinglisch.android.taskerm"
+        val quirk = AppQuirksManager.defaultQuirk(tasker)
+        org.junit.Assert.assertNotNull(quirk)
+        assertTrue(quirk!!.forceDirectCommit)
+        assertTrue(quirk.disableAutoSpace)
+        assertTrue(AppQuirksManager.isDirectCommitApp(tasker))
+        assertTrue(AppQuirksManager.isAutoSpaceDisabled(tasker))
+    }
+
+    @Test
+    fun testAppQuirk_serialization_withDirectCommitAndAutoSpace() {
+        val original = AppQuirk(
+            packageName = "com.test.app",
+            forceDirectCommit = true,
+            disableAutoSpace = true,
+            forceWebEditor = true
+        )
+        val json = original.toJson()
+        val restored = AppQuirk.fromJson(json)
+        assertEquals(original.packageName, restored.packageName)
+        assertEquals(original.forceDirectCommit, restored.forceDirectCommit)
+        assertEquals(original.disableAutoSpace, restored.disableAutoSpace)
+        assertEquals(original.forceWebEditor, restored.forceWebEditor)
+        assertFalse(restored.forceIncognito)
+    }
+
+    @Test
     fun testAppQuirksManager_userCustomQuirks() {
         val pkg = "com.custom.app"
         assertFalse(AppQuirksManager.isWebEditor(pkg))

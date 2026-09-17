@@ -956,6 +956,7 @@ class InputLogic(
         if (!isComposingWord
             && settingsValues.isWordCodePoint(codePoint)
             && settingsValues.needsToLookupSuggestions()
+            && !settingsValues.isDirectCommitApp
             && (!settingsValues.mSpacingAndPunctuations.mCurrentLanguageHasSpaces
                 || !mConnection.isCursorTouchingWord(settingsValues.mSpacingAndPunctuations, !mConnection.hasSlowInputConnection())
                 || isCursorAtStartOrAfterSeparator(settingsValues))
@@ -1116,7 +1117,7 @@ class InputLogic(
 
         if (!wasComposingWord && mConnection.hasSelection()) {
             val pairedCodepoint = settingsValues.mSpacingAndPunctuations.getSecondInSymbolPair(codePoint)
-            if (pairedCodepoint != Constants.NOT_A_CODE) {
+            if (pairedCodepoint != Constants.NOT_A_CODE && !settingsValues.isDirectCommitApp) {
                 wrapSelection(codePoint, pairedCodepoint)
                 inputTransaction.requireShiftUpdate(InputTransaction.SHIFT_UPDATE_NOW)
                 return
@@ -1159,7 +1160,7 @@ class InputLogic(
             settingsValues.isUsuallyPrecededBySpace(codePoint) || isEmoji(codePoint)
         }
 
-        if (needsPrecedingSpace) {
+        if (needsPrecedingSpace && !settingsValues.isAutoSpaceDisabled) {
             insertAutomaticSpaceIfOptionsAndTextAllow(settingsValues)
         }
 
@@ -1190,13 +1191,17 @@ class InputLogic(
             if (SpaceState.PHANTOM == inputTransaction.spaceState
                 && (settingsValues.isUsuallyFollowedBySpace(codePoint) || isInsideDoubleQuoteOrAfterDigit)
             ) {
-                mSpaceState = SpaceState.PHANTOM
+                if (!settingsValues.isAutoSpaceDisabled) {
+                    mSpaceState = SpaceState.PHANTOM
+                }
             } else {
                 if (wasComposingWord
                     && settingsValues.mAutospaceAfterPunctuation
                     && (settingsValues.isUsuallyFollowedBySpace(codePoint) || isInsideDoubleQuoteOrAfterDigit)
                 ) {
-                    mSpaceState = SpaceState.PHANTOM
+                    if (!settingsValues.isAutoSpaceDisabled) {
+                        mSpaceState = SpaceState.PHANTOM
+                    }
                 }
             }
 
