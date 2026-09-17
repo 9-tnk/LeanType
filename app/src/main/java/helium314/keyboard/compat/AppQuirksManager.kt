@@ -14,6 +14,10 @@ import java.util.concurrent.ConcurrentHashMap
 object AppQuirksManager {
     private const val TAG = "AppQuirksManager"
 
+    const val AUTOCORRECT_DEFAULT = 0
+    const val AUTOCORRECT_FORCE_ENABLE = 1
+    const val AUTOCORRECT_FORCE_DISABLE = 2
+
     private val userQuirks = ConcurrentHashMap<String, AppQuirk>()
     private var prefs: SharedPreferences? = null
     @Volatile private var isInitialized = false
@@ -144,6 +148,15 @@ object AppQuirksManager {
         if (packageName == null) return false
         if (packageName == "com.termux" || packageName.endsWith(".termux") || packageName.contains("terminal")) return true
         return getEffectiveQuirk(packageName)?.allowTypeNullKeyboard == true
+    }
+
+    /**
+     * Returns the auto-correction override mode for this package:
+     * AUTOCORRECT_DEFAULT (0), AUTOCORRECT_FORCE_ENABLE (1), or AUTOCORRECT_FORCE_DISABLE (2).
+     */
+    fun getAutoCorrectionOverride(packageName: String?): Int {
+        if (packageName == null) return AUTOCORRECT_DEFAULT
+        return getEffectiveQuirk(packageName)?.autoCorrectionMode ?: AUTOCORRECT_DEFAULT
     }
 
     fun getUserQuirk(packageName: String): AppQuirk? = userQuirks[packageName]

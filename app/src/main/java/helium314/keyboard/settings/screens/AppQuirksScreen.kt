@@ -222,6 +222,19 @@ fun AppQuirksScreen(
                         MaterialTheme.colorScheme.onTertiaryContainer
                     ))
                 }
+                if (effective?.autoCorrectionMode == AppQuirksManager.AUTOCORRECT_FORCE_ENABLE) {
+                    badges.add(BadgeInfo(
+                        stringResource(R.string.app_quirks_badge_autocorrect_on),
+                        MaterialTheme.colorScheme.primaryContainer,
+                        MaterialTheme.colorScheme.onPrimaryContainer
+                    ))
+                } else if (effective?.autoCorrectionMode == AppQuirksManager.AUTOCORRECT_FORCE_DISABLE) {
+                    badges.add(BadgeInfo(
+                        stringResource(R.string.app_quirks_badge_autocorrect_off),
+                        MaterialTheme.colorScheme.errorContainer,
+                        MaterialTheme.colorScheme.onErrorContainer
+                    ))
+                }
                 if (effective?.stripNoEnterAction == true) {
                     badges.add(BadgeInfo(
                         stringResource(R.string.app_quirks_badge_no_enter),
@@ -371,6 +384,7 @@ private fun AppQuirkDialog(
     var forceDirectCommit by remember { mutableStateOf(initialEffective.forceDirectCommit) }
     var disableAutoSpace by remember { mutableStateOf(initialEffective.disableAutoSpace) }
     var allowTypeNullKeyboard by remember { mutableStateOf(initialEffective.allowTypeNullKeyboard) }
+    var autoCorrectionMode by remember { mutableStateOf(initialEffective.autoCorrectionMode) }
     var selectedAction by remember { mutableStateOf(initialEffective.forceEnterAction) }
 
     val options = listOf(
@@ -384,6 +398,13 @@ private fun AppQuirkDialog(
     )
     val currentSelectedOption = options.find { it.action == selectedAction } ?: options.first()
 
+    val autoCorrectionOptions = listOf(
+        ActionOption(stringResource(R.string.app_quirks_autocorrect_default), null),
+        ActionOption(stringResource(R.string.app_quirks_autocorrect_enable), AppQuirksManager.AUTOCORRECT_FORCE_ENABLE),
+        ActionOption(stringResource(R.string.app_quirks_autocorrect_disable), AppQuirksManager.AUTOCORRECT_FORCE_DISABLE),
+    )
+    val currentAutoCorrectionOption = autoCorrectionOptions.find { it.action == autoCorrectionMode } ?: autoCorrectionOptions.first()
+
     ThreeButtonAlertDialog(
         onDismissRequest = onDismissRequest,
         onConfirmed = {
@@ -396,6 +417,7 @@ private fun AppQuirkDialog(
                 forceDirectCommit = forceDirectCommit,
                 disableAutoSpace = disableAutoSpace,
                 allowTypeNullKeyboard = allowTypeNullKeyboard,
+                autoCorrectionMode = autoCorrectionMode,
             )
             AppQuirksManager.saveQuirk(newQuirk)
             onSaved()
@@ -463,6 +485,19 @@ private fun AppQuirkDialog(
                     checked = allowTypeNullKeyboard,
                     onCheckedChange = { allowTypeNullKeyboard = it }
                 )
+                Spacer(modifier = Modifier.height(12.dp))
+                Text(
+                    text = stringResource(R.string.app_quirks_autocorrect_title),
+                    style = MaterialTheme.typography.titleMedium
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                DropDownField(
+                    items = autoCorrectionOptions,
+                    selectedItem = currentAutoCorrectionOption,
+                    onSelected = { autoCorrectionMode = it.action }
+                ) {
+                    Text(it.label)
+                }
                 Spacer(modifier = Modifier.height(12.dp))
                 Text(
                     text = stringResource(R.string.app_quirks_enter_action),

@@ -272,9 +272,18 @@ open class SettingsValues(
         mUseDoubleSpacePeriod = prefs.getBoolean(Settings.PREF_KEY_USE_DOUBLE_SPACE_PERIOD, Defaults.PREF_KEY_USE_DOUBLE_SPACE_PERIOD) && mInputAttributes.mIsGeneralTextInput
         mBlockPotentiallyOffensive = prefs.getBoolean(Settings.PREF_BLOCK_POTENTIALLY_OFFENSIVE, Defaults.PREF_BLOCK_POTENTIALLY_OFFENSIVE)
         mUrlDetectionEnabled = prefs.getBoolean(Settings.PREF_URL_DETECTION, Defaults.PREF_URL_DETECTION)
-        mAutoCorrectionEnabledPerUserSettings = prefs.getBoolean(Settings.PREF_AUTO_CORRECTION, Defaults.PREF_AUTO_CORRECTION)
+        val globalAutoCorrect = prefs.getBoolean(Settings.PREF_AUTO_CORRECTION, Defaults.PREF_AUTO_CORRECTION)
+        val appAutoCorrection = AppQuirksManager.getAutoCorrectionOverride(mInputAttributes.mTargetApplicationPackageName)
+        mAutoCorrectionEnabledPerUserSettings = when (appAutoCorrection) {
+            AppQuirksManager.AUTOCORRECT_FORCE_ENABLE -> true
+            AppQuirksManager.AUTOCORRECT_FORCE_DISABLE -> false
+            else -> globalAutoCorrect
+        }
         mAutoCorrectTrigger = prefs.getString(Settings.PREF_AUTO_CORRECT_TRIGGER, Defaults.PREF_AUTO_CORRECT_TRIGGER) ?: Defaults.PREF_AUTO_CORRECT_TRIGGER
-        mAutoCorrectEnabled = mAutoCorrectionEnabledPerUserSettings && (mInputAttributes.mInputTypeShouldAutoCorrect || prefs.getBoolean(Settings.PREF_MORE_AUTO_CORRECTION, Defaults.PREF_MORE_AUTO_CORRECTION)) && (mUrlDetectionEnabled || !InputTypeUtils.isUriOrEmailType(mInputAttributes.mInputType))
+        val isForceEnabled = appAutoCorrection == AppQuirksManager.AUTOCORRECT_FORCE_ENABLE
+        val shouldAutoCorrectForField = (mUrlDetectionEnabled || !InputTypeUtils.isUriOrEmailType(mInputAttributes.mInputType)) &&
+                (isForceEnabled || mInputAttributes.mInputTypeShouldAutoCorrect || prefs.getBoolean(Settings.PREF_MORE_AUTO_CORRECTION, Defaults.PREF_MORE_AUTO_CORRECTION))
+        mAutoCorrectEnabled = mAutoCorrectionEnabledPerUserSettings && shouldAutoCorrectForField
         mCenterSuggestionTextToEnter = prefs.getBoolean(Settings.PREF_CENTER_SUGGESTION_TEXT_TO_ENTER, Defaults.PREF_CENTER_SUGGESTION_TEXT_TO_ENTER)
         mAutoCorrectionThreshold = if (mAutoCorrectEnabled) prefs.getFloat(Settings.PREF_AUTO_CORRECT_THRESHOLD, Defaults.PREF_AUTO_CORRECT_THRESHOLD) else Float.MAX_VALUE
         mScoreLimitForAutocorrect = if (mAutoCorrectionThreshold < 0) 600000 else (if (mAutoCorrectionThreshold < 0.07f) 800000 else 950000)

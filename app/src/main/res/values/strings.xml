@@ -1699,4 +1699,10 @@ New dictionary:
     <string name="app_quirks_allow_type_null">Allow on Non-Editable Fields</string>
     <string name="app_quirks_allow_type_null_summary">Keep keyboard available even when the app specifies no editable text field (InputType.TYPE_NULL)</string>
     <string name="app_quirks_badge_allow_type_null">TYPE_NULL</string>
+    <string name="app_quirks_autocorrect_title">Auto-Correction</string>
+    <string name="app_quirks_autocorrect_default">Follow Global Settings</string>
+    <string name="app_quirks_autocorrect_enable">Always Enabled</string>
+    <string name="app_quirks_autocorrect_disable">Always Disabled</string>
+    <string name="app_quirks_badge_autocorrect_on">Auto-Correct ON</string>
+    <string name="app_quirks_badge_autocorrect_off">Auto-Correct OFF</string>
 </resources>
