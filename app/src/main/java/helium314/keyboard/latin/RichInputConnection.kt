@@ -341,14 +341,19 @@ class RichInputConnection(private val mParent: InputMethodService) : PrivateComm
             return TextUtils.CAP_MODE_CHARACTERS and inputType
         }
 
-        if (mCommittedTextBeforeComposingText.isEmpty() && mExpectedSelStart != 0) {
-            if (!reloadTextCache()) {
-                Log.w(TAG, "Unable to connect to the editor. Setting caps mode without knowing text.")
+        val text = if (InputTypeUtils.isWebEditor(mParent.currentInputEditorInfo)) {
+            getTextBeforeCursor(Constants.EDITOR_CONTENTS_CACHE_SIZE, 0)?.toString() ?: ""
+        } else {
+            if (mCommittedTextBeforeComposingText.isEmpty() && mExpectedSelStart != 0) {
+                if (!reloadTextCache()) {
+                    Log.w(TAG, "Unable to connect to the editor. Setting caps mode without knowing text.")
+                }
             }
+            mCommittedTextBeforeComposingText.toString()
         }
 
         return CapsModeUtils.getCapsMode(
-            mCommittedTextBeforeComposingText.toString(),
+            text,
             inputType,
             spacingAndPunctuations,
             hasSpaceBefore
@@ -357,10 +362,12 @@ class RichInputConnection(private val mParent: InputMethodService) : PrivateComm
 
     val codePointBeforeCursor: Int
         get() {
-            val text: CharSequence = if (mComposingText.isEmpty()) {
-                mCommittedTextBeforeComposingText
-            } else {
+            val text: CharSequence = if (mComposingText.isNotEmpty()) {
                 mComposingText
+            } else if (InputTypeUtils.isWebEditor(mParent.currentInputEditorInfo)) {
+                getTextBeforeCursor(2, 0) ?: return Constants.NOT_A_CODE
+            } else {
+                mCommittedTextBeforeComposingText
             }
 
             val length = text.length
@@ -373,6 +380,12 @@ class RichInputConnection(private val mParent: InputMethodService) : PrivateComm
         get() {
             if (mComposingText.length >= 2) {
                 return mComposingText[mComposingText.length - 2].code
+            }
+
+            if (InputTypeUtils.isWebEditor(mParent.currentInputEditorInfo)) {
+                val text = getTextBeforeCursor(2, 0)
+                if (text == null || text.length < 2) return Constants.NOT_A_CODE
+                return text[text.length - 2].code
             }
 
             val length = mCommittedTextBeforeComposingText.length
@@ -441,7 +454,8 @@ class RichInputConnection(private val mParent: InputMethodService) : PrivateComm
 
         detectLaggyConnection(operation, timeout, startTime)
 
-        if ((mCommittedTextBeforeComposingText.isNotEmpty() || mComposingText.isNotEmpty()) &&
+        val isWeb = InputTypeUtils.isWebEditor(mParent.currentInputEditorInfo)
+        if (!isWeb && (mCommittedTextBeforeComposingText.isNotEmpty() || mComposingText.isNotEmpty()) &&
             result != null &&
             !checkTextBeforeCursorConsistency(result)
         ) {
@@ -1094,18 +1108,33 @@ class RichInputConnection(private val mParent: InputMethodService) : PrivateComm
     }
 
     fun textBeforeCursorLooksLikeURL(): Boolean {
-        return StringUtils.lastPartLooksLikeURL(mCommittedTextBeforeComposingText)
+        val text = if (InputTypeUtils.isWebEditor(mParent.currentInputEditorInfo)) {
+            getTextBeforeCursor(64, 0) ?: ""
+        } else {
+            mCommittedTextBeforeComposingText
+        }
+        return StringUtils.lastPartLooksLikeURL(text)
     }
 
     fun nonWordCodePointAndNoSpaceBeforeCursor(spacingAndPunctuations: SpacingAndPunctuations): Boolean {
+        val text = if (InputTypeUtils.isWebEditor(mParent.currentInputEditorInfo)) {
+            getTextBeforeCursor(64, 0) ?: ""
+        } else {
+            mCommittedTextBeforeComposingText
+        }
         return nonWordCodePointAndNoSpaceBeforeCursor(
-            mCommittedTextBeforeComposingText,
+            text,
             spacingAndPunctuations
         )
     }
 
     fun spaceBeforeCursor(): Boolean {
-        return mCommittedTextBeforeComposingText.indexOf(" ") != -1
+        val text = if (InputTypeUtils.isWebEditor(mParent.currentInputEditorInfo)) {
+            getTextBeforeCursor(64, 0) ?: ""
+        } else {
+            mCommittedTextBeforeComposingText
+        }
+        return text.indexOf(" ") != -1
     }
 
     val charCountToDeleteBeforeCursor: Int
@@ -1113,7 +1142,11 @@ class RichInputConnection(private val mParent: InputMethodService) : PrivateComm
             val lastCodePoint = codePointBeforeCursor
 
             if (StringUtils.mightBeEmoji(lastCodePoint)) {
-                val text = mCommittedTextBeforeComposingText.toString() + mComposingText.toString()
+                val text = if (InputTypeUtils.isWebEditor(mParent.currentInputEditorInfo)) {
+                    (getTextBeforeCursor(32, 0) ?: "").toString()
+                } else {
+                    mCommittedTextBeforeComposingText.toString() + mComposingText.toString()
+                }
                 val emojiLength = getFullEmojiAtEnd(text).length
 
                 if (emojiLength > 0) {
@@ -1163,7 +1196,12 @@ class RichInputConnection(private val mParent: InputMethodService) : PrivateComm
     }
 
     fun isInsideDoubleQuoteOrAfterDigit(): Boolean {
-        return StringUtils.isInsideDoubleQuoteOrAfterDigit(mCommittedTextBeforeComposingText)
+        val text = if (InputTypeUtils.isWebEditor(mParent.currentInputEditorInfo)) {
+            getTextBeforeCursor(64, 0) ?: ""
+        } else {
+            mCommittedTextBeforeComposingText
+        }
+        return StringUtils.isInsideDoubleQuoteOrAfterDigit(text)
     }
 
     fun tryFixIncorrectCursorPosition() {

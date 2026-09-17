@@ -3,12 +3,16 @@ package helium314.keyboard.latin
 
 import android.text.InputType
 import helium314.keyboard.compat.AppWorkarounds
+import helium314.keyboard.compat.BrowserDetector
 import helium314.keyboard.latin.utils.InputTypeUtils
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
 
+@RunWith(RobolectricTestRunner::class)
 class ContenteditableDuplicationFixTest {
 
     @Test
@@ -50,6 +54,11 @@ class ContenteditableDuplicationFixTest {
         assertTrue(AppWorkarounds.isWebBrowser("com.brave.browser"))
         assertTrue(AppWorkarounds.isWebBrowser("com.android.chrome"))
         assertTrue(AppWorkarounds.isWebBrowser("org.mozilla.firefox"))
+        assertTrue(AppWorkarounds.isWebBrowser("com.sec.android.app.sbrowser"))
+        assertTrue(AppWorkarounds.isWebBrowser("org.cromite.cromite"))
+        assertTrue(AppWorkarounds.isWebBrowser("app.vanadium.browser"))
+        assertTrue(AppWorkarounds.isWebBrowser("org.torproject.torbrowser"))
+        assertTrue(AppWorkarounds.isWebBrowser("us.spotco.fennec_dos"))
         assertFalse(AppWorkarounds.isWebBrowser("com.discord"))
         assertFalse(AppWorkarounds.isWebBrowser("org.telegram.messenger"))
         assertFalse(AppWorkarounds.isWebBrowser(null))
@@ -128,5 +137,60 @@ class ContenteditableDuplicationFixTest {
 
         // If cursor moved somewhere unexpected (e.g. newSel = 10 != 5), it returns false
         assertFalse(ric.isBelatedExpectedUpdate(0, 10, 0, 10, -1, -1))
+    }
+
+    @Test
+    fun testBrowserDetector_fallbackAndDelegation() {
+        assertTrue(BrowserDetector.isWebBrowser("com.android.chrome"))
+        assertTrue(BrowserDetector.isWebBrowser("org.mozilla.firefox"))
+        assertTrue(BrowserDetector.isWebBrowser("app.vanadium.browser"))
+        assertTrue(BrowserDetector.isWebBrowser("org.cromite.cromite"))
+        assertTrue(BrowserDetector.isWebBrowser("com.sec.android.app.sbrowser"))
+        assertFalse(BrowserDetector.isWebBrowser("org.telegram.messenger"))
+        assertFalse(BrowserDetector.isWebBrowser(null))
+    }
+
+    @Test
+    fun testRichInputConnection_webEditorDirectInspection() {
+        val mockIms = org.mockito.Mockito.mock(android.inputmethodservice.InputMethodService::class.java)
+        val mockIc = org.mockito.Mockito.mock(android.view.inputmethod.InputConnection::class.java)
+        val webEi = android.view.inputmethod.EditorInfo().apply {
+            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_WEB_EDIT_TEXT
+            packageName = "com.some.app"
+        }
+        org.mockito.Mockito.`when`(mockIms.currentInputEditorInfo).thenReturn(webEi)
+        org.mockito.Mockito.`when`(mockIms.currentInputConnection).thenReturn(mockIc)
+        org.mockito.Mockito.`when`(mockIc.getTextBeforeCursor(2, 0)).thenReturn("A")
+        org.mockito.Mockito.`when`(mockIc.getTextBeforeCursor(32, 0)).thenReturn("A")
+
+        val ric = RichInputConnection(mockIms)
+        val icField = RichInputConnection::class.java.getDeclaredField("mIC").apply { isAccessible = true }
+        icField.set(ric, mockIc)
+
+        // codePointBeforeCursor in web mode with empty composing text queries getTextBeforeCursor(2, 0)
+        assertEquals('A'.code, ric.codePointBeforeCursor)
+        assertEquals(1, ric.charCountToDeleteBeforeCursor)
+    }
+
+    @Test
+    fun testRichInputConnection_webEditorEmojiSurrogateInspection() {
+        val mockIms = org.mockito.Mockito.mock(android.inputmethodservice.InputMethodService::class.java)
+        val mockIc = org.mockito.Mockito.mock(android.view.inputmethod.InputConnection::class.java)
+        val webEi = android.view.inputmethod.EditorInfo().apply {
+            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_WEB_EDIT_TEXT
+            packageName = "com.some.app"
+        }
+        val emoji = "\uD83D\uDE00" // 😀 (grinning face, surrogate pair length 2)
+        org.mockito.Mockito.`when`(mockIms.currentInputEditorInfo).thenReturn(webEi)
+        org.mockito.Mockito.`when`(mockIms.currentInputConnection).thenReturn(mockIc)
+        org.mockito.Mockito.`when`(mockIc.getTextBeforeCursor(2, 0)).thenReturn(emoji)
+        org.mockito.Mockito.`when`(mockIc.getTextBeforeCursor(32, 0)).thenReturn(emoji)
+
+        val ric = RichInputConnection(mockIms)
+        val icField = RichInputConnection::class.java.getDeclaredField("mIC").apply { isAccessible = true }
+        icField.set(ric, mockIc)
+
+        assertEquals(0x1F600, ric.codePointBeforeCursor)
+        assertEquals(2, ric.charCountToDeleteBeforeCursor)
     }
 }
