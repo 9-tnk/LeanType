@@ -40,6 +40,7 @@ import androidx.core.view.inputmethod.InputConnectionCompat
 import androidx.core.view.inputmethod.InputContentInfoCompat
 import com.leanbitlab.leantype.voice.VoiceConstants
 import helium314.keyboard.accessibility.AccessibilityUtils
+import helium314.keyboard.compat.AppQuirksManager
 import helium314.keyboard.compat.BrowserDetector
 import helium314.keyboard.compat.EditorInfoCompatUtils
 import helium314.keyboard.compat.ImeCompat.shouldSwitchToOtherInputMethods
@@ -200,7 +201,7 @@ class LatinIME : InputMethodService(),
         richImm = RichInputMethodManager.getInstance()
         AudioAndHapticFeedbackManager.init(this)
         AccessibilityUtils.init(this)
-        BrowserDetector.init(this)
+        AppQuirksManager.init(this)
         statsUtilsManager.onCreate(this, dictionaryFacilitator)
         displayContext = getDisplayContext()
         KeyboardSwitcher.init(this)

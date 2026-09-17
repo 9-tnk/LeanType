@@ -296,6 +296,7 @@ class Settings private constructor() : SharedPreferences.OnSharedPreferenceChang
         const val PREF_CUSTOM_ICON_NAMES = "custom_icon_names"
         const val PREF_TOOLBAR_CUSTOM_KEY_CODES = "toolbar_custom_key_codes"
         const val PREF_LAYOUT_PREFIX = "layout_"
+        const val PREF_APP_QUIRKS = "pref_app_quirks"
 
         const val PREF_AUTO_CAP = "auto_cap"
         const val PREF_VIBRATE_ON = "vibrate_on"

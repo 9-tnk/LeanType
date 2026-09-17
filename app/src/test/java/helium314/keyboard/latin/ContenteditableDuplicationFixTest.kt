@@ -2,7 +2,9 @@
 package helium314.keyboard.latin
 
 import android.text.InputType
-import helium314.keyboard.compat.AppWorkarounds
+import android.view.inputmethod.EditorInfo
+import helium314.keyboard.compat.AppQuirk
+import helium314.keyboard.compat.AppQuirksManager
 import helium314.keyboard.compat.BrowserDetector
 import helium314.keyboard.latin.utils.InputTypeUtils
 import org.junit.Assert.assertEquals
@@ -50,33 +52,67 @@ class ContenteditableDuplicationFixTest {
     }
 
     @Test
-    fun testAppWorkarounds_webBrowserDetection() {
-        assertTrue(AppWorkarounds.isWebBrowser("com.brave.browser"))
-        assertTrue(AppWorkarounds.isWebBrowser("com.android.chrome"))
-        assertTrue(AppWorkarounds.isWebBrowser("org.mozilla.firefox"))
-        assertTrue(AppWorkarounds.isWebBrowser("com.sec.android.app.sbrowser"))
-        assertTrue(AppWorkarounds.isWebBrowser("org.cromite.cromite"))
-        assertTrue(AppWorkarounds.isWebBrowser("app.vanadium.browser"))
-        assertTrue(AppWorkarounds.isWebBrowser("org.torproject.torbrowser"))
-        assertTrue(AppWorkarounds.isWebBrowser("us.spotco.fennec_dos"))
-        assertFalse(AppWorkarounds.isWebBrowser("com.discord"))
-        assertFalse(AppWorkarounds.isWebBrowser("org.telegram.messenger"))
-        assertFalse(AppWorkarounds.isWebBrowser(null))
+    fun testAppQuirksManager_webBrowserDetection() {
+        assertTrue(AppQuirksManager.isWebEditor("com.brave.browser"))
+        assertTrue(AppQuirksManager.isWebEditor("com.android.chrome"))
+        assertTrue(AppQuirksManager.isWebEditor("org.mozilla.firefox"))
+        assertTrue(AppQuirksManager.isWebEditor("com.sec.android.app.sbrowser"))
+        assertTrue(AppQuirksManager.isWebEditor("org.cromite.cromite"))
+        assertTrue(AppQuirksManager.isWebEditor("app.vanadium.browser"))
+        assertTrue(AppQuirksManager.isWebEditor("org.torproject.torbrowser"))
+        assertTrue(AppQuirksManager.isWebEditor("us.spotco.fennec_dos"))
+        assertFalse(AppQuirksManager.isWebEditor("com.discord"))
+        assertFalse(AppQuirksManager.isWebEditor("org.telegram.messenger"))
+        assertFalse(AppQuirksManager.isWebEditor(null))
     }
 
     @Test
-    fun testAppWorkarounds_adjustInputTypeWithAutoCorrect() {
+    fun testAppQuirksManager_adjustInputTypeWithAutoCorrect() {
         val baseType = InputType.TYPE_CLASS_TEXT or
                 InputType.TYPE_TEXT_FLAG_IME_MULTI_LINE or
                 InputType.TYPE_TEXT_FLAG_AUTO_CORRECT
 
-        val adjusted = AppWorkarounds.adjustInputType(baseType, "com.brave.browser")
+        val adjusted = AppQuirksManager.adjustInputType(baseType, "com.brave.browser")
         // With AUTO_CORRECT present, it should add WEB_EDIT_TEXT and NOT add NO_SUGGESTIONS
         val hasWebEditText = (adjusted and InputType.TYPE_TEXT_VARIATION_WEB_EDIT_TEXT) != 0
         val hasNoSuggestions = (adjusted and InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS) != 0
 
         assertTrue("Should add WEB_EDIT_TEXT", hasWebEditText)
         assertFalse("Should NOT add NO_SUGGESTIONS when AUTO_CORRECT is present", hasNoSuggestions)
+    }
+
+    @Test
+    fun testAppQuirksManager_defaultNexusLauncherEnterAction() {
+        val imeOptionsWithNoEnter = EditorInfo.IME_ACTION_SEARCH or EditorInfo.IME_FLAG_NO_ENTER_ACTION
+        val adjusted = AppQuirksManager.adjustImeOptions(imeOptionsWithNoEnter, "com.google.android.apps.nexuslauncher")
+        assertEquals(0, adjusted and EditorInfo.IME_FLAG_NO_ENTER_ACTION)
+        assertEquals(EditorInfo.IME_ACTION_SEARCH, adjusted and EditorInfo.IME_MASK_ACTION)
+    }
+
+    @Test
+    fun testAppQuirksManager_userCustomQuirks() {
+        val pkg = "com.custom.app"
+        assertFalse(AppQuirksManager.isWebEditor(pkg))
+        assertFalse(AppQuirksManager.isIncognitoApp(pkg))
+
+        // Save custom quirk
+        AppQuirksManager.saveQuirk(AppQuirk(
+            packageName = pkg,
+            forceWebEditor = true,
+            forceIncognito = true,
+            forceEnterAction = EditorInfo.IME_ACTION_SEND
+        ))
+
+        assertTrue(AppQuirksManager.isWebEditor(pkg))
+        assertTrue(AppQuirksManager.isIncognitoApp(pkg))
+
+        val imeOptions = AppQuirksManager.adjustImeOptions(EditorInfo.IME_ACTION_NONE, pkg)
+        assertEquals(EditorInfo.IME_ACTION_SEND, imeOptions and EditorInfo.IME_MASK_ACTION)
+
+        // Clean up
+        AppQuirksManager.removeQuirk(pkg)
+        assertFalse(AppQuirksManager.isWebEditor(pkg))
+        assertFalse(AppQuirksManager.isIncognitoApp(pkg))
     }
 
     @Test

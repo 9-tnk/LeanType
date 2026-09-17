@@ -508,7 +508,6 @@ Current settings :
    mAutoCorrectionEnabledPerUserSettings = $mAutoCorrectionEnabledPerUserSettings
    mSuggestionsEnabledPerUserSettings = $mSuggestionsEnabledPerUserSettings
    mDisplayOrientation = $mDisplayOrientation
-   mAppWorkarounds = 
     """.trimIndent()
 
     companion object {

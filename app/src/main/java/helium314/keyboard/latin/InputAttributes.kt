@@ -9,7 +9,7 @@ package helium314.keyboard.latin
 import android.os.Build
 import android.text.InputType
 import android.view.inputmethod.EditorInfo
-import helium314.keyboard.compat.AppWorkarounds
+import helium314.keyboard.compat.AppQuirksManager
 import helium314.keyboard.latin.common.Constants.ImeOption.NO_FLOATING_GESTURE_PREVIEW
 import helium314.keyboard.latin.common.Constants.ImeOption.NO_MICROPHONE
 import helium314.keyboard.latin.common.containsValueWhenSplit
@@ -36,7 +36,7 @@ class InputAttributes(
     val mNoLearning: Boolean
     val mDisableGestureFloatingPreviewText: Boolean
     val mIsGeneralTextInput: Boolean
-    val mInputType: Int = AppWorkarounds.adjustInputType(editorInfo?.inputType ?: 0, mTargetApplicationPackageName)
+    val mInputType: Int = AppQuirksManager.adjustInputType(editorInfo?.inputType ?: 0, mTargetApplicationPackageName)
 
     private val mEditorInfo: EditorInfo? = editorInfo
     private val mPackageNameForPrivateImeOptions: String? = packageNameForPrivateImeOptions
@@ -98,11 +98,11 @@ class InputAttributes(
                     InputType.TYPE_TEXT_VARIATION_WEB_EMAIL_ADDRESS != variation &&
                     InputType.TYPE_TEXT_VARIATION_WEB_PASSWORD != variation
 
-            mNoLearning = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            mNoLearning = (if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 (editorInfo?.imeOptions?.and(EditorInfo.IME_FLAG_NO_PERSONALIZED_LEARNING) ?: 0) != 0
             } else {
                 false
-            }
+            }) || AppQuirksManager.isIncognitoApp(mTargetApplicationPackageName)
         }
     }
 

@@ -8,7 +8,7 @@ package helium314.keyboard.latin.utils
 
 import android.text.InputType
 import android.view.inputmethod.EditorInfo
-import helium314.keyboard.compat.AppWorkarounds
+import helium314.keyboard.compat.AppQuirksManager
 
 object InputTypeUtils {
     private const val WEB_TEXT_PASSWORD_INPUT_TYPE = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_WEB_PASSWORD
@@ -49,7 +49,7 @@ object InputTypeUtils {
 
     fun isWebEditor(editorInfo: EditorInfo?): Boolean {
         if (editorInfo == null) return false
-        return isWebEditText(editorInfo.inputType) || AppWorkarounds.isWebBrowser(editorInfo.packageName)
+        return isWebEditText(editorInfo.inputType) || AppQuirksManager.isWebEditor(editorInfo.packageName)
     }
 
     // Please refer to TextView.isPasswordInputType
@@ -79,7 +79,7 @@ object InputTypeUtils {
     }
 
     fun getImeOptionsActionIdFromEditorInfo(editorInfo: EditorInfo): Int {
-        val imeOptions = AppWorkarounds.adjustImeOptions(editorInfo.imeOptions, editorInfo.packageName)
+        val imeOptions = AppQuirksManager.adjustImeOptions(editorInfo.imeOptions, editorInfo.packageName)
         if ((imeOptions and EditorInfo.IME_FLAG_NO_ENTER_ACTION) != 0) {
             return EditorInfo.IME_ACTION_NONE
         } else if (editorInfo.actionLabel != null) {

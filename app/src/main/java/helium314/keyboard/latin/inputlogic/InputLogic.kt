@@ -17,7 +17,6 @@ import android.view.KeyCharacterMap
 import android.view.KeyEvent
 import android.view.inputmethod.CorrectionInfo
 import android.view.inputmethod.EditorInfo
-import helium314.keyboard.compat.AppWorkarounds
 import helium314.keyboard.event.Event
 import helium314.keyboard.event.InputTransaction
 import helium314.keyboard.keyboard.Keyboard
