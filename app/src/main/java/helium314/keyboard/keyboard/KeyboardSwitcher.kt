@@ -345,6 +345,7 @@ class KeyboardSwitcher private constructor() : KeyboardState.SwitchActions {
         }
         mMainKeyboardFrame?.visibility = if (stripVisibility == View.VISIBLE || visibility == View.VISIBLE) View.VISIBLE else View.GONE
         mKeyboardViewWrapper?.visibility = visibility
+        (mCurrentInputView as? InputView)?.updateBottomPadding()
         mEmojiPalettesView?.let {
             it.visibility = View.GONE
             it.stopEmojiPalettes()
@@ -396,6 +397,7 @@ class KeyboardSwitcher private constructor() : KeyboardState.SwitchActions {
         KeyboardActionListenerImpl.sPersistentTextEditModeActive = false
         mMainKeyboardFrame?.visibility = View.VISIBLE
         mKeyboardViewWrapper?.visibility = View.VISIBLE
+        (mCurrentInputView as? InputView)?.updateBottomPadding()
         mKeyboardView?.visibility = View.GONE
         val splitToolbar = Settings.getValues().mSplitToolbar
         mSuggestionStripView?.visibility = if (splitToolbar) View.VISIBLE else View.GONE
@@ -422,6 +424,7 @@ class KeyboardSwitcher private constructor() : KeyboardState.SwitchActions {
         KeyboardActionListenerImpl.sPersistentTextEditModeActive = false
         mMainKeyboardFrame?.visibility = View.VISIBLE
         mKeyboardViewWrapper?.visibility = View.VISIBLE
+        (mCurrentInputView as? InputView)?.updateBottomPadding()
         mKeyboardView?.visibility = View.GONE
         mEmojiTabStripView?.visibility = View.GONE
         mSuggestionStripView?.visibility = View.GONE
@@ -455,6 +458,7 @@ class KeyboardSwitcher private constructor() : KeyboardState.SwitchActions {
         KeyboardActionListenerImpl.sPersistentTextEditModeActive = false
         mMainKeyboardFrame?.visibility = View.VISIBLE
         mKeyboardViewWrapper?.visibility = View.VISIBLE
+        (mCurrentInputView as? InputView)?.updateBottomPadding()
         mKeyboardView?.visibility = View.GONE
         mEmojiTabStripView?.visibility = View.GONE
         mSuggestionStripView?.visibility = View.VISIBLE

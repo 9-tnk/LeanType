@@ -13,6 +13,8 @@ import android.util.AttributeSet
 import android.view.MotionEvent
 import android.view.View
 import android.widget.FrameLayout
+import android.os.Build
+import android.view.WindowInsets
 import helium314.keyboard.accessibility.AccessibilityUtils
 import helium314.keyboard.keyboard.MainKeyboardView
 import helium314.keyboard.latin.common.ColorType
@@ -31,6 +33,37 @@ class InputView @JvmOverloads constructor(
     private var mKeyboardTopPaddingForwarder: KeyboardTopPaddingForwarder? = null
     private var mMoreSuggestionsViewCanceler: MoreSuggestionsViewCanceler? = null
     private var mActiveForwarder: MotionEventForwarder<*, *>? = null
+    private var mNavBarBottomInsets = 0
+
+    override fun onApplyWindowInsets(insets: WindowInsets): WindowInsets {
+        val navInsets = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            insets.getInsets(WindowInsets.Type.navigationBars()).bottom
+        } else {
+            @Suppress("DEPRECATION")
+            insets.systemWindowInsetBottom
+        }
+        if (mNavBarBottomInsets != navInsets) {
+            mNavBarBottomInsets = navInsets
+            updateBottomPadding()
+        }
+        return super.onApplyWindowInsets(insets)
+    }
+
+    fun updateBottomPadding() {
+        val mainKeyboardFrame = findViewById<View>(R.id.main_keyboard_frame) ?: return
+        val wrapper = findViewById<View>(R.id.keyboard_view_wrapper)
+        val showToolbarOnly = wrapper?.visibility != View.VISIBLE
+        val bottomPadding = if (showToolbarOnly) mNavBarBottomInsets else 0
+        if (mainKeyboardFrame.paddingBottom != bottomPadding) {
+            mainKeyboardFrame.setPadding(
+                mainKeyboardFrame.paddingLeft,
+                mainKeyboardFrame.paddingTop,
+                mainKeyboardFrame.paddingRight,
+                bottomPadding
+            )
+            requestLayout()
+        }
+    }
 
     override fun onFinishInflate() {
         super.onFinishInflate()
@@ -44,6 +77,7 @@ class InputView @JvmOverloads constructor(
         findViewById<View>(R.id.main_keyboard_frame)?.let { frame ->
             Settings.getValues().mColors.setBackground(frame, ColorType.MAIN_BACKGROUND)
         }
+        updateBottomPadding()
         // Work around inset application being unreliable
         post { requestApplyInsets() }
     }
