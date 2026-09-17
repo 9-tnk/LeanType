@@ -34,6 +34,7 @@ import helium314.keyboard.keyboard.internal.KeyboardState
 import helium314.keyboard.latin.FloatingKeyboardManager
 import helium314.keyboard.latin.InputView
 import helium314.keyboard.latin.KeyboardWrapperView
+import helium314.keyboard.latin.LastComposedWord
 import helium314.keyboard.latin.LatinIME
 import helium314.keyboard.latin.R
 import helium314.keyboard.latin.RichInputMethodManager
@@ -387,6 +388,9 @@ class KeyboardSwitcher private constructor() : KeyboardState.SwitchActions {
 
     override fun setEmojiKeyboard() {
         if (DEBUG_ACTION) Log.d(TAG, "setEmojiKeyboard")
+        mLatinIME?.let { ime ->
+            ime.inputLogic.commitTyped(Settings.getValues(), LastComposedWord.NOT_A_SEPARATOR)
+        }
         PointerTracker.sPersistentTouchpadModeActive = false
         mTouchpadView?.visibility = View.GONE
         KeyboardActionListenerImpl.sPersistentTextEditModeActive = false
@@ -409,6 +413,9 @@ class KeyboardSwitcher private constructor() : KeyboardState.SwitchActions {
 
     override fun setClipboardKeyboard() {
         if (DEBUG_ACTION) Log.d(TAG, "setClipboardKeyboard")
+        mLatinIME?.let { ime ->
+            ime.inputLogic.commitTyped(Settings.getValues(), LastComposedWord.NOT_A_SEPARATOR)
+        }
         PointerTracker.sPersistentTouchpadModeActive = false
         mTouchpadView?.visibility = View.GONE
         KeyboardActionListenerImpl.sPersistentTextEditModeActive = false
@@ -438,6 +445,9 @@ class KeyboardSwitcher private constructor() : KeyboardState.SwitchActions {
 
     fun setHandwritingKeyboard() {
         if (DEBUG_ACTION) Log.d(TAG, "setHandwritingKeyboard")
+        mLatinIME?.let { ime ->
+            ime.inputLogic.commitTyped(Settings.getValues(), LastComposedWord.NOT_A_SEPARATOR)
+        }
         PointerTracker.sPersistentTouchpadModeActive = false
         mTouchpadView?.visibility = View.GONE
         KeyboardActionListenerImpl.sPersistentTextEditModeActive = false

@@ -392,6 +392,9 @@ class EmojiPalettesView @JvmOverloads constructor(
             imeOptions = EditorInfo.IME_ACTION_DONE or EditorInfo.IME_FLAG_NO_EXTRACT_UI
             setPadding(toPx(4f), 0, toPx(4f), 0)
             layoutParams = LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+            isFocusable = false
+            isFocusableInTouchMode = false
+            showSoftInputOnFocus = false
             addTextChangedListener(object : TextWatcher {
                 override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
                 override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
@@ -651,7 +654,6 @@ class EmojiPalettesView @JvmOverloads constructor(
         bottomRow.setKeyboard(searchKeyboardLayoutSet.getKeyboard(mSearchAlphabetKeyboardId))
         bottomRow.setKeyPreviewPopupEnabled(Settings.getValues().mKeyPreviewPopupOn)
 
-        mSearchBar?.requestFocus()
         if (isInLayout) {
             post { requestLayout() }
         } else {
@@ -676,6 +678,7 @@ class EmojiPalettesView @JvmOverloads constructor(
         mPager?.visibility = View.VISIBLE
         mSearchContainer?.visibility = View.GONE
 
+        mSearchBar?.clearFocus()
         mSearchBar?.setText("")
         mSearchBar = null
         mSearchKeyboardLayoutSet = null
@@ -1089,7 +1092,14 @@ class EmojiPalettesView @JvmOverloads constructor(
                         mIsDownloadingEmojiDict = false
                         updateSplitToolbarEmojiSuggestions()
                         if (mInSearchMode) {
-                            stopSearchMode()
+                            val query = mSearchBar?.text?.toString() ?: ""
+                            if (!Settings.getValues().mSplitToolbar) {
+                                stopSearchMode(returnToKeyboard = false)
+                                startSearchMode()
+                                mSearchBar?.setText(query)
+                            } else {
+                                performSearch(query)
+                            }
                         }
                     }
                 } else {
