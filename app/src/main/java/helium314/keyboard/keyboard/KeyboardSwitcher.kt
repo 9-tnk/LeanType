@@ -666,9 +666,14 @@ class KeyboardSwitcher private constructor() : KeyboardState.SwitchActions {
         val currentState = keyboardSwitchState
         Log.w(TAG, "onToggleKeyboard() : Current = $currentState : Toggle = $toggleState")
         if (currentState == toggleState) {
-            mLatinIME?.stopShowingInputView()
-            mLatinIME?.hideWindow()
-            setAlphabetKeyboard()
+            val settings = Settings.getValues()
+            if (settings.mHasHardwareKeyboard && (settings.mShowToolbarOnly || settings.mToolbarMode != ToolbarMode.HIDDEN)) {
+                setAlphabetKeyboard()
+            } else {
+                mLatinIME?.stopShowingInputView()
+                mLatinIME?.hideWindow()
+                setAlphabetKeyboard()
+            }
         } else {
             mLatinIME?.startShowingInputView(true)
             when (toggleState) {

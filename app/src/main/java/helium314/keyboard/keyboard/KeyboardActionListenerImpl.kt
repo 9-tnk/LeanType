@@ -129,11 +129,7 @@ class KeyboardActionListenerImpl(private val latinIME: LatinIME, private val inp
         }
 
         if (event.isHandled) {
-            inputLogic.onCodeInput(
-                settings.current, event,
-                keyboardSwitcher.keyboardShiftMode, // TODO: this is not necessarily correct for a hardware keyboard right now
-                latinIME.mHandler
-            )
+            latinIME.onEvent(event)
             mConsumedPhysicalKeys.add(keyCode)
             return true
         }
