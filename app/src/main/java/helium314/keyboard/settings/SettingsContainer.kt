@@ -186,6 +186,7 @@ object SettingsWithoutKey {
     const val LOAD_OFFLINE_AI_PLUGIN = "load_offline_ai_plugin"
     const val BACKGROUND_SERVICES = "background_services"
     const val CLOUD_AI_MAX_TOKENS = "cloud_ai_max_tokens"
+    const val APP_QUIRKS = "app_quirks"
 
     // Screen Navigation Keys for Settings Search:
     const val SCREEN_NAV_SECONDARY_LAYOUTS = "screen_nav_secondary_layouts"

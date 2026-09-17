@@ -1659,4 +1659,31 @@ New dictionary:
     <string name="custom_ai_keys_prompt_label">Custom Prompt for Key %1$d</string>
     <string name="custom_ai_keys_tag_label">Tag / Label (e.g. \'French\', \'Grammar\', \'Rewrite\')</string>
     <string name="custom_ai_keys_selected_functions">Selected Keyword Functions:</string>
+
+    <!-- App Quirks Screen -->
+    <string name="app_quirks_title">App Quirks &amp; Overrides</string>
+    <string name="app_quirks_summary">Per-app web compatibility, automatic incognito, and enter key action overrides</string>
+    <string name="app_quirks_search_hint">Search apps by name or package</string>
+    <string name="app_quirks_empty">No applications found</string>
+    <string name="app_quirks_force_web_editor">Web Editor Compatibility</string>
+    <string name="app_quirks_force_web_editor_summary">Force web-safe backspace, batch sync, and cache bypass for text fields</string>
+    <string name="app_quirks_force_incognito">Automatic Incognito</string>
+    <string name="app_quirks_force_incognito_summary">Never learn typed words or record history when typing in this app</string>
+    <string name="app_quirks_strip_no_enter">Strip No-Enter Flag</string>
+    <string name="app_quirks_strip_no_enter_summary">Show action key even when app sets IME_FLAG_NO_ENTER_ACTION (e.g. Pixel Launcher)</string>
+    <string name="app_quirks_enter_action">Action Key Override</string>
+    <string name="app_quirks_enter_action_default">System Default</string>
+    <string name="app_quirks_enter_action_none">Force Newline (None)</string>
+    <string name="app_quirks_enter_action_send">Force Send</string>
+    <string name="app_quirks_enter_action_search">Force Search</string>
+    <string name="app_quirks_enter_action_go">Force Go</string>
+    <string name="app_quirks_enter_action_next">Force Next</string>
+    <string name="app_quirks_enter_action_done">Force Done</string>
+    <string name="app_quirks_badge_web">Web</string>
+    <string name="app_quirks_badge_incognito">Incognito</string>
+    <string name="app_quirks_badge_action">Action</string>
+    <string name="app_quirks_badge_no_enter">No-Enter Strip</string>
+    <string name="app_quirks_badge_default">Default Quirk</string>
+    <string name="app_quirks_filter_configured">Configured only</string>
+    <string name="app_quirks_reset_default">Reset to Default</string>
 </resources>

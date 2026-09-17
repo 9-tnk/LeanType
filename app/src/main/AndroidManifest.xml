@@ -39,6 +39,10 @@ SPDX-License-Identifier: Apache-2.0 AND GPL-3.0-only
             <category android:name="android.intent.category.BROWSABLE" />
             <data android:scheme="https" />
         </intent>
+        <intent>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.LAUNCHER" />
+        </intent>
     </queries>
 
     <application android:label="@string/english_ime_name"

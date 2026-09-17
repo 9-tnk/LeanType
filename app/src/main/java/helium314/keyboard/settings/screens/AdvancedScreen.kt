@@ -106,6 +106,7 @@ fun AdvancedSettingsScreen(
         Settings.PREF_MORE_POPUP_KEYS,
         Settings.PREF_TIMESTAMP_FORMAT,
         SettingsWithoutKey.BACKGROUND_SERVICES,
+        SettingsWithoutKey.APP_QUIRKS,
         SettingsWithoutKey.BACKUP_RESTORE,
         if (BuildConfig.DEBUG || prefs.getBoolean(DebugSettings.PREF_SHOW_DEBUG_SETTINGS, Defaults.PREF_SHOW_DEBUG_SETTINGS))
             SettingsWithoutKey.DEBUG_SETTINGS else null,
@@ -226,6 +227,13 @@ fun createAdvancedSettings(context: Context) = listOfNotNull(
             name = "Background Services & Processes",
             description = "Manage active background services, memory locks, and observers",
             onClick = { SettingsDestination.navigateTo(SettingsDestination.BackgroundServices) }
+        ) { NextScreenIcon() }
+    },
+    Setting(context, SettingsWithoutKey.APP_QUIRKS, R.string.app_quirks_title) {
+        Preference(
+            name = stringResource(R.string.app_quirks_title),
+            description = stringResource(R.string.app_quirks_summary),
+            onClick = { SettingsDestination.navigateTo(SettingsDestination.AppQuirks) }
         ) { NextScreenIcon() }
     },
     Setting(context, Settings.PREF_TIMESTAMP_FORMAT, R.string.timestamp_format_title) { setting ->
