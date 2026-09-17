@@ -36,6 +36,7 @@ import helium314.keyboard.latin.settings.Settings
 import helium314.keyboard.latin.settings.SpacingAndPunctuations
 import helium314.keyboard.latin.utils.CapsModeUtils
 import helium314.keyboard.latin.utils.DebugLogUtils
+import helium314.keyboard.latin.utils.InputTypeUtils
 import helium314.keyboard.latin.utils.Log
 import helium314.keyboard.latin.utils.NgramContextUtils
 import helium314.keyboard.latin.utils.StatsUtils
@@ -134,6 +135,13 @@ class RichInputConnection(private val mParent: InputMethodService) : PrivateComm
 
         if (--mNestLevel == 0 && isConnected()) {
             mIC?.endBatchEdit()
+            if (InputTypeUtils.isWebEditor(mParent.currentInputEditorInfo)) {
+                try {
+                    mIC?.requestCursorUpdates(InputConnection.CURSOR_UPDATE_IMMEDIATE)
+                } catch (e: Exception) {
+                    Log.w(TAG, "Failed to request cursor updates in web editor", e)
+                }
+            }
         }
 
         if (DEBUG_PREVIOUS_TEXT) checkConsistencyForDebug()
@@ -142,6 +150,13 @@ class RichInputConnection(private val mParent: InputMethodService) : PrivateComm
     fun ensureBatchEditClosed() {
         if (mNestLevel > 0 && isConnected()) {
             mIC?.endBatchEdit()
+            if (InputTypeUtils.isWebEditor(mParent.currentInputEditorInfo)) {
+                try {
+                    mIC?.requestCursorUpdates(InputConnection.CURSOR_UPDATE_IMMEDIATE)
+                } catch (e: Exception) {
+                    Log.w(TAG, "Failed to request cursor updates in web editor", e)
+                }
+            }
         }
         mNestLevel = 0
     }
@@ -290,6 +305,10 @@ class RichInputConnection(private val mParent: InputMethodService) : PrivateComm
             }
 
             mIC?.commitText(mTempObjectForCommitText, newCursorPosition)
+            if (InputTypeUtils.isWebEditor(mParent.currentInputEditorInfo)) {
+                // Invalidate local committed text cache in web editors to prevent stale reads and insertion loops
+                mCommittedTextBeforeComposingText.setLength(0)
+            }
         }
     }
 
@@ -369,6 +388,15 @@ class RichInputConnection(private val mParent: InputMethodService) : PrivateComm
         }
 
     fun getTextBeforeCursor(n: Int, flags: Int): CharSequence? {
+        if (InputTypeUtils.isWebEditor(mParent.currentInputEditorInfo)) {
+            // For web editors, bypass internal text cache because JS DOM updates asynchronously
+            return getTextBeforeCursorAndDetectLaggyConnection(
+                OPERATION_GET_TEXT_BEFORE_CURSOR,
+                SLOW_INPUT_CONNECTION_ON_PARTIAL_RELOAD_MS,
+                n,
+                flags
+            )
+        }
         val cachedLength = mCommittedTextBeforeComposingText.length + mComposingText.length
 
         if (INVALID_CURSOR_POSITION != mExpectedSelStart &&
