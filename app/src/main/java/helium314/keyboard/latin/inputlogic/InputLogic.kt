@@ -735,18 +735,27 @@ class InputLogic(
                 }
             }
             KeyCode.WORD_LEFT -> {
+                if (mWordComposer.isComposingWord()) {
+                    commitTyped(inputTransaction.settingsValues, LastComposedWord.NOT_A_SEPARATOR)
+                }
                 sendDownUpKeyEventWithMetaState(
                     if (ScriptUtils.isScriptRtl(currentKeyboardScript)) KeyEvent.KEYCODE_DPAD_RIGHT else KeyEvent.KEYCODE_DPAD_LEFT,
                     KeyEvent.META_CTRL_ON or event.metaState
                 )
             }
             KeyCode.WORD_RIGHT -> {
+                if (mWordComposer.isComposingWord()) {
+                    commitTyped(inputTransaction.settingsValues, LastComposedWord.NOT_A_SEPARATOR)
+                }
                 sendDownUpKeyEventWithMetaState(
                     if (ScriptUtils.isScriptRtl(currentKeyboardScript)) KeyEvent.KEYCODE_DPAD_LEFT else KeyEvent.KEYCODE_DPAD_RIGHT,
                     KeyEvent.META_CTRL_ON or event.metaState
                 )
             }
             KeyCode.MOVE_START_OF_PAGE -> {
+                if (mWordComposer.isComposingWord()) {
+                    commitTyped(inputTransaction.settingsValues, LastComposedWord.NOT_A_SEPARATOR)
+                }
                 val selectionEnd1 = mConnection.expectedSelectionEnd
                 val selectionStart1 = mConnection.expectedSelectionStart
                 sendDownUpKeyEventWithMetaState(
@@ -759,6 +768,9 @@ class InputLogic(
                 }
             }
             KeyCode.MOVE_END_OF_PAGE -> {
+                if (mWordComposer.isComposingWord()) {
+                    commitTyped(inputTransaction.settingsValues, LastComposedWord.NOT_A_SEPARATOR)
+                }
                 val selectionStart2 = mConnection.expectedSelectionStart
                 val selectionEnd2 = mConnection.expectedSelectionEnd
                 sendDownUpKeyEventWithMetaState(
@@ -821,6 +833,9 @@ class InputLogic(
                     KeyCode.keyCodeToKeyEventCode(keyCode)
                 }
                 if (keyEventCode != KeyEvent.KEYCODE_UNKNOWN) {
+                    if (mWordComposer.isComposingWord() && isNavigationOrDpadKey(keyEventCode)) {
+                        commitTyped(inputTransaction.settingsValues, LastComposedWord.NOT_A_SEPARATOR)
+                    }
                     sendDownUpKeyEventWithMetaState(keyEventCode, event.metaState)
                     return
                 }
@@ -834,6 +849,24 @@ class InputLogic(
                 }
             }
         }
+    }
+
+    private fun isNavigationOrDpadKey(keyCode: Int): Boolean = when (keyCode) {
+        KeyEvent.KEYCODE_DPAD_UP,
+        KeyEvent.KEYCODE_DPAD_DOWN,
+        KeyEvent.KEYCODE_DPAD_LEFT,
+        KeyEvent.KEYCODE_DPAD_RIGHT,
+        KeyEvent.KEYCODE_DPAD_CENTER,
+        KeyEvent.KEYCODE_DPAD_DOWN_LEFT,
+        KeyEvent.KEYCODE_DPAD_DOWN_RIGHT,
+        KeyEvent.KEYCODE_DPAD_UP_LEFT,
+        KeyEvent.KEYCODE_DPAD_UP_RIGHT,
+        KeyEvent.KEYCODE_PAGE_UP,
+        KeyEvent.KEYCODE_PAGE_DOWN,
+        KeyEvent.KEYCODE_MOVE_HOME,
+        KeyEvent.KEYCODE_MOVE_END,
+        KeyEvent.KEYCODE_FORWARD_DEL -> true
+        else -> false
     }
 
     private fun handleNonFunctionalEvent(

@@ -14,6 +14,7 @@ import helium314.keyboard.event.HardwareKeyboardEventDecoder
 import helium314.keyboard.keyboard.internal.keyboard_parser.floris.KeyCode
 import helium314.keyboard.latin.AudioAndHapticFeedbackManager
 import helium314.keyboard.latin.EmojiAltPhysicalKeyDetector
+import helium314.keyboard.latin.LastComposedWord
 import helium314.keyboard.latin.LatinIME
 import helium314.keyboard.latin.R
 import helium314.keyboard.latin.RichInputMethodManager
@@ -67,11 +68,26 @@ class KeyboardActionListenerImpl(private val latinIME: LatinIME, private val inp
         keyboardSwitcher.onReleaseKey(primaryCode, withSliding, latinIME.currentAutoCapsState, latinIME.currentRecapitalizeState)
     }
 
+    private val mConsumedPhysicalKeys = HashSet<Int>()
+
+    private fun isUnhandledNavigationKey(keyCode: Int): Boolean = when (keyCode) {
+        KeyEvent.KEYCODE_PAGE_UP,
+        KeyEvent.KEYCODE_PAGE_DOWN,
+        KeyEvent.KEYCODE_MOVE_HOME,
+        KeyEvent.KEYCODE_MOVE_END,
+        KeyEvent.KEYCODE_TAB,
+        KeyEvent.KEYCODE_FORWARD_DEL -> true
+        else -> false
+    }
+
     override fun onKeyUp(keyCode: Int, keyEvent: KeyEvent): Boolean {
         emojiAltPhysicalKeyDetector.onKeyUp(keyEvent)
         if (!ProductionFlags.IS_HARDWARE_KEYBOARD_SUPPORTED)
             return false
 
+        if (mConsumedPhysicalKeys.remove(keyCode)) {
+            return true
+        }
         return false
     }
 
@@ -79,6 +95,10 @@ class KeyboardActionListenerImpl(private val latinIME: LatinIME, private val inp
         emojiAltPhysicalKeyDetector.onKeyDown(keyEvent)
         if (!ProductionFlags.IS_HARDWARE_KEYBOARD_SUPPORTED)
             return false
+
+        if (isUnhandledNavigationKey(keyCode) && inputLogic.isComposingWord) {
+            inputLogic.commitTyped(settings.current, LastComposedWord.NOT_A_SEPARATOR)
+        }
 
         val mode = settings.current.mPhysicalKeyboardSuggestionShortcuts
         if (mode != "disabled" && keyCode >= KeyEvent.KEYCODE_1 && keyCode <= KeyEvent.KEYCODE_9) {
@@ -91,7 +111,10 @@ class KeyboardActionListenerImpl(private val latinIME: LatinIME, private val inp
             }
             if (isMatchingTrigger) {
                 val picked = keyboardSwitcher.suggestionStripView?.pickSuggestionByVisualPosition(visualPos) ?: false
-                if (picked) return true
+                if (picked) {
+                    mConsumedPhysicalKeys.add(keyCode)
+                    return true
+                }
             }
         }
 
@@ -111,6 +134,7 @@ class KeyboardActionListenerImpl(private val latinIME: LatinIME, private val inp
                 keyboardSwitcher.keyboardShiftMode, // TODO: this is not necessarily correct for a hardware keyboard right now
                 latinIME.mHandler
             )
+            mConsumedPhysicalKeys.add(keyCode)
             return true
         }
         return false
@@ -386,6 +410,7 @@ class KeyboardActionListenerImpl(private val latinIME: LatinIME, private val inp
 
     override fun resetMetaState() {
         metaState = 0
+        mConsumedPhysicalKeys.clear()
     }
 
     private fun onLanguageSlide(steps: Int): Boolean {
