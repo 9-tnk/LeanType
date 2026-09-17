@@ -869,7 +869,7 @@ class LatinIME : InputMethodService(),
             }
         }
         
-        val visibleKeyboardView = keyboardSwitcher.wrapperView ?: return
+        val visibleKeyboardView = keyboardSwitcher.visibleKeyboardView ?: return
         val inputHeight = view.height
         val keyboardHeight = if (visibleKeyboardView.isShown) visibleKeyboardView.height else 0
         val stripHeight = if (keyboardSwitcher.isShowingStripContainer) keyboardSwitcher.stripContainer?.height ?: 0 else 0
@@ -915,6 +915,10 @@ class LatinIME : InputMethodService(),
     }
 
     override fun onShowInputRequested(flags: Int, configChange: Boolean): Boolean {
+        val settingsValues = settings.current
+        if (settingsValues.mHasHardwareKeyboard && (settingsValues.mShowToolbarOnly || settingsValues.mToolbarMode != ToolbarMode.HIDDEN)) {
+            return true
+        }
         if (isImeSuppressedByHardwareKeyboard()) return true
         val editorInfo = currentInputEditorInfo
         if (isTransientFocusTypeNull(editorInfo)) {
@@ -927,7 +931,7 @@ class LatinIME : InputMethodService(),
     override fun onEvaluateInputViewShown(): Boolean {
         if (isExecutingStartShowingInputView) return true
         val settingsValues = settings.current
-        if (settingsValues.mHasHardwareKeyboard && settingsValues.mShowToolbarOnly) return true
+        if (settingsValues.mHasHardwareKeyboard && (settingsValues.mShowToolbarOnly || settingsValues.mToolbarMode != ToolbarMode.HIDDEN)) return true
         val editorInfo = currentInputEditorInfo
         if (isTransientFocusTypeNull(editorInfo)) {
             return false
@@ -936,7 +940,7 @@ class LatinIME : InputMethodService(),
     }
 
     override fun onEvaluateFullscreenMode(): Boolean {
-        if (isImeSuppressedByHardwareKeyboard()) return false
+        if (isImeSuppressedByHardwareKeyboard() || settings.current.mHasHardwareKeyboard) return false
         val isFullscreenModeAllowed = Settings.readFullscreenModeAllowed(resources)
         if (super.onEvaluateFullscreenMode() && isFullscreenModeAllowed) {
             val ei = currentInputEditorInfo ?: return false

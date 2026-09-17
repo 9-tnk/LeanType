@@ -343,8 +343,8 @@ class KeyboardSwitcher private constructor() : KeyboardState.SwitchActions {
         } else {
             mKeyboardView?.visibility = visibility
         }
-        mMainKeyboardFrame?.visibility = visibility
-        mKeyboardViewWrapper?.visibility = if (Settings.getInstance().readShowToolbarOnly()) View.GONE else View.VISIBLE
+        mMainKeyboardFrame?.visibility = if (stripVisibility == View.VISIBLE || visibility == View.VISIBLE) View.VISIBLE else View.GONE
+        mKeyboardViewWrapper?.visibility = visibility
         mEmojiPalettesView?.let {
             it.visibility = View.GONE
             it.stopEmojiPalettes()
@@ -395,6 +395,7 @@ class KeyboardSwitcher private constructor() : KeyboardState.SwitchActions {
         mTouchpadView?.visibility = View.GONE
         KeyboardActionListenerImpl.sPersistentTextEditModeActive = false
         mMainKeyboardFrame?.visibility = View.VISIBLE
+        mKeyboardViewWrapper?.visibility = View.VISIBLE
         mKeyboardView?.visibility = View.GONE
         val splitToolbar = Settings.getValues().mSplitToolbar
         mSuggestionStripView?.visibility = if (splitToolbar) View.VISIBLE else View.GONE
@@ -420,6 +421,7 @@ class KeyboardSwitcher private constructor() : KeyboardState.SwitchActions {
         mTouchpadView?.visibility = View.GONE
         KeyboardActionListenerImpl.sPersistentTextEditModeActive = false
         mMainKeyboardFrame?.visibility = View.VISIBLE
+        mKeyboardViewWrapper?.visibility = View.VISIBLE
         mKeyboardView?.visibility = View.GONE
         mEmojiTabStripView?.visibility = View.GONE
         mSuggestionStripView?.visibility = View.GONE
@@ -452,6 +454,7 @@ class KeyboardSwitcher private constructor() : KeyboardState.SwitchActions {
         mTouchpadView?.visibility = View.GONE
         KeyboardActionListenerImpl.sPersistentTextEditModeActive = false
         mMainKeyboardFrame?.visibility = View.VISIBLE
+        mKeyboardViewWrapper?.visibility = View.VISIBLE
         mKeyboardView?.visibility = View.GONE
         mEmojiTabStripView?.visibility = View.GONE
         mSuggestionStripView?.visibility = View.VISIBLE
