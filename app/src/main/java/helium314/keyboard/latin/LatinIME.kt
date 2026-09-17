@@ -18,6 +18,7 @@ import android.os.Bundle
 import android.os.Debug
 import android.os.Message
 import android.os.Process
+import android.text.InputType
 import android.util.PrintWriterPrinter
 import android.util.Printer
 import android.view.KeyEvent
@@ -614,6 +615,11 @@ class LatinIME : InputMethodService(),
             throw NullPointerException("Null EditorInfo in onStartInputView()")
         }
         if (mainKeyboardView == null) return
+        if (isTransientFocusTypeNull(editorInfo)) {
+            Log.d(TAG, "onStartInputViewInternal: suppressing transient TYPE_NULL input view for ${editorInfo.packageName}")
+            requestHideSelf(0)
+            return
+        }
         
         Log.i(TAG, "${if (restarting) "Res" else "S"}tarting input. Cursor position = ${editorInfo.initialSelStart},${editorInfo.initialSelEnd}")
         if (DebugFlags.DEBUG_ENABLED) EditorInfoCompatUtils.debugLog(editorInfo, TAG)
@@ -896,8 +902,25 @@ class LatinIME : InputMethodService(),
         showWindow(false)
     }
 
+    private fun isTransientFocusTypeNull(editorInfo: EditorInfo?): Boolean {
+        if (editorInfo == null) return false
+        if (editorInfo.inputType != InputType.TYPE_NULL) return false
+        if (AppQuirksManager.isTypeNullKeyboardAllowed(editorInfo.packageName)) {
+            return false
+        }
+        // If cursor position is -1, -1 and inputType is TYPE_NULL (0),
+        // it is a non-editable focusable widget (e.g. Sort, Filter, Menu button, or container view).
+        // Opening the keyboard here causes transient open/close flicker.
+        return editorInfo.initialSelStart < 0 && editorInfo.initialSelEnd < 0
+    }
+
     override fun onShowInputRequested(flags: Int, configChange: Boolean): Boolean {
         if (isImeSuppressedByHardwareKeyboard()) return true
+        val editorInfo = currentInputEditorInfo
+        if (isTransientFocusTypeNull(editorInfo)) {
+            Log.d(TAG, "onShowInputRequested: ignoring transient TYPE_NULL focus for ${editorInfo?.packageName}")
+            return false
+        }
         return super.onShowInputRequested(flags, configChange)
     }
 
@@ -905,6 +928,10 @@ class LatinIME : InputMethodService(),
         if (isExecutingStartShowingInputView) return true
         val settingsValues = settings.current
         if (settingsValues.mHasHardwareKeyboard && settingsValues.mShowToolbarOnly) return true
+        val editorInfo = currentInputEditorInfo
+        if (isTransientFocusTypeNull(editorInfo)) {
+            return false
+        }
         return super.onEvaluateInputViewShown()
     }
 

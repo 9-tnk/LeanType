@@ -14,10 +14,11 @@ data class AppQuirk(
     val forceIncognito: Boolean = false,
     val forceDirectCommit: Boolean = false,
     val disableAutoSpace: Boolean = false,
+    val allowTypeNullKeyboard: Boolean = false,
 ) {
     fun hasCustomSettings(): Boolean =
         forceWebEditor || stripNoEnterAction || (forceEnterAction != null) || forceIncognito ||
-                forceDirectCommit || disableAutoSpace
+                forceDirectCommit || disableAutoSpace || allowTypeNullKeyboard
 
     fun toJson(): JSONObject {
         val json = JSONObject()
@@ -28,6 +29,7 @@ data class AppQuirk(
         if (forceIncognito) json.put("forceIncognito", true)
         if (forceDirectCommit) json.put("forceDirectCommit", true)
         if (disableAutoSpace) json.put("disableAutoSpace", true)
+        if (allowTypeNullKeyboard) json.put("allowTypeNullKeyboard", true)
         return json
     }
 
@@ -40,6 +42,7 @@ data class AppQuirk(
             val forceIncognito = json.optBoolean("forceIncognito", false)
             val forceDirectCommit = json.optBoolean("forceDirectCommit", false)
             val disableAutoSpace = json.optBoolean("disableAutoSpace", false)
+            val allowTypeNullKeyboard = json.optBoolean("allowTypeNullKeyboard", false)
             return AppQuirk(
                 packageName = packageName,
                 forceWebEditor = forceWebEditor,
@@ -48,6 +51,7 @@ data class AppQuirk(
                 forceIncognito = forceIncognito,
                 forceDirectCommit = forceDirectCommit,
                 disableAutoSpace = disableAutoSpace,
+                allowTypeNullKeyboard = allowTypeNullKeyboard,
             )
         }
     }

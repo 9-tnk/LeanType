@@ -137,6 +137,15 @@ object AppQuirksManager {
         return getEffectiveQuirk(packageName)?.disableAutoSpace == true
     }
 
+    /**
+     * Returns whether keyboard display is allowed for TYPE_NULL fields in this package.
+     */
+    fun isTypeNullKeyboardAllowed(packageName: String?): Boolean {
+        if (packageName == null) return false
+        if (packageName == "com.termux" || packageName.endsWith(".termux") || packageName.contains("terminal")) return true
+        return getEffectiveQuirk(packageName)?.allowTypeNullKeyboard == true
+    }
+
     fun getUserQuirk(packageName: String): AppQuirk? = userQuirks[packageName]
 
     fun getAllUserQuirks(): Map<String, AppQuirk> = HashMap(userQuirks)

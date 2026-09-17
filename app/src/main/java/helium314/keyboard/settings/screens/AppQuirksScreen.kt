@@ -215,6 +215,13 @@ fun AppQuirksScreen(
                         MaterialTheme.colorScheme.onSurfaceVariant
                     ))
                 }
+                if (effective?.allowTypeNullKeyboard == true) {
+                    badges.add(BadgeInfo(
+                        stringResource(R.string.app_quirks_badge_allow_type_null),
+                        MaterialTheme.colorScheme.tertiaryContainer,
+                        MaterialTheme.colorScheme.onTertiaryContainer
+                    ))
+                }
                 if (effective?.stripNoEnterAction == true) {
                     badges.add(BadgeInfo(
                         stringResource(R.string.app_quirks_badge_no_enter),
@@ -363,6 +370,7 @@ private fun AppQuirkDialog(
     var stripNoEnterAction by remember { mutableStateOf(initialEffective.stripNoEnterAction) }
     var forceDirectCommit by remember { mutableStateOf(initialEffective.forceDirectCommit) }
     var disableAutoSpace by remember { mutableStateOf(initialEffective.disableAutoSpace) }
+    var allowTypeNullKeyboard by remember { mutableStateOf(initialEffective.allowTypeNullKeyboard) }
     var selectedAction by remember { mutableStateOf(initialEffective.forceEnterAction) }
 
     val options = listOf(
@@ -387,6 +395,7 @@ private fun AppQuirkDialog(
                 forceIncognito = forceIncognito,
                 forceDirectCommit = forceDirectCommit,
                 disableAutoSpace = disableAutoSpace,
+                allowTypeNullKeyboard = allowTypeNullKeyboard,
             )
             AppQuirksManager.saveQuirk(newQuirk)
             onSaved()
@@ -447,6 +456,12 @@ private fun AppQuirkDialog(
                     summary = stringResource(R.string.app_quirks_disable_auto_space_summary),
                     checked = disableAutoSpace,
                     onCheckedChange = { disableAutoSpace = it }
+                )
+                QuirkToggleRow(
+                    title = stringResource(R.string.app_quirks_allow_type_null),
+                    summary = stringResource(R.string.app_quirks_allow_type_null_summary),
+                    checked = allowTypeNullKeyboard,
+                    onCheckedChange = { allowTypeNullKeyboard = it }
                 )
                 Spacer(modifier = Modifier.height(12.dp))
                 Text(
