@@ -13,7 +13,6 @@ import android.util.AttributeSet
 import android.view.MotionEvent
 import android.view.View
 import android.widget.FrameLayout
-import androidx.core.view.doOnNextLayout
 import helium314.keyboard.accessibility.AccessibilityUtils
 import helium314.keyboard.keyboard.MainKeyboardView
 import helium314.keyboard.latin.common.ColorType
@@ -42,8 +41,11 @@ class InputView @JvmOverloads constructor(
             mKeyboardTopPaddingForwarder = KeyboardTopPaddingForwarder(mainKeyboardView, suggestionStripView)
             mMoreSuggestionsViewCanceler = MoreSuggestionsViewCanceler(mainKeyboardView, suggestionStripView)
         }
-
-        doOnNextLayout { onNextLayout(it) }
+        findViewById<View>(R.id.main_keyboard_frame)?.let { frame ->
+            Settings.getValues().mColors.setBackground(frame, ColorType.MAIN_BACKGROUND)
+        }
+        // Work around inset application being unreliable
+        post { requestApplyInsets() }
     }
 
     fun setKeyboardTopPadding(keyboardTopPadding: Int) {
@@ -94,14 +96,6 @@ class InputView @JvmOverloads constructor(
         val x = me.getX(index).toInt() + rect.left
         val y = me.getY(index).toInt() + rect.top
         return forwarder.onTouchEvent(x, y, me)
-    }
-
-    private fun onNextLayout(v: View) {
-        findViewById<View>(R.id.main_keyboard_frame)?.let { frame ->
-            Settings.getValues().mColors.setBackground(frame, ColorType.MAIN_BACKGROUND)
-        }
-        // Work around inset application being unreliable
-        requestApplyInsets()
     }
 
     /**

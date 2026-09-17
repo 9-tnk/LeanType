@@ -186,13 +186,17 @@ class ClipboardAdapter(
                 setOnClickListener(this@ClipViewHolder)
                 setOnTouchListener(this@ClipViewHolder)
                 setOnLongClickListener(this@ClipViewHolder)
-                setBackgroundResource(itemBackgroundId)
+                if (itemBackgroundId != 0) {
+                    setBackgroundResource(itemBackgroundId)
+                }
                 isHapticFeedbackEnabled = false
             }
             Settings.getValues().mColors.setBackground(view, ColorType.POPUP_KEYS_BACKGROUND)
             pinnedIconView = view.findViewById<ImageView>(R.id.clipboard_entry_pinned_icon).apply {
                 visibility = View.GONE
-                setImageResource(pinnedIconResId)
+                if (pinnedIconResId != 0) {
+                    setImageResource(pinnedIconResId)
+                }
             }
             imageContainer = view.findViewById<View>(R.id.clipboard_entry_image_container).apply {
                 visibility = View.GONE

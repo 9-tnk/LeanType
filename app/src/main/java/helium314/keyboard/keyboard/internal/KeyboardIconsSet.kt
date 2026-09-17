@@ -52,6 +52,7 @@ class KeyboardIconsSet private constructor() {
         iconIds = ids
         iconsByName.clear()
         ids.forEach { (name, id) ->
+            if (id == 0) return@forEach
             try {
                 val icon = ContextCompat.getDrawable(context, id) ?: return@forEach
                 icon.setBounds(0, 0, icon.intrinsicWidth, icon.intrinsicHeight)
@@ -69,7 +70,7 @@ class KeyboardIconsSet private constructor() {
 
     /** gets drawable from resources, with mutate (might be necessary to avoid coloring issues...) */
     fun getNewDrawable(name: String?, context: Context): Drawable? = name?.lowercase(Locale.US)?.let { name ->
-        (iconIds[name] ?: iconIds[alternativeNames[name]])?.let { ContextCompat.getDrawable(context, it)?.mutate() }
+        (iconIds[name] ?: iconIds[alternativeNames[name]])?.takeIf { it != 0 }?.let { ContextCompat.getDrawable(context, it)?.mutate() }
     }
 
     companion object {
