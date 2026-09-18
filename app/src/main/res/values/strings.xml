@@ -38,6 +38,8 @@
     <string name="settings_screen_gesture">Gesture Typing</string>
     <!-- Settings screen title for text correction options -->
     <string name="settings_screen_correction">Text correction</string>
+    <!-- Settings screen title for suggestions options -->
+    <string name="settings_screen_suggestions">Suggestions</string>
     <!-- Settings screen title for advanced settings -->
     <string name="settings_screen_advanced">Advanced</string>
     <!-- Settings screen title for keyboard theme settings -->

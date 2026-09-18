@@ -14,6 +14,7 @@ import helium314.keyboard.settings.screens.createAdvancedSettings
 import helium314.keyboard.settings.screens.createAppearanceSettings
 import helium314.keyboard.settings.screens.createBackgroundServicesSettings
 import helium314.keyboard.settings.screens.createCorrectionSettings
+import helium314.keyboard.settings.screens.createSuggestionsSettings
 import helium314.keyboard.settings.screens.createGestureTypingSettings
 import helium314.keyboard.settings.screens.createLanguageSettings
 import helium314.keyboard.settings.screens.createLayoutSettings
@@ -130,6 +131,7 @@ private val modules = listOf(
     SettingsModule(SettingsWithoutKey.SCREEN_NAV_TOOLBAR, SettingsDestination.Toolbar, R.string.settings_screen_toolbar, iconRes = R.drawable.ic_settings_toolbar, provider = ::createToolbarSettings),
     SettingsModule(SettingsWithoutKey.SCREEN_NAV_GESTURES, SettingsDestination.GestureTyping, R.string.settings_screen_gesture, iconRes = R.drawable.ic_settings_gesture, provider = ::createGestureTypingSettings),
     SettingsModule(SettingsWithoutKey.SCREEN_NAV_TEXT_CORRECTION, SettingsDestination.TextCorrection, R.string.settings_screen_correction, iconRes = R.drawable.ic_settings_correction, provider = ::createCorrectionSettings),
+    SettingsModule(SettingsWithoutKey.SCREEN_NAV_SUGGESTIONS, SettingsDestination.Suggestions, R.string.settings_screen_suggestions, iconRes = R.drawable.ic_settings_suggestions, provider = ::createSuggestionsSettings),
     SettingsModule(SettingsWithoutKey.SCREEN_NAV_AI_INTEGRATION, SettingsDestination.AIIntegration, R.string.settings_screen_ai_integration, iconRes = R.drawable.ic_proofread),
     SettingsModule(SettingsWithoutKey.SCREEN_NAV_TEXT_EXPANDER, SettingsDestination.TextExpander, titleString = "Text Expander", iconRes = R.drawable.ic_edit, provider = ::createTextExpanderSettings),
     SettingsModule(SettingsWithoutKey.SCREEN_NAV_ADVANCED, SettingsDestination.Advanced, R.string.settings_screen_advanced, iconRes = R.drawable.ic_settings_advanced, provider = ::createAdvancedSettings),
@@ -207,6 +209,7 @@ object SettingsWithoutKey {
     const val SCREEN_NAV_TOOLBAR = "screen_nav_toolbar"
     const val SCREEN_NAV_GESTURES = "screen_nav_gestures"
     const val SCREEN_NAV_TEXT_CORRECTION = "screen_nav_text_correction"
+    const val SCREEN_NAV_SUGGESTIONS = "screen_nav_suggestions"
     const val SCREEN_NAV_AI_INTEGRATION = "screen_nav_ai_integration"
     const val SCREEN_NAV_TEXT_EXPANDER = "screen_nav_text_expander"
     const val SCREEN_NAV_ADVANCED = "screen_nav_advanced"
