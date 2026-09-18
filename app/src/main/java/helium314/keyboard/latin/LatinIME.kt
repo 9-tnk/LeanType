@@ -871,10 +871,15 @@ class LatinIME : InputMethodService(),
         
         val visibleKeyboardView = keyboardSwitcher.visibleKeyboardView ?: return
         val inputHeight = view.height
-        val isToolbarOnly = visibleKeyboardView.visibility != View.VISIBLE && keyboardSwitcher.isShowingStripContainer
-        val keyboardHeight = if (visibleKeyboardView.isShown) visibleKeyboardView.height else 0
-        val stripHeight = if (keyboardSwitcher.isShowingStripContainer) keyboardSwitcher.stripContainer?.height ?: 0 else 0
-        val visibleTopY = if (isToolbarOnly) 0 else kotlin.math.max(0, inputHeight - keyboardHeight - stripHeight)
+        val frame = view.findViewById<View>(R.id.main_keyboard_frame)
+        val visibleTopY = if (frame != null && (frame.isShown || frame.visibility == View.VISIBLE) && frame.height > 0) {
+            val frameTop = if (frame.top > 0) frame.top else inputHeight - frame.height
+            kotlin.math.max(0, frameTop)
+        } else {
+            val keyboardHeight = if (visibleKeyboardView.isShown) visibleKeyboardView.height else 0
+            val stripHeight = if (keyboardSwitcher.isShowingStripContainer) keyboardSwitcher.stripContainer?.height ?: 0 else 0
+            kotlin.math.max(0, inputHeight - keyboardHeight - stripHeight)
+        }
         
         suggestionStripView?.setMoreSuggestionsHeight(visibleTopY)
         
