@@ -15,6 +15,9 @@ import androidx.core.view.isGone
 import helium314.keyboard.compat.ClipboardManagerCompat
 import helium314.keyboard.event.HapticEvent
 import helium314.keyboard.keyboard.internal.keyboard_parser.floris.KeyCode
+import android.graphics.Outline
+import android.view.ViewOutlineProvider
+import helium314.keyboard.latin.utils.dpToPx
 import helium314.keyboard.latin.common.ColorType
 import helium314.keyboard.latin.common.isValidNumber
 import helium314.keyboard.latin.database.ClipboardDao
@@ -664,6 +667,14 @@ class ClipboardHistoryManager(
         val thumbnailImage = binding.screenshotThumbnailImage
         val extractButton = binding.screenshotExtractTextButton
         val closeButton = binding.screenshotSuggestionClose
+
+        val cornerRadius = 8.dpToPx(latinIME.resources).toFloat()
+        pasteButton.outlineProvider = object : ViewOutlineProvider() {
+            override fun getOutline(view: View, outline: Outline) {
+                outline.setRoundRect(0, 0, view.width, view.height, cornerRadius)
+            }
+        }
+        pasteButton.clipToOutline = true
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             try {
