@@ -127,9 +127,10 @@ object ResourceUtils {
             R.fraction.config_min_keyboard_height, dm.heightPixels, dm.heightPixels
         )
         if (minKeyboardHeight < 0.0f) {
-            // Specified fraction was negative, so it should be calculated against display width.
+            // Specified fraction was negative, so it should be calculated against display width (or floating keyboard width override).
+            val baseWidth = if (sFloatingKeyboardWidthOverride > 0) sFloatingKeyboardWidthOverride else dm.widthPixels
             minKeyboardHeight = -res.getFraction(
-                R.fraction.config_min_keyboard_height, dm.widthPixels, dm.widthPixels
+                R.fraction.config_min_keyboard_height, baseWidth, baseWidth
             )
         }
         // Keyboard height will not exceed maxKeyboardHeight and will not be less than minKeyboardHeight.

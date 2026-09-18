@@ -4,9 +4,7 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.content.SharedPreferences
 import android.graphics.Color
-import android.graphics.Paint
 import android.graphics.Rect
-import android.graphics.RectF
 import android.graphics.drawable.GradientDrawable
 import android.os.Build
 import android.view.Gravity
@@ -178,6 +176,7 @@ class FloatingKeyboardManager(private val context: Context, private val latinIME
         ResourceUtils.setFloatingKeyboardScale(savedScale)
         KeyboardSwitcher.getInstance().reloadKeyboard()
 
+        (latinIME.mInputView as? InputView)?.updateBottomPadding()
         latinIME.onFloatingKeyboardShown()
         Log.i(TAG, "Floating keyboard shown at ${floatingWidth}px width, scale $savedScale")
     }
@@ -381,18 +380,9 @@ class FloatingKeyboardManager(private val context: Context, private val latinIME
         }
         bottomBar.addView(dockBtn)
 
-        // Corner Arc Resize Handle (Bottom-Right / End)
-        val defaultAlpha = 0x66000000.toInt()
-        val activeAlpha = 0xEE000000.toInt()
-        val defaultBgColor = (textColor and 0x00FFFFFF) or 0x1F000000.toInt()
+        // Corner Resize Handle (Bottom-Right / End)
+        val defaultBgColor = (textColor and 0x00FFFFFF) or 0x1A000000.toInt()
         val activeBgColor = (textColor and 0x00FFFFFF) or 0x55000000.toInt()
-
-        val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = (textColor and 0x00FFFFFF) or defaultAlpha
-            strokeWidth = 3.0f * density
-            strokeCap = Paint.Cap.ROUND
-            style = Paint.Style.STROKE
-        }
 
         val resizeBg = GradientDrawable().apply {
             shape = GradientDrawable.RECTANGLE
@@ -400,28 +390,17 @@ class FloatingKeyboardManager(private val context: Context, private val latinIME
             setColor(defaultBgColor)
         }
 
-        val resizeBtn = object : View(context) {
-            override fun onDraw(canvas: android.graphics.Canvas) {
-                super.onDraw(canvas)
-                val w = width.toFloat()
-                val h = height.toFloat()
-                val pad = 5.5f * density
-                val oval = RectF(pad, pad, w - pad, h - pad)
-                // Draw arc in the bottom-right corner (0 to 90 degrees)
-                canvas.drawArc(oval, 0f, 90f, false, paint)
-                val innerPad = pad + 4f * density
-                if (w - innerPad > innerPad && h - innerPad > innerPad) {
-                    val innerOval = RectF(innerPad, innerPad, w - pad, h - pad)
-                    canvas.drawArc(innerOval, 0f, 90f, false, paint)
-                }
-            }
-        }.apply {
+        val resizeBtn = ImageButton(context).apply {
             layoutParams = FrameLayout.LayoutParams(btnSize, btnSize).apply {
                 gravity = Gravity.CENTER_VERTICAL or Gravity.END
                 marginEnd = (8 * density).toInt()
             }
+            setPadding(dockPadding, dockPadding, dockPadding, dockPadding)
+            setImageResource(R.drawable.ic_floating_resize)
+            setColorFilter(textColor)
             background = resizeBg
             contentDescription = context.getString(R.string.floating_keyboard_resize_handle)
+            scaleType = android.widget.ImageView.ScaleType.FIT_CENTER
         }
 
         var lastTargetWidth = 0
@@ -455,10 +434,7 @@ class FloatingKeyboardManager(private val context: Context, private val latinIME
                     frame.pivotX = 0f
                     frame.pivotY = 0f
 
-                    paint.color = (textColor and 0x00FFFFFF) or activeAlpha
-                    paint.strokeWidth = 4.0f * density
                     resizeBg.setColor(activeBgColor)
-                    resizeBtn.invalidate()
                     latinIME.requestInsetsUpdate()
                     true
                 }
@@ -514,10 +490,7 @@ class FloatingKeyboardManager(private val context: Context, private val latinIME
                 MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
                     isResizing = false
                     activeResizePointerId = MotionEvent.INVALID_POINTER_ID
-                    paint.color = (textColor and 0x00FFFFFF) or defaultAlpha
-                    paint.strokeWidth = 3.0f * density
                     resizeBg.setColor(defaultBgColor)
-                    resizeBtn.invalidate()
 
                     frame.scaleX = 1.0f
                     frame.scaleY = 1.0f

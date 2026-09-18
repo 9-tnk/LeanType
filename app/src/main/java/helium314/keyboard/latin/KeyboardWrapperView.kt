@@ -134,6 +134,32 @@ class KeyboardWrapperView @JvmOverloads constructor(
     }
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
+        val isFloating = LatinIME.getInstance()?.floatingKeyboardManager?.isFloating == true
+        if (isFloating) {
+            val activeChild = (0 until childCount).map { getChildAt(it) }.firstOrNull {
+                it.visibility == VISIBLE &&
+                it.id != R.id.btn_stop_one_handed_mode &&
+                it.id != R.id.btn_switch_one_handed_mode &&
+                it.id != R.id.btn_resize_one_handed_mode
+            }
+            if (activeChild != null) {
+                activeChild.measure(widthMeasureSpec, MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED))
+                val targetHeight = activeChild.measuredHeight
+                if (targetHeight > 0) {
+                    val width = MeasureSpec.getSize(widthMeasureSpec)
+                    setMeasuredDimension(width, targetHeight)
+                    val exactHeightSpec = MeasureSpec.makeMeasureSpec(targetHeight, MeasureSpec.EXACTLY)
+                    for (i in 0 until childCount) {
+                        val child = getChildAt(i)
+                        if (child.visibility != GONE && child !== activeChild) {
+                            measureChildWithMargins(child, widthMeasureSpec, 0, exactHeightSpec, 0)
+                        }
+                    }
+                    return
+                }
+            }
+        }
+
         val settingsValues = Settings.getValues()
         val ocrCameraView = findViewById<View?>(R.id.ocr_camera_view)
         val isOcrCameraVisible = ocrCameraView != null && (ocrCameraView.isShown || ocrCameraView.visibility == VISIBLE)

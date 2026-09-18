@@ -516,14 +516,26 @@ class LatinIME : InputMethodService(),
         }
     }
 
+    fun updateNavigationBarFrameVisibility(isFloating: Boolean) {
+        val decor = window?.window?.decorView as? ViewGroup ?: return
+        for (i in 0 until decor.childCount) {
+            val child = decor.getChildAt(i)
+            if (child.javaClass.name.contains("NavigationBarFrame")) {
+                child.visibility = if (isFloating) View.GONE else View.VISIBLE
+            }
+        }
+    }
+
     fun onFloatingKeyboardShown() {
         setNavigationBarColor()
+        updateNavigationBarFrameVisibility(true)
         workaroundForHuaweiStatusBarIssue()
         requestInsetsUpdate()
     }
 
     fun onFloatingKeyboardHidden(showDockedKeyboard: Boolean) {
         setNavigationBarColor()
+        updateNavigationBarFrameVisibility(false)
         requestInsetsUpdate()
     }
 
@@ -536,6 +548,14 @@ class LatinIME : InputMethodService(),
     override fun onStartInputView(editorInfo: EditorInfo, restarting: Boolean) {
         handler.onStartInputView(editorInfo, restarting)
         statsUtilsManager.onStartInputView()
+        if (floatingKeyboardManager?.isFloating == true) {
+            updateNavigationBarFrameVisibility(true)
+            window?.window?.decorView?.post {
+                if (floatingKeyboardManager?.isFloating == true) {
+                    updateNavigationBarFrameVisibility(true)
+                }
+            }
+        }
     }
 
     override fun onFinishInputView(finishingInput: Boolean) {
