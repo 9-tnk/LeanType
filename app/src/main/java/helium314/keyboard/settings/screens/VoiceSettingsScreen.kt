@@ -2,6 +2,7 @@
 package helium314.keyboard.latin.voice
 
 import android.Manifest
+import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
@@ -974,3 +975,32 @@ private fun isUpdateAvailable(local: String, remote: String): Boolean {
     }
     return false
 }
+
+fun createVoiceSettings(context: Context): List<Setting> = listOf(
+    Setting(
+        key = VoiceConstants.PREF_VOICE_PROVIDER,
+        title = context.getString(R.string.voice_provider_title),
+        description = context.getString(R.string.voice_provider_summary)
+    ) { setting ->
+        val richImm = RichInputMethodManager.getInstance()
+        val currentProvider = richImm.currentVoiceProvider
+        val isOnlineFlavor = BuildConfig.FLAVOR == "standard" || BuildConfig.FLAVOR == "standardfull"
+        val providerItems = buildList<Pair<String, String>> {
+            if (isOnlineFlavor) {
+                add(context.getString(R.string.voice_provider_online) to VoiceConstants.VOICE_PROVIDER_ONLINE)
+            }
+            add(context.getString(R.string.voice_provider_offline) to VoiceConstants.VOICE_PROVIDER_OFFLINE)
+            add(context.getString(R.string.voice_provider_third_party) to VoiceConstants.VOICE_PROVIDER_THIRD_PARTY)
+            add(context.getString(R.string.voice_provider_none) to VoiceConstants.VOICE_PROVIDER_NONE)
+        }
+        ListPreference(
+            setting = setting,
+            items = providerItems,
+            default = currentProvider,
+            icon = R.drawable.sym_keyboard_voice_holo,
+            onChanged = { newProvider ->
+                richImm.setVoiceProvider(newProvider)
+            }
+        )
+    }
+)

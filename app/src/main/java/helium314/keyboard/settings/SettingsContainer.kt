@@ -19,8 +19,10 @@ import helium314.keyboard.settings.screens.createLanguageSettings
 import helium314.keyboard.settings.screens.createLayoutSettings
 import helium314.keyboard.settings.screens.createOcrSettings
 import helium314.keyboard.settings.screens.createPreferencesSettings
+import helium314.keyboard.settings.screens.createSoundSettings
 import helium314.keyboard.settings.screens.createTextExpanderSettings
 import helium314.keyboard.settings.screens.createToolbarSettings
+import helium314.keyboard.latin.voice.createVoiceSettings
 
 class SettingsContainer(context: Context) {
     private val list = createSettings(context)
@@ -134,7 +136,15 @@ private val modules = listOf(
     SettingsModule(SettingsWithoutKey.SCREEN_NAV_ABOUT, SettingsDestination.About, R.string.settings_screen_about, iconRes = R.drawable.ic_settings_about, provider = ::createAboutSettings),
     SettingsModule(SettingsWithoutKey.SCREEN_NAV_OCR, SettingsDestination.OCR, R.string.ocr_settings_title, iconRes = R.drawable.ic_ocr, provider = ::createOcrSettings),
     SettingsModule(SettingsWithoutKey.SCREEN_NAV_LIBRARIES, SettingsDestination.Libraries, R.string.libraries_hub_title, iconRes = R.drawable.ic_emoji_objects),
-    SettingsModule(SettingsWithoutKey.SCREEN_NAV_BACKGROUND_SERVICES, SettingsDestination.BackgroundServices, titleString = "Background Services", provider = ::createBackgroundServicesSettings)
+    SettingsModule(SettingsWithoutKey.SCREEN_NAV_BACKGROUND_SERVICES, SettingsDestination.BackgroundServices, titleString = "Background Services", provider = ::createBackgroundServicesSettings),
+    SettingsModule(SettingsWithoutKey.SCREEN_NAV_DICTIONARIES, SettingsDestination.Dictionaries, R.string.dictionary_settings_category, iconRes = R.drawable.ic_dictionary),
+    SettingsModule(SettingsWithoutKey.SCREEN_NAV_PERSONAL_DICTIONARIES, SettingsDestination.PersonalDictionaries, R.string.edit_personal_dictionary, iconRes = R.drawable.ic_dictionary),
+    SettingsModule(SettingsWithoutKey.SCREEN_NAV_BLOCKED_WORDS, SettingsDestination.BlockedWords, R.string.edit_blocked_words, iconRes = R.drawable.ic_bin),
+    SettingsModule(SettingsWithoutKey.SCREEN_NAV_SOUND, SettingsDestination.Sound, R.string.sound_packs_title, iconRes = R.drawable.ic_play_arrow, provider = ::createSoundSettings),
+    SettingsModule(SettingsWithoutKey.SCREEN_NAV_VOICE, SettingsDestination.OfflineVoice, R.string.voice_input_title, iconRes = R.drawable.sym_keyboard_voice_holo, provider = ::createVoiceSettings),
+    SettingsModule(SettingsWithoutKey.SCREEN_NAV_TRANSLATION, SettingsDestination.Translation, R.string.translation_settings_title, iconRes = R.drawable.ic_translate),
+    SettingsModule(SettingsWithoutKey.SCREEN_NAV_HANDWRITING, SettingsDestination.Handwriting, R.string.libraries_hub_handwriting_title, iconRes = R.drawable.ic_edit),
+    SettingsModule(SettingsWithoutKey.SCREEN_NAV_UPDATES, SettingsDestination.Updates, R.string.settings_screen_updates, iconRes = R.drawable.ic_settings_updates)
 )
 
 private fun createSettings(context: Context): List<Setting> = buildList {
@@ -205,4 +215,11 @@ object SettingsWithoutKey {
     const val SCREEN_NAV_OCR = "screen_nav_ocr"
     const val SCREEN_NAV_DICTIONARIES = "screen_nav_dictionaries"
     const val SCREEN_NAV_BACKGROUND_SERVICES = "screen_nav_background_services"
+    const val SCREEN_NAV_SOUND = "screen_nav_sound"
+    const val SCREEN_NAV_VOICE = "screen_nav_voice"
+    const val SCREEN_NAV_TRANSLATION = "screen_nav_translation"
+    const val SCREEN_NAV_HANDWRITING = "screen_nav_handwriting"
+    const val SCREEN_NAV_UPDATES = "screen_nav_updates"
+    const val SCREEN_NAV_PERSONAL_DICTIONARIES = "screen_nav_personal_dictionaries"
+    const val SCREEN_NAV_BLOCKED_WORDS = "screen_nav_blocked_words"
 }

@@ -33,7 +33,9 @@ import helium314.keyboard.latin.utils.getActivity
 import helium314.keyboard.latin.utils.prefs
 import helium314.keyboard.settings.NextScreenIcon
 import helium314.keyboard.settings.SearchSettingsScreen
+import helium314.keyboard.settings.Setting
 import helium314.keyboard.settings.SettingsActivity
+import helium314.keyboard.settings.SettingsDestination
 import helium314.keyboard.settings.dialogs.SoundPackDownloadDialog
 import helium314.keyboard.settings.preferences.Preference
 import helium314.keyboard.settings.preferences.PreferenceCategory
@@ -292,3 +294,85 @@ fun SoundSettingsScreen(
             }
         }
     }
+
+fun createSoundSettings(context: Context) = listOf(
+    Setting(context, Settings.PREF_KEYPRESS_SOUND_VOLUME, R.string.prefs_keypress_sound_volume_settings) { setting ->
+        SliderPreference(
+            name = setting.title,
+            key = setting.key,
+            default = Defaults.PREF_KEYPRESS_SOUND_VOLUME,
+            description = {
+                if (it < 0) stringResource(R.string.settings_system_default)
+                else "${(it * 100).toInt()}%"
+            },
+            range = -0.01f..1f,
+        )
+    },
+    Setting(context, Settings.PREF_KEYPRESS_SOUND_STYLE, R.string.prefs_keypress_sound_style_settings) { setting ->
+        Preference(
+            name = setting.title,
+            onClick = { SettingsDestination.navigateTo(SettingsDestination.Sound) },
+            icon = R.drawable.ic_play_arrow
+        ) { NextScreenIcon() }
+    },
+    Setting(context, Settings.PREF_SOUND_PITCH_SCALE, R.string.prefs_sound_pitch_scale) { setting ->
+        SliderPreference(
+            name = setting.title,
+            key = setting.key,
+            default = Defaults.PREF_SOUND_PITCH_SCALE,
+            description = { "${String.format(java.util.Locale.US, "%.2f", it)}x (${(it * 100).toInt()}%)" },
+            range = 0.5f..1.5f,
+        )
+    },
+    Setting(context, Settings.PREF_SOUND_RANDOM_PITCH, R.string.prefs_sound_random_pitch, R.string.prefs_sound_random_pitch_summary) {
+        SwitchPreference(it, Defaults.PREF_SOUND_RANDOM_PITCH)
+    },
+    Setting(context, Settings.PREF_SOUND_STEREO_PAN, R.string.prefs_sound_stereo_pan, R.string.prefs_sound_stereo_pan_summary) {
+        SwitchPreference(it, Defaults.PREF_SOUND_STEREO_PAN)
+    },
+    Setting(context, Settings.PREF_SOUND_DYNAMIC_VELOCITY, R.string.prefs_sound_dynamic_velocity, R.string.prefs_sound_dynamic_velocity_summary) {
+        SwitchPreference(it, Defaults.PREF_SOUND_DYNAMIC_VELOCITY)
+    },
+    Setting(context, Settings.PREF_SOUND_VOL_SPACE, R.string.prefs_sound_vol_space) { setting ->
+        SliderPreference(
+            name = setting.title,
+            key = setting.key,
+            default = Defaults.PREF_SOUND_VOL_SPACE,
+            description = { "${(it * 100).toInt()}%" },
+            range = 0.0f..1.5f,
+        )
+    },
+    Setting(context, Settings.PREF_SOUND_VOL_DELETE, R.string.prefs_sound_vol_delete) { setting ->
+        SliderPreference(
+            name = setting.title,
+            key = setting.key,
+            default = Defaults.PREF_SOUND_VOL_DELETE,
+            description = { "${(it * 100).toInt()}%" },
+            range = 0.0f..1.5f,
+        )
+    },
+    Setting(context, Settings.PREF_SOUND_VOL_ENTER, R.string.prefs_sound_vol_enter) { setting ->
+        SliderPreference(
+            name = setting.title,
+            key = setting.key,
+            default = Defaults.PREF_SOUND_VOL_ENTER,
+            description = { "${(it * 100).toInt()}%" },
+            range = 0.0f..1.5f,
+        )
+    },
+    Setting(context, Settings.PREF_SOUND_VOL_MODIFIERS, R.string.prefs_sound_vol_modifiers) { setting ->
+        SliderPreference(
+            name = setting.title,
+            key = setting.key,
+            default = Defaults.PREF_SOUND_VOL_MODIFIERS,
+            description = { "${(it * 100).toInt()}%" },
+            range = 0.0f..1.5f,
+        )
+    },
+    Setting(context, Settings.PREF_SOUND_MUTE_IN_SILENT, R.string.prefs_sound_mute_in_silent, R.string.prefs_sound_mute_in_silent_summary) {
+        SwitchPreference(it, Defaults.PREF_SOUND_MUTE_IN_SILENT)
+    },
+    Setting(context, Settings.PREF_SOUND_MUTE_IN_DND, R.string.prefs_sound_mute_in_dnd, R.string.prefs_sound_mute_in_dnd_summary) {
+        SwitchPreference(it, Defaults.PREF_SOUND_MUTE_IN_DND)
+    },
+)
