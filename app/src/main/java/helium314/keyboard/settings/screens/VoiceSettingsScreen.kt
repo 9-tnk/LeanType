@@ -773,17 +773,17 @@ fun VoiceSettingsScreen(
                             voiceAppSetting.Preference()
                             Preference(
                                 name = stringResource(R.string.voice_open_system_settings),
-                                description = stringResource(R.string.voice_provider_third_party_summary),
+                                description = stringResource(R.string.voice_open_system_settings_summary),
                                 icon = R.drawable.ic_settings_preferences,
                                 onClick = {
-                                    val intent = Intent(android.provider.Settings.ACTION_VOICE_INPUT_SETTINGS).apply {
+                                    val intent = Intent(android.provider.Settings.ACTION_INPUT_METHOD_SETTINGS).apply {
                                         flags = Intent.FLAG_ACTIVITY_NEW_TASK
                                     }
                                     try {
                                         context.startActivity(intent)
                                     } catch (_: Exception) {
                                         try {
-                                            context.startActivity(Intent(android.provider.Settings.ACTION_INPUT_METHOD_SETTINGS).apply {
+                                            context.startActivity(Intent(android.provider.Settings.ACTION_SETTINGS).apply {
                                                 flags = Intent.FLAG_ACTIVITY_NEW_TASK
                                             })
                                         } catch (e: Exception) {

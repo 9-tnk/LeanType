@@ -615,7 +615,8 @@
     <string name="voice_provider_none_summary">Turn off voice input and hide microphone key</string>
     <string name="voice_third_party_app_title">Voice Typing App</string>
     <string name="voice_third_party_system_default">System Default (Auto-detect)</string>
-    <string name="voice_open_system_settings">Open Android Voice Settings</string>
+    <string name="voice_open_system_settings">Manage On-Screen Keyboards</string>
+    <string name="voice_open_system_settings_summary">Enable or configure installed voice typing apps in Android Settings</string>
     <string name="voice_app_not_enabled">Voice typing app is installed but not enabled. Enable it in Android Settings → On-screen keyboard.</string>
     <string name="voice_no_app_found">No voice typing app found. Install an app like FUTO Voice Input or enable Offline Voice in LeanType Settings.</string>
 
