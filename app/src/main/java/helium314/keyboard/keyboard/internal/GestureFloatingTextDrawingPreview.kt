@@ -35,7 +35,8 @@ open class GestureFloatingTextDrawingPreview(mainKeyboardViewAttr: TypedArray) :
         private val mGesturePreviewTextSize: Int
         private val mGesturePreviewTextColor: Int
         private val mGesturePreviewColor: Int
-        private val mPaint = Paint()
+        private val mTextPaint = Paint(Paint.ANTI_ALIAS_FLAG)
+        private val mBackgroundPaint = Paint(Paint.ANTI_ALIAS_FLAG)
 
         init {
             val colors = Settings.getValues().mColors
@@ -54,26 +55,29 @@ open class GestureFloatingTextDrawingPreview(mainKeyboardViewAttr: TypedArray) :
                 R.styleable.MainKeyboardView_gestureFloatingPreviewRoundRadius, 0.0f)
             mDisplayWidth = mainKeyboardViewAttr.resources.displayMetrics.widthPixels
 
-            val textPaint = textPaint
+            mTextPaint.textAlign = Paint.Align.CENTER
+            mTextPaint.textSize = mGesturePreviewTextSize.toFloat()
+            mTextPaint.typeface = Settings.getInstance().customTypeface
+            mTextPaint.color = mGesturePreviewTextColor
+
+            mBackgroundPaint.color = mGesturePreviewColor
+
             val textRect = Rect()
-            textPaint.getTextBounds(TEXT_HEIGHT_REFERENCE_CHAR, 0, 1, textRect)
+            mTextPaint.getTextBounds(TEXT_HEIGHT_REFERENCE_CHAR, 0, 1, textRect)
             mGesturePreviewTextHeight = textRect.height()
         }
 
         val textPaint: Paint
             get() {
-                mPaint.isAntiAlias = true
-                mPaint.textAlign = Paint.Align.CENTER
-                mPaint.textSize = mGesturePreviewTextSize.toFloat()
-                mPaint.typeface = Settings.getInstance().customTypeface
-                mPaint.color = mGesturePreviewTextColor
-                return mPaint
+                mTextPaint.typeface = Settings.getInstance().customTypeface
+                mTextPaint.color = mGesturePreviewTextColor
+                return mTextPaint
             }
 
         val backgroundPaint: Paint
             get() {
-                mPaint.color = mGesturePreviewColor
-                return mPaint
+                mBackgroundPaint.color = mGesturePreviewColor
+                return mBackgroundPaint
             }
 
         companion object {
@@ -110,7 +114,12 @@ open class GestureFloatingTextDrawingPreview(mainKeyboardViewAttr: TypedArray) :
         if (!isPreviewEnabled || mSuggestedWords.isEmpty || TextUtils.isEmpty(mSuggestedWords.getWord(0))) {
             return
         }
-        val round = mParams.mGesturePreviewRoundRadius
+        val maxRound = mGesturePreviewRectangle.height() / 2.0f
+        val round = if (mParams.mGesturePreviewRoundRadius > 0.0f) {
+            min(mParams.mGesturePreviewRoundRadius, maxRound)
+        } else {
+            maxRound
+        }
         canvas.drawRoundRect(mGesturePreviewRectangle, round, round, mParams.backgroundPaint)
         val text = mSuggestedWords.getWord(0)
         canvas.drawText(text, mPreviewTextX.toFloat(), mPreviewTextY.toFloat(), mParams.textPaint)
@@ -142,8 +151,9 @@ open class GestureFloatingTextDrawingPreview(mainKeyboardViewAttr: TypedArray) :
         }
         mGesturePreviewRectangle.set(rectX, rectY, rectX + rectWidth, rectY + rectHeight)
 
-        mPreviewTextX = (rectX + hPad + textWidth / 2.0f).toInt()
-        mPreviewTextY = (rectY + vPad).toInt() + textHeight
+        mPreviewTextX = (rectX + rectWidth / 2.0f).toInt()
+        val fontMetrics = mParams.textPaint.fontMetrics
+        mPreviewTextY = (rectY + rectHeight / 2.0f - (fontMetrics.ascent + fontMetrics.descent) / 2.0f).toInt()
         invalidateDrawingView()
     }
 }

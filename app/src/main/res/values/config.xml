@@ -68,7 +68,7 @@
     <dimen name="config_gesture_floating_preview_text_offset">73dp</dimen>
     <dimen name="config_gesture_floating_preview_horizontal_padding">24dp</dimen>
     <dimen name="config_gesture_floating_preview_vertical_padding">16dp</dimen>
-    <dimen name="config_gesture_floating_preview_round_radius">2dp</dimen>
+    <dimen name="config_gesture_floating_preview_round_radius">24dp</dimen>
 
     <!-- Emoji keyboard -->
     <fraction name="config_emoji_keyboard_key_width">12.5%p</fraction>
