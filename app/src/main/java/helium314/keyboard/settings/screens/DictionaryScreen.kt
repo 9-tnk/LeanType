@@ -167,11 +167,27 @@ fun DictionaryScreen(
 
                         SwitchPreference(
                             name = stringResource(R.string.add_to_personal_dictionary),
-                            description = "Add typed words to personal dictionary",
+                            description = stringResource(R.string.add_to_personal_dictionary_summary),
                             key = Settings.PREF_ADD_TO_PERSONAL_DICTIONARY,
                             default = Defaults.PREF_ADD_TO_PERSONAL_DICTIONARY,
                             icon = R.drawable.ic_settings_correction,
-                            onCheckedChange = { personalDictEnabled = it }
+                            onCheckedChange = { enabled ->
+                                personalDictEnabled = enabled
+                                if (enabled) {
+                                    val current = prefs.getInt(
+                                        Settings.PREF_ADD_TO_PERSONAL_DICT_THRESHOLD,
+                                        Defaults.PREF_ADD_TO_PERSONAL_DICT_THRESHOLD
+                                    )
+                                    if (current !in 3..10) {
+                                        prefs.edit {
+                                            putInt(
+                                                Settings.PREF_ADD_TO_PERSONAL_DICT_THRESHOLD,
+                                                Defaults.PREF_ADD_TO_PERSONAL_DICT_THRESHOLD
+                                            )
+                                        }
+                                    }
+                                }
+                            }
                         )
 
                         if (personalDictEnabled) {
@@ -180,13 +196,18 @@ fun DictionaryScreen(
                                 key = Settings.PREF_ADD_TO_PERSONAL_DICT_THRESHOLD,
                                 default = Defaults.PREF_ADD_TO_PERSONAL_DICT_THRESHOLD,
                                 icon = R.drawable.ic_settings_preferences,
-                                range = 1f..5f,
+                                range = 3f..10f,
                                 stepSize = 1,
                                 description = {
-                                    if (it == 1) {
+                                    val base = if (it == 1) {
                                         stringResource(R.string.add_to_personal_dict_threshold_times_1)
                                     } else {
                                         stringResource(R.string.add_to_personal_dict_threshold_times_many, it)
+                                    }
+                                    if (it == Defaults.PREF_ADD_TO_PERSONAL_DICT_THRESHOLD) {
+                                        "$base (${stringResource(R.string.button_default)})"
+                                    } else {
+                                        base
                                     }
                                 }
                             )

@@ -33,7 +33,7 @@ fun SliderDialog(
     intermediateSteps: Int? = null,
     positionString: (@Composable (Float) -> String) = { it.toString() },
 ) {
-    var sliderPosition by remember { mutableFloatStateOf(initialValue) }
+    var sliderPosition by remember { mutableFloatStateOf(initialValue.coerceIn(range.start, range.endInclusive)) }
 
     ThreeButtonAlertDialog(
         onDismissRequest = onDismissRequest,

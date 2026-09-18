@@ -556,7 +556,7 @@ private fun getCategoryForPrefKey(key: String): BackupCategory {
         "suggest_emojis", "inline_emoji_search", "show_emoji_descriptions",
         "auto_correction", "more_auto_correction", "auto_correct_threshold",
         "autocorrect_shortcuts", "backspace_reverts_autocorrect", "suggest_punctuation",
-        "add_to_personal_dictionary"
+        "add_to_personal_dictionary", "add_to_personal_dict_threshold"
     )
     if (dictKeys.contains(key) || key.startsWith("pref_text_expander_")) return BackupCategory.DICTIONARY_HISTORY
     

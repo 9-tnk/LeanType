@@ -38,9 +38,13 @@ fun <T: Number> SliderPreference(
     val b = (ctx.getActivity() as? SettingsActivity)?.prefChanged?.collectAsState()
     if ((b?.value ?: 0) < 0)
         Log.v("irrelevant", "stupid way to trigger recomposition on preference change")
-    val initialValue = if (default is Int || default is Float)
+    val rawValue = if (default is Int || default is Float)
         getPrefOfType(prefs, key, default)
     else throw IllegalArgumentException("only float and int are supported")
+    val initialValue = if (default is Int)
+        (rawValue as Int).toFloat().coerceIn(range).toInt() as T
+    else
+        (rawValue as Float).coerceIn(range) as T
 
     var showDialog by rememberSaveable { mutableStateOf(false) }
     Preference(

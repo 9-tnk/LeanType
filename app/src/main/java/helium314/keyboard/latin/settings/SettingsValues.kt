@@ -391,7 +391,8 @@ open class SettingsValues(
         mPopupKeyTypes = getPopupKeyTypes(selectedSubtype, prefs)
         mPopupKeyLabelSources = getPopupKeyLabelSources(selectedSubtype, prefs)
         mAddToPersonalDictionary = prefs.getBoolean(Settings.PREF_ADD_TO_PERSONAL_DICTIONARY, Defaults.PREF_ADD_TO_PERSONAL_DICTIONARY)
-        mAddToPersonalDictThreshold = prefs.getInt(Settings.PREF_ADD_TO_PERSONAL_DICT_THRESHOLD, Defaults.PREF_ADD_TO_PERSONAL_DICT_THRESHOLD)
+        val rawThreshold = prefs.getInt(Settings.PREF_ADD_TO_PERSONAL_DICT_THRESHOLD, Defaults.PREF_ADD_TO_PERSONAL_DICT_THRESHOLD)
+        mAddToPersonalDictThreshold = if (rawThreshold in 3..10) rawThreshold else Defaults.PREF_ADD_TO_PERSONAL_DICT_THRESHOLD
         mUseContactsDictionary = readUseContactsEnabled(prefs, context)
         mUseAppsDictionary = prefs.getBoolean(Settings.PREF_USE_APPS, Defaults.PREF_USE_APPS)
         mCustomNavBarColor = prefs.getBoolean(Settings.PREF_NAVBAR_COLOR, Defaults.PREF_NAVBAR_COLOR)
