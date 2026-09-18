@@ -82,6 +82,9 @@ object Defaults {
     const val PREF_SHOW_EMOJI_DESCRIPTIONS = true
     var PREF_POPUP_ON = true
     const val PREF_AUTO_CORRECTION = false
+    const val PREF_AUTO_CORRECT_AGGRESSIVENESS = 2
+    const val PREF_EXPAND_FINE_TUNE_AUTOCORRECT = false
+    const val PREF_EXPAND_FINE_TUNE_PREDICTION = false
     const val PREF_AUTO_CORRECT_TRIGGER = "both"
     const val PREF_MORE_AUTO_CORRECTION = false
     const val PREF_AUTO_CORRECT_THRESHOLD = 0.185f

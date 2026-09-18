@@ -7,11 +7,15 @@ import android.content.Intent
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.runtime.DisposableEffect
@@ -46,7 +50,6 @@ import helium314.keyboard.settings.preferences.SliderPreference
 import helium314.keyboard.settings.preferences.SwitchPreference
 import helium314.keyboard.settings.preferences.SwitchPreferenceWithEmojiDictWarning
 import helium314.keyboard.settings.previewDark
-import androidx.core.content.edit
 
 @Composable
 fun TextCorrectionScreen(
@@ -59,51 +62,48 @@ fun TextCorrectionScreen(
     val autocorrectEnabled = prefs.getBoolean(Settings.PREF_AUTO_CORRECTION, Defaults.PREF_AUTO_CORRECTION)
     val suggestionsVisible = Settings.readToolbarMode(prefs) in setOf(ToolbarMode.SUGGESTION_STRIP, ToolbarMode.EXPANDABLE)
     val suggestionsEnabled = suggestionsVisible && prefs.getBoolean(Settings.PREF_SHOW_SUGGESTIONS, Defaults.PREF_SHOW_SUGGESTIONS)
-    val gestureEnabled = prefs.getBoolean(Settings.PREF_GESTURE_INPUT, Defaults.PREF_GESTURE_INPUT)
+    val bigramPredictionsEnabled = prefs.getBoolean(Settings.PREF_BIGRAM_PREDICTIONS, Defaults.PREF_BIGRAM_PREDICTIONS)
+    val fineTuneAutocorrectExpanded = prefs.getBoolean(Settings.PREF_EXPAND_FINE_TUNE_AUTOCORRECT, Defaults.PREF_EXPAND_FINE_TUNE_AUTOCORRECT)
+    val fineTunePredictionExpanded = prefs.getBoolean(Settings.PREF_EXPAND_FINE_TUNE_PREDICTION, Defaults.PREF_EXPAND_FINE_TUNE_PREDICTION)
     val items = listOf(
-
+        // Corrections
         R.string.settings_category_correction,
         Settings.PREF_BLOCK_POTENTIALLY_OFFENSIVE,
         Settings.PREF_AUTO_CORRECTION,
+        if (autocorrectEnabled) Settings.PREF_AUTO_CORRECT_AGGRESSIVENESS else null,
         if (autocorrectEnabled) Settings.PREF_AUTO_CORRECT_TRIGGER else null,
-        if (autocorrectEnabled) Settings.PREF_MORE_AUTO_CORRECTION else null,
-        if (autocorrectEnabled) Settings.PREF_AUTOCORRECT_SHORTCUTS else null,
-        if (autocorrectEnabled) Settings.PREF_AUTO_CORRECT_THRESHOLD else null,
         if (suggestionsEnabled || autocorrectEnabled) Settings.PREF_BACKSPACE_REVERTS_AUTOCORRECT else null,
         Settings.PREF_AUTO_CAP,
         Settings.PREF_FORCE_AUTO_CAPS,
-        R.string.settings_category_space,
-        Settings.PREF_KEY_USE_DOUBLE_SPACE_PERIOD,
-        Settings.PREF_AUTOSPACE_AFTER_PUNCTUATION,
-        Settings.PREF_AUTOSPACE_AFTER_EMOJI,
-        Settings.PREF_AUTOSPACE_AFTER_SUGGESTION,
-        Settings.PREF_SHIFT_REMOVES_AUTOSPACE,
-        Settings.PREF_PRESERVE_SPACE_BEFORE_PUNCTUATION,
-        R.string.switch_keyboard_after,
-        Settings.PREF_ABC_AFTER_SYMBOL_SPACE,
-        Settings.PREF_ABC_AFTER_NUMPAD_SPACE,
-        Settings.PREF_ABC_AFTER_EMOJI,
-        Settings.PREF_ABC_AFTER_CLIP,
+        if (autocorrectEnabled) Settings.PREF_EXPAND_FINE_TUNE_AUTOCORRECT else null,
+        if (autocorrectEnabled && fineTuneAutocorrectExpanded) Settings.PREF_AUTO_CORRECT_THRESHOLD else null,
+        if (autocorrectEnabled && fineTuneAutocorrectExpanded) Settings.PREF_MORE_AUTO_CORRECTION else null,
+        if (autocorrectEnabled && fineTuneAutocorrectExpanded) Settings.PREF_AUTOCORRECT_SHORTCUTS else null,
+
+        // Prediction & learning
+        R.string.settings_category_prediction,
+        Settings.PREF_BIGRAM_PREDICTIONS,
+        if (bigramPredictionsEnabled) Settings.PREF_SUGGESTION_BALANCE else null,
+        Settings.PREF_KEY_USE_PERSONALIZED_DICTS,
+        if (bigramPredictionsEnabled) Settings.PREF_EXPAND_FINE_TUNE_PREDICTION else null,
+        if (bigramPredictionsEnabled && fineTunePredictionExpanded) Settings.PREF_PRIORITIZE_PERSONAL_SUGGESTIONS else null,
+        if (bigramPredictionsEnabled && fineTunePredictionExpanded) Settings.PREF_NEXT_WORD_STRICT_NGRAM else null,
+        if (bigramPredictionsEnabled && fineTunePredictionExpanded) Settings.PREF_FIRST_WORD_PREDICTIONS else null,
+        if (suggestionsEnabled && bigramPredictionsEnabled && fineTunePredictionExpanded) Settings.PREF_DISABLE_MULTI_WORD_SUGGESTIONS else null,
+
+        // Suggestions strip
         R.string.settings_category_suggestions,
         if (suggestionsVisible) Settings.PREF_SHOW_SUGGESTIONS else null,
         if (suggestionsEnabled) Settings.PREF_ALWAYS_SHOW_SUGGESTIONS else null,
         if (suggestionsEnabled && prefs.getBoolean(Settings.PREF_ALWAYS_SHOW_SUGGESTIONS, Defaults.PREF_ALWAYS_SHOW_SUGGESTIONS))
             Settings.PREF_ALWAYS_SHOW_SUGGESTIONS_EXCEPT_WEB_TEXT else null,
         if (suggestionsEnabled) Settings.PREF_CENTER_SUGGESTION_TEXT_TO_ENTER else null,
+        Settings.PREF_SUGGEST_PUNCTUATION,
+
+        // Smart suggestions & tools
+        R.string.settings_category_smart_suggestions,
         if (suggestionsEnabled || autocorrectEnabled) Settings.PREF_SUGGEST_EMOJIS else null,
         if (suggestionsEnabled || autocorrectEnabled) Settings.PREF_INLINE_EMOJI_SEARCH else null,
-        Settings.PREF_KEY_USE_PERSONALIZED_DICTS,
-        Settings.PREF_BIGRAM_PREDICTIONS,
-        if (prefs.getBoolean(Settings.PREF_BIGRAM_PREDICTIONS, Defaults.PREF_BIGRAM_PREDICTIONS))
-            Settings.PREF_SUGGESTION_BALANCE else null,
-        if (prefs.getBoolean(Settings.PREF_BIGRAM_PREDICTIONS, Defaults.PREF_BIGRAM_PREDICTIONS))
-            Settings.PREF_PRIORITIZE_PERSONAL_SUGGESTIONS else null,
-        if (prefs.getBoolean(Settings.PREF_BIGRAM_PREDICTIONS, Defaults.PREF_BIGRAM_PREDICTIONS))
-            Settings.PREF_NEXT_WORD_STRICT_NGRAM else null,
-        if (prefs.getBoolean(Settings.PREF_BIGRAM_PREDICTIONS, Defaults.PREF_BIGRAM_PREDICTIONS))
-            Settings.PREF_FIRST_WORD_PREDICTIONS else null,
-        if (suggestionsEnabled) Settings.PREF_DISABLE_MULTI_WORD_SUGGESTIONS else null,
-        Settings.PREF_SUGGEST_PUNCTUATION,
         Settings.PREF_SUGGEST_CLIPBOARD_CONTENT,
         Settings.PREF_SUGGEST_SCREENSHOTS,
         if (prefs.getBoolean(Settings.PREF_SUGGEST_SCREENSHOTS, Defaults.PREF_SUGGEST_SCREENSHOTS))
@@ -113,7 +113,23 @@ fun TextCorrectionScreen(
             Settings.PREF_OTP_ALLOWED_SMS_PACKAGE else null,
         Settings.PREF_INLINE_MATH_CALCULATION,
         Settings.PREF_USE_CONTACTS,
-        Settings.PREF_USE_APPS
+        Settings.PREF_USE_APPS,
+
+        // Space
+        R.string.settings_category_space,
+        Settings.PREF_KEY_USE_DOUBLE_SPACE_PERIOD,
+        Settings.PREF_AUTOSPACE_AFTER_PUNCTUATION,
+        Settings.PREF_AUTOSPACE_AFTER_EMOJI,
+        Settings.PREF_AUTOSPACE_AFTER_SUGGESTION,
+        Settings.PREF_SHIFT_REMOVES_AUTOSPACE,
+        Settings.PREF_PRESERVE_SPACE_BEFORE_PUNCTUATION,
+
+        // Switch keyboard after
+        R.string.switch_keyboard_after,
+        Settings.PREF_ABC_AFTER_SYMBOL_SPACE,
+        Settings.PREF_ABC_AFTER_NUMPAD_SPACE,
+        Settings.PREF_ABC_AFTER_EMOJI,
+        Settings.PREF_ABC_AFTER_CLIP
     )
     SearchSettingsScreen(
         onClickBack = onClickBack,
@@ -134,6 +150,47 @@ fun createCorrectionSettings(context: Context) = listOf(
     ) {
         SwitchPreference(it, Defaults.PREF_AUTO_CORRECTION)
     },
+    Setting(context, Settings.PREF_AUTO_CORRECT_AGGRESSIVENESS,
+        R.string.auto_correct_aggressiveness_title
+    ) { setting ->
+        val prefs = LocalContext.current.prefs()
+        val defaultLevel = Settings.readAutoCorrectAggressiveness(prefs)
+        SliderPreference(
+            name = setting.title,
+            key = setting.key,
+            default = defaultLevel,
+            range = 1f..4f,
+            stepSize = 1,
+            onConfirmed = { value ->
+                Settings.applyAutoCorrectAggressivenessPreset(prefs, value.toInt())
+            },
+            description = { value ->
+                when (value.toInt()) {
+                    Settings.AUTO_CORRECT_LEVEL_MODEST -> stringResource(R.string.auto_correct_aggressiveness_desc_1)
+                    Settings.AUTO_CORRECT_LEVEL_AGGRESSIVE -> stringResource(R.string.auto_correct_aggressiveness_desc_3)
+                    Settings.AUTO_CORRECT_LEVEL_VERY_AGGRESSIVE -> stringResource(R.string.auto_correct_aggressiveness_desc_4)
+                    else -> stringResource(R.string.auto_correct_aggressiveness_desc_2)
+                }
+            }
+        )
+    },
+    Setting(context, Settings.PREF_EXPAND_FINE_TUNE_AUTOCORRECT,
+        R.string.fine_tune_autocorrect_title, R.string.fine_tune_autocorrect_summary
+    ) { setting ->
+        val prefs = LocalContext.current.prefs()
+        val expanded = prefs.getBoolean(setting.key, Defaults.PREF_EXPAND_FINE_TUNE_AUTOCORRECT)
+        Preference(
+            name = setting.title,
+            description = setting.description,
+            onClick = { prefs.edit { putBoolean(setting.key, !expanded) } }
+        ) {
+            Icon(
+                painter = painterResource(R.drawable.ic_arrow_right),
+                contentDescription = if (expanded) "Collapse" else "Expand",
+                modifier = Modifier.rotate(if (expanded) 90f else 0f)
+            )
+        }
+    },
     Setting(context, Settings.PREF_AUTO_CORRECT_TRIGGER, R.string.auto_correction_trigger) {
         val items = listOf(
             stringResource(R.string.auto_correction_trigger_both) to "both",
@@ -144,22 +201,50 @@ fun createCorrectionSettings(context: Context) = listOf(
     },
     Setting(context, Settings.PREF_MORE_AUTO_CORRECTION,
         R.string.more_autocorrect, R.string.more_autocorrect_summary
-    ) {
-        SwitchPreference(it, Defaults.PREF_MORE_AUTO_CORRECTION)
+    ) { setting ->
+        val prefs = LocalContext.current.prefs()
+        SwitchPreference(
+            setting = setting,
+            default = Defaults.PREF_MORE_AUTO_CORRECTION,
+            onCheckedChange = { more ->
+                val threshold = prefs.getFloat(Settings.PREF_AUTO_CORRECT_THRESHOLD, Defaults.PREF_AUTO_CORRECT_THRESHOLD)
+                val level = when {
+                    threshold < 0f -> Settings.AUTO_CORRECT_LEVEL_VERY_AGGRESSIVE
+                    more -> Settings.AUTO_CORRECT_LEVEL_AGGRESSIVE
+                    threshold >= 0.18f -> Settings.AUTO_CORRECT_LEVEL_MODEST
+                    else -> Settings.AUTO_CORRECT_LEVEL_BALANCED
+                }
+                prefs.edit { putInt(Settings.PREF_AUTO_CORRECT_AGGRESSIVENESS, level) }
+            }
+        )
     },
     Setting(context, Settings.PREF_AUTOCORRECT_SHORTCUTS,
         R.string.auto_correct_shortcuts, R.string.auto_correct_shortcuts_summary
     ) {
         SwitchPreference(it, Defaults.PREF_AUTOCORRECT_SHORTCUTS)
     },
-    Setting(context, Settings.PREF_AUTO_CORRECT_THRESHOLD, R.string.auto_correction_confidence) {
+    Setting(context, Settings.PREF_AUTO_CORRECT_THRESHOLD, R.string.auto_correction_confidence) { setting ->
         val items = listOf(
             stringResource(R.string.auto_correction_threshold_mode_modest) to 0.185f,
             stringResource(R.string.auto_correction_threshold_mode_aggressive) to 0.067f,
             stringResource(R.string.auto_correction_threshold_mode_very_aggressive) to -1f,
         )
-        // todo: consider making it a slider, and maybe somehow adjust range so we can show %
-        ListPreference(it, items, Defaults.PREF_AUTO_CORRECT_THRESHOLD)
+        val prefs = LocalContext.current.prefs()
+        ListPreference(
+            setting = setting,
+            items = items,
+            default = Defaults.PREF_AUTO_CORRECT_THRESHOLD,
+            onChanged = { threshold ->
+                val more = prefs.getBoolean(Settings.PREF_MORE_AUTO_CORRECTION, Defaults.PREF_MORE_AUTO_CORRECTION)
+                val level = when {
+                    threshold < 0f -> Settings.AUTO_CORRECT_LEVEL_VERY_AGGRESSIVE
+                    more -> Settings.AUTO_CORRECT_LEVEL_AGGRESSIVE
+                    threshold >= 0.18f -> Settings.AUTO_CORRECT_LEVEL_MODEST
+                    else -> Settings.AUTO_CORRECT_LEVEL_BALANCED
+                }
+                prefs.edit { putInt(Settings.PREF_AUTO_CORRECT_AGGRESSIVENESS, level) }
+            }
+        )
     },
     Setting(context, Settings.PREF_BACKSPACE_REVERTS_AUTOCORRECT, R.string.backspace_reverts_autocorrect) {
         SwitchPreference(it, Defaults.PREF_BACKSPACE_REVERTS_AUTOCORRECT)
@@ -265,14 +350,18 @@ fun createCorrectionSettings(context: Context) = listOf(
     Setting(context, Settings.PREF_SUGGESTION_BALANCE,
         R.string.suggestion_balance_title, R.string.suggestion_balance_summary
     ) {
+        val prefs = LocalContext.current.prefs()
         SliderPreference(
             name = it.title,
             key = it.key,
             default = Defaults.PREF_SUGGESTION_BALANCE,
             range = 1f..5f,
             stepSize = 1,
+            onConfirmed = { value ->
+                Settings.applySuggestionBalancePreset(prefs, value.toInt())
+            },
             description = { value ->
-                when (value) {
+                when (value.toInt()) {
                     Settings.SUGGESTION_BALANCE_DICTIONARY_FOCUSED -> stringResource(R.string.suggestion_balance_desc_1)
                     Settings.SUGGESTION_BALANCE_CONSERVATIVE -> stringResource(R.string.suggestion_balance_desc_2)
                     Settings.SUGGESTION_BALANCE_PERSONALIZED -> stringResource(R.string.suggestion_balance_desc_4)
@@ -281,6 +370,23 @@ fun createCorrectionSettings(context: Context) = listOf(
                 }
             }
         )
+    },
+    Setting(context, Settings.PREF_EXPAND_FINE_TUNE_PREDICTION,
+        R.string.fine_tune_prediction_title, R.string.fine_tune_prediction_summary
+    ) { setting ->
+        val prefs = LocalContext.current.prefs()
+        val expanded = prefs.getBoolean(setting.key, Defaults.PREF_EXPAND_FINE_TUNE_PREDICTION)
+        Preference(
+            name = setting.title,
+            description = setting.description,
+            onClick = { prefs.edit { putBoolean(setting.key, !expanded) } }
+        ) {
+            Icon(
+                painter = painterResource(R.drawable.ic_arrow_right),
+                contentDescription = if (expanded) "Collapse" else "Expand",
+                modifier = Modifier.rotate(if (expanded) 90f else 0f)
+            )
+        }
     },
     Setting(context, Settings.PREF_NEXT_WORD_STRICT_NGRAM,
         R.string.next_word_strict_ngram, R.string.next_word_strict_ngram_summary

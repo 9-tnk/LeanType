@@ -53,7 +53,9 @@
     <!-- Settings category title for Text correction/Space -->
     <string name="settings_category_space">Space</string>
     <!-- Settings category title for Text correction/Suggestions -->
-    <string name="settings_category_suggestions">Suggestions</string>
+    <string name="settings_category_suggestions">Suggestions strip</string>
+    <string name="settings_category_prediction">Prediction &amp; learning</string>
+    <string name="settings_category_smart_suggestions">Smart suggestions &amp; tools</string>
     <!-- Settings category title for Advanced/Experimental -->
     <string name="settings_category_experimental">Experimental</string>
     <!-- Settings category title for Appearance & Layout/Misc -->
@@ -182,6 +184,21 @@
     <string name="auto_correction_threshold_mode_aggressive">Aggressive</string>
     <!-- Option to suggest auto correction suggestions very aggressively. Auto-corrects to a word which has even large edit distance from typed word. -->
     <string name="auto_correction_threshold_mode_very_aggressive">Very aggressive</string>
+    <!-- Options and descriptions for consolidated auto-correction aggressiveness slider -->
+    <string name="auto_correct_aggressiveness_title">Auto-correction aggressiveness</string>
+    <string name="auto_correct_aggressiveness_1">Modest</string>
+    <string name="auto_correct_aggressiveness_2">Balanced (Default)</string>
+    <string name="auto_correct_aggressiveness_3">Aggressive</string>
+    <string name="auto_correct_aggressiveness_4">Very aggressive</string>
+    <string name="auto_correct_aggressiveness_desc_1">Modest\nAuto-corrects only words with very close spelling in standard input fields.</string>
+    <string name="auto_correct_aggressiveness_desc_2">Balanced (Default)\nStandard correction confidence in supported input fields.</string>
+    <string name="auto_correct_aggressiveness_desc_3">Aggressive\nExtends auto-correction across more apps and unassisted text fields.</string>
+    <string name="auto_correct_aggressiveness_desc_4">Very aggressive\nUnconditional correction for any close match across all fields.</string>
+    <!-- Expandable fine-tuning drawer titles and summaries -->
+    <string name="fine_tune_autocorrect_title">Fine-tune auto-correction</string>
+    <string name="fine_tune_autocorrect_summary">Configure triggers, extra situations, and shortcut expansions</string>
+    <string name="fine_tune_prediction_title">Fine-tune prediction details</string>
+    <string name="fine_tune_prediction_summary">Manually adjust personal word priority, context matches, and sentence starts</string>
     <!-- Option to show the text to be entered as the middle middle suggestion -->
     <string name="center_suggestion_text_to_enter">Always use middle suggestion</string>
     <!-- Description for the center text to enter setting -->

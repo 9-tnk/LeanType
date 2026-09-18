@@ -307,6 +307,13 @@ class Settings private constructor() : SharedPreferences.OnSharedPreferenceChang
         const val PREF_SHOW_EMOJI_DESCRIPTIONS = "show_emoji_descriptions"
         const val PREF_POPUP_ON = "popup_on"
         const val PREF_AUTO_CORRECTION = "auto_correction"
+        const val PREF_AUTO_CORRECT_AGGRESSIVENESS = "auto_correct_aggressiveness"
+        const val AUTO_CORRECT_LEVEL_MODEST = 1
+        const val AUTO_CORRECT_LEVEL_BALANCED = 2
+        const val AUTO_CORRECT_LEVEL_AGGRESSIVE = 3
+        const val AUTO_CORRECT_LEVEL_VERY_AGGRESSIVE = 4
+        const val PREF_EXPAND_FINE_TUNE_AUTOCORRECT = "expand_fine_tune_autocorrect"
+        const val PREF_EXPAND_FINE_TUNE_PREDICTION = "expand_fine_tune_prediction"
         const val PREF_AUTO_CORRECT_TRIGGER = "auto_correction_trigger"
         const val PREF_MORE_AUTO_CORRECTION = "more_auto_correction"
         const val PREF_AUTO_CORRECT_THRESHOLD = "auto_correct_threshold"
@@ -714,6 +721,53 @@ class Settings private constructor() : SharedPreferences.OnSharedPreferenceChang
             sCustomTypefaceLoaded = false
             sCachedEmojiTypeface = null
             sCustomEmojiTypefaceLoaded = false
+        }
+
+        @JvmStatic
+        fun readAutoCorrectAggressiveness(prefs: SharedPreferences): Int {
+            if (prefs.contains(PREF_AUTO_CORRECT_AGGRESSIVENESS)) {
+                return prefs.getInt(PREF_AUTO_CORRECT_AGGRESSIVENESS, Defaults.PREF_AUTO_CORRECT_AGGRESSIVENESS)
+            }
+            val threshold = prefs.getFloat(PREF_AUTO_CORRECT_THRESHOLD, Defaults.PREF_AUTO_CORRECT_THRESHOLD)
+            val more = prefs.getBoolean(PREF_MORE_AUTO_CORRECTION, Defaults.PREF_MORE_AUTO_CORRECTION)
+            return when {
+                threshold < 0f -> AUTO_CORRECT_LEVEL_VERY_AGGRESSIVE
+                more -> AUTO_CORRECT_LEVEL_AGGRESSIVE
+                threshold >= 0.18f -> AUTO_CORRECT_LEVEL_MODEST
+                else -> AUTO_CORRECT_LEVEL_BALANCED
+            }
+        }
+
+        @JvmStatic
+        fun applyAutoCorrectAggressivenessPreset(prefs: SharedPreferences, level: Int) {
+            val (threshold, moreAutocorrect) = when (level) {
+                AUTO_CORRECT_LEVEL_MODEST -> Pair(0.185f, false)
+                AUTO_CORRECT_LEVEL_AGGRESSIVE -> Pair(0.067f, true)
+                AUTO_CORRECT_LEVEL_VERY_AGGRESSIVE -> Pair(-1f, true)
+                else -> Pair(0.067f, false) // AUTO_CORRECT_LEVEL_BALANCED
+            }
+            prefs.edit()
+                .putInt(PREF_AUTO_CORRECT_AGGRESSIVENESS, level)
+                .putFloat(PREF_AUTO_CORRECT_THRESHOLD, threshold)
+                .putBoolean(PREF_MORE_AUTO_CORRECTION, moreAutocorrect)
+                .apply()
+        }
+
+        @JvmStatic
+        fun applySuggestionBalancePreset(prefs: SharedPreferences, level: Int) {
+            val (prioritizePersonal, strictNgram, firstWord) = when (level) {
+                SUGGESTION_BALANCE_DICTIONARY_FOCUSED -> Triple(false, true, false)
+                SUGGESTION_BALANCE_CONSERVATIVE -> Triple(false, true, false)
+                SUGGESTION_BALANCE_PERSONALIZED -> Triple(true, false, true)
+                SUGGESTION_BALANCE_HIGHLY_PERSONALIZED -> Triple(true, false, true)
+                else -> Triple(false, false, false) // SUGGESTION_BALANCE_BALANCED
+            }
+            prefs.edit()
+                .putInt(PREF_SUGGESTION_BALANCE, level)
+                .putBoolean(PREF_PRIORITIZE_PERSONAL_SUGGESTIONS, prioritizePersonal)
+                .putBoolean(PREF_NEXT_WORD_STRICT_NGRAM, strictNgram)
+                .putBoolean(PREF_FIRST_WORD_PREDICTIONS, firstWord)
+                .apply()
         }
     }
 }
