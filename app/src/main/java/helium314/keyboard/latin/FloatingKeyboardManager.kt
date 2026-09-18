@@ -27,7 +27,7 @@ import helium314.keyboard.latin.utils.ResourceUtils
 /**
  * Manages the floating keyboard within the IME's native TYPE_INPUT_METHOD window.
  * The keyboard frame is positioned dynamically inside InputView via translation coordinates
- * and wrapped with an interactive floating header bar (drag pill, close button, resize handle).
+ * and wrapped with an interactive floating bottom bar (drag pill, dock button, resize handle).
  */
 class FloatingKeyboardManager(private val context: Context, private val latinIME: LatinIME) {
 
@@ -40,7 +40,7 @@ class FloatingKeyboardManager(private val context: Context, private val latinIME
         private const val PREF_SCALE = "floating_scale"
         private const val PREF_IS_ACTIVE = "floating_is_active"
         private const val FLOATING_WIDTH_FRACTION = 0.75f
-        private const val HEADER_HEIGHT_DP = 28
+        private const val BOTTOM_BAR_HEIGHT_DP = 28
         private const val CORNER_RADIUS_DP = 16f
     }
 
@@ -81,7 +81,7 @@ class FloatingKeyboardManager(private val context: Context, private val latinIME
     private var wasFloatingBeforeExtract = false
     private val tempLocation = IntArray(2)
 
-    private var headerBar: FrameLayout? = null
+    private var bottomBar: FrameLayout? = null
 
     fun getKeyboardFrame(): View? = latinIME.mInputView?.findViewById(R.id.main_keyboard_frame)
 
@@ -120,16 +120,15 @@ class FloatingKeyboardManager(private val context: Context, private val latinIME
         val bgColor = colors.get(ColorType.MAIN_BACKGROUND)
         val textColor = colors.get(ColorType.KEY_TEXT)
         val cornerRadius = CORNER_RADIUS_DP * density
-        val headerHeight = (HEADER_HEIGHT_DP * density).toInt()
+        val bottomBarHeight = (BOTTOM_BAR_HEIGHT_DP * density).toInt()
 
-        // Configure or create header bar inside main_keyboard_frame
-        val headerContainer = frame.findViewById<FrameLayout>(R.id.floating_header_bar)
-        if (headerContainer != null) {
-            if (headerContainer.childCount == 0) {
-                headerBar = createHeaderBar(headerHeight, bgColor, textColor, density, cornerRadius)
-                headerContainer.addView(headerBar)
-            }
-            headerContainer.visibility = View.VISIBLE
+        // Configure or create bottom bar inside main_keyboard_frame
+        val bottomContainer = frame.findViewById<FrameLayout>(R.id.floating_bottom_bar)
+        if (bottomContainer != null) {
+            bottomContainer.removeAllViews()
+            bottomBar = createBottomBar(bottomBarHeight, bgColor, textColor, density, cornerRadius)
+            bottomContainer.addView(bottomBar)
+            bottomContainer.visibility = View.VISIBLE
         }
 
         // Configure FrameLayout layoutParams
@@ -199,9 +198,11 @@ class FloatingKeyboardManager(private val context: Context, private val latinIME
 
         val frame = getKeyboardFrame()
         if (frame != null) {
-            frame.findViewById<View>(R.id.floating_header_bar)?.visibility = View.GONE
+            frame.findViewById<View>(R.id.floating_bottom_bar)?.visibility = View.GONE
             frame.translationX = 0f
             frame.translationY = 0f
+            frame.scaleX = 1f
+            frame.scaleY = 1f
 
             val lp = frame.layoutParams as? FrameLayout.LayoutParams
             if (lp != null) {
@@ -211,11 +212,14 @@ class FloatingKeyboardManager(private val context: Context, private val latinIME
                 frame.layoutParams = lp
             }
 
-            Settings.getValues().mColors.setBackground(frame, ColorType.MAIN_BACKGROUND)
+            frame.background = null
+            frame.outlineProvider = null
             frame.clipToOutline = false
+            Settings.getValues().mColors.setBackground(frame, ColorType.MAIN_BACKGROUND)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
                 frame.elevation = 0f
             }
+            (latinIME.mInputView as? InputView)?.updateBottomPadding()
         }
 
         KeyboardSwitcher.getInstance().reloadKeyboard()
@@ -237,6 +241,10 @@ class FloatingKeyboardManager(private val context: Context, private val latinIME
             isResizing = false
             activeDragPointerId = MotionEvent.INVALID_POINTER_ID
             activeResizePointerId = MotionEvent.INVALID_POINTER_ID
+            getKeyboardFrame()?.let { frame ->
+                frame.scaleX = 1f
+                frame.scaleY = 1f
+            }
             latinIME.requestInsetsUpdate()
         }
     }
@@ -287,6 +295,16 @@ class FloatingKeyboardManager(private val context: Context, private val latinIME
     fun destroy() {
         resetDragAndResizeState()
         if (isFloating) {
+            val frame = getKeyboardFrame()
+            if (frame != null) {
+                frame.background = null
+                frame.outlineProvider = null
+                frame.clipToOutline = false
+                Settings.getValues().mColors.setBackground(frame, ColorType.MAIN_BACKGROUND)
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                    frame.elevation = 0f
+                }
+            }
             ResourceUtils.setFloatingKeyboardWidth(0)
             ResourceUtils.setFloatingKeyboardScale(0.0f)
             isFloating = false
@@ -296,7 +314,7 @@ class FloatingKeyboardManager(private val context: Context, private val latinIME
     // ── Private helpers ──────────────────────────────────────────────────
 
     @SuppressLint("ClickableViewAccessibility")
-    private fun createHeaderBar(
+    private fun createBottomBar(
         height: Int,
         bgColor: Int,
         textColor: Int,
@@ -304,12 +322,9 @@ class FloatingKeyboardManager(private val context: Context, private val latinIME
         cornerRadius: Float
     ): FrameLayout {
         val dm = context.resources.displayMetrics
-        val minWidth = (dm.widthPixels * 0.40f).toInt()
-        val maxWidth = (dm.widthPixels * 0.95f).toInt()
         val minHeight = (120 * density).toInt()
-        val maxHeight = (dm.heightPixels * 0.75f).toInt()
 
-        val headerBar = FrameLayout(context).apply {
+        val bottomBar = FrameLayout(context).apply {
             layoutParams = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 height
@@ -317,17 +332,17 @@ class FloatingKeyboardManager(private val context: Context, private val latinIME
             background = GradientDrawable().apply {
                 setColor(bgColor)
                 cornerRadii = floatArrayOf(
-                    cornerRadius, cornerRadius,
-                    cornerRadius, cornerRadius,
                     0f, 0f,
-                    0f, 0f
+                    0f, 0f,
+                    cornerRadius, cornerRadius,
+                    cornerRadius, cornerRadius
                 )
             }
         }
 
         // Sleek drag handle pill in center
         val pillWidth = (44 * density).toInt()
-        val pillHeight = (5 * density).toInt()
+        val pillHeight = (4.5f * density).toInt()
         val defaultPillColor = (textColor and 0x00FFFFFF) or 0x66000000.toInt()
         val activePillColor = (textColor and 0x00FFFFFF) or 0xCC000000.toInt()
         val dragHandleBg = GradientDrawable().apply {
@@ -342,32 +357,31 @@ class FloatingKeyboardManager(private val context: Context, private val latinIME
             background = dragHandleBg
             contentDescription = context.getString(R.string.floating_keyboard_drag_handle)
         }
-        headerBar.addView(dragHandle)
+        bottomBar.addView(dragHandle)
 
-        // Close button (Top-Right)
-        val closeBtnSize = (height * 0.75f).toInt()
-        val closePadding = (3 * density).toInt()
-        val closeBtn = ImageButton(context).apply {
-            layoutParams = FrameLayout.LayoutParams(closeBtnSize, closeBtnSize).apply {
-                gravity = Gravity.CENTER_VERTICAL or Gravity.END
-                marginEnd = (6 * density).toInt()
+        // Dock button (Bottom-Left / Start)
+        val btnSize = (height * 0.8f).toInt()
+        val dockPadding = (3 * density).toInt()
+        val dockBtn = ImageButton(context).apply {
+            layoutParams = FrameLayout.LayoutParams(btnSize, btnSize).apply {
+                gravity = Gravity.CENTER_VERTICAL or Gravity.START
+                marginStart = (8 * density).toInt()
             }
-            setPadding(closePadding, closePadding, closePadding, closePadding)
-            setImageResource(android.R.drawable.ic_menu_close_clear_cancel)
+            setPadding(dockPadding, dockPadding, dockPadding, dockPadding)
+            setImageResource(R.drawable.ic_close)
             setColorFilter(textColor)
             background = GradientDrawable().apply {
                 shape = GradientDrawable.RECTANGLE
                 this.cornerRadius = 6 * density
                 setColor((textColor and 0x00FFFFFF) or 0x1A000000.toInt())
             }
-            contentDescription = "Close floating keyboard"
+            contentDescription = context.getString(R.string.floating_keyboard_dock_handle)
             scaleType = android.widget.ImageView.ScaleType.FIT_CENTER
             setOnClickListener { hide(showDockedKeyboard = true) }
         }
-        headerBar.addView(closeBtn)
+        bottomBar.addView(dockBtn)
 
-        // Inverted L-shaped Corner Pill Resize Button (Top-Left)
-        val btnSize = closeBtnSize
+        // Corner Arc Resize Handle (Bottom-Right / End)
         val defaultAlpha = 0x66000000.toInt()
         val activeAlpha = 0xEE000000.toInt()
         val defaultBgColor = (textColor and 0x00FFFFFF) or 0x1F000000.toInt()
@@ -375,7 +389,7 @@ class FloatingKeyboardManager(private val context: Context, private val latinIME
 
         val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = (textColor and 0x00FFFFFF) or defaultAlpha
-            strokeWidth = 3.5f * density
+            strokeWidth = 3.0f * density
             strokeCap = Paint.Cap.ROUND
             style = Paint.Style.STROKE
         }
@@ -391,21 +405,38 @@ class FloatingKeyboardManager(private val context: Context, private val latinIME
                 super.onDraw(canvas)
                 val w = width.toFloat()
                 val h = height.toFloat()
-                val pad = 6.5f * density
+                val pad = 5.5f * density
                 val oval = RectF(pad, pad, w - pad, h - pad)
-                canvas.drawArc(oval, 180f, 90f, false, paint)
+                // Draw arc in the bottom-right corner (0 to 90 degrees)
+                canvas.drawArc(oval, 0f, 90f, false, paint)
+                val innerPad = pad + 4f * density
+                if (w - innerPad > innerPad && h - innerPad > innerPad) {
+                    val innerOval = RectF(innerPad, innerPad, w - pad, h - pad)
+                    canvas.drawArc(innerOval, 0f, 90f, false, paint)
+                }
             }
         }.apply {
             layoutParams = FrameLayout.LayoutParams(btnSize, btnSize).apply {
-                gravity = Gravity.CENTER_VERTICAL or Gravity.START
-                marginStart = (6 * density).toInt()
+                gravity = Gravity.CENTER_VERTICAL or Gravity.END
+                marginEnd = (8 * density).toInt()
             }
             background = resizeBg
-            contentDescription = "Resize floating keyboard"
+            contentDescription = context.getString(R.string.floating_keyboard_resize_handle)
         }
+
+        var lastTargetWidth = 0
+        var lastTargetHeight = 0
 
         resizeBtn.setOnTouchListener { _, event ->
             val frame = getKeyboardFrame() ?: return@setOnTouchListener false
+            val inputView = latinIME.mInputView
+            val screenWidth = inputView?.width?.takeIf { it > 0 } ?: dm.widthPixels
+            val screenHeight = inputView?.height?.takeIf { it > 0 } ?: dm.heightPixels
+
+            val minWidth = (screenWidth * 0.40f).toInt()
+            val maxWidth = (screenWidth * 0.95f).toInt()
+            val maxHeight = (screenHeight * 0.75f).toInt()
+
             when (event.actionMasked) {
                 MotionEvent.ACTION_DOWN -> {
                     activeResizePointerId = event.getPointerId(0)
@@ -414,12 +445,18 @@ class FloatingKeyboardManager(private val context: Context, private val latinIME
                     initialResizeTouchY = event.rawY
                     initialResizeTransX = frame.translationX
                     initialResizeTransY = frame.translationY
-                    initialResizeWidth = frame.width.takeIf { it > 0 } ?: ResourceUtils.getFloatingKeyboardWidth()
-                    initialResizeHeight = frame.height
+                    initialResizeWidth = frame.width.takeIf { it > 0 } ?: ResourceUtils.getFloatingKeyboardWidth().takeIf { it > 0 } ?: (screenWidth * FLOATING_WIDTH_FRACTION).toInt()
+                    initialResizeHeight = frame.height.takeIf { it > 0 } ?: ((220 * density).toInt())
                     initialResizeScale = ResourceUtils.getFloatingKeyboardScale().let { if (it > 0f) it else 1.0f }
 
+                    lastTargetWidth = initialResizeWidth
+                    lastTargetHeight = initialResizeHeight
+
+                    frame.pivotX = 0f
+                    frame.pivotY = 0f
+
                     paint.color = (textColor and 0x00FFFFFF) or activeAlpha
-                    paint.strokeWidth = 4.5f * density
+                    paint.strokeWidth = 4.0f * density
                     resizeBg.setColor(activeBgColor)
                     resizeBtn.invalidate()
                     latinIME.requestInsetsUpdate()
@@ -434,25 +471,29 @@ class FloatingKeyboardManager(private val context: Context, private val latinIME
                         val dx = (currentRawX - initialResizeTouchX).toInt()
                         val dy = (currentRawY - initialResizeTouchY).toInt()
 
-                        val targetWidth = (initialResizeWidth - dx).coerceIn(minWidth, maxWidth)
-                        val targetHeight = (initialResizeHeight - dy).coerceIn(minHeight, maxHeight)
+                        val maxAvailableWidth = (screenWidth - initialResizeTransX.toInt()).coerceAtLeast(minWidth)
+                        val effectiveMaxWidth = minOf(maxWidth, maxAvailableWidth)
+                        val targetWidth = (initialResizeWidth + dx).coerceIn(minWidth, effectiveMaxWidth)
 
-                        val effectiveDx = initialResizeWidth - targetWidth
-                        val effectiveDy = initialResizeHeight - targetHeight
+                        val maxAvailableHeight = (screenHeight - initialResizeTransY.toInt()).coerceAtLeast(minHeight)
+                        val effectiveMaxHeight = minOf(maxHeight, maxAvailableHeight)
+                        val targetHeight = (initialResizeHeight + dy).coerceIn(minHeight, effectiveMaxHeight)
 
-                        val inputView = latinIME.mInputView
-                        val maxW = ((inputView?.width ?: dm.widthPixels) - targetWidth).coerceAtLeast(0)
-                        val maxH = ((inputView?.height ?: dm.heightPixels) - targetHeight).coerceAtLeast(0)
+                        val heightRatio = targetHeight.toFloat() / initialResizeHeight
+                        val minAllowedScale = 0.5f
+                        val maxAllowedScale = 1.8f
+                        val minAllowedRatio = minAllowedScale / initialResizeScale
+                        val maxAllowedRatio = maxAllowedScale / initialResizeScale
+                        val clampedRatio = heightRatio.coerceIn(minAllowedRatio, maxAllowedRatio)
 
-                        val newX = (initialResizeTransX - effectiveDx).coerceIn(0f, maxW.toFloat())
-                        val newY = (initialResizeTransY - effectiveDy).coerceIn(0f, maxH.toFloat())
+                        val scaleX = targetWidth.toFloat() / initialResizeWidth
+                        val scaleY = clampedRatio
 
-                        frame.translationX = newX
-                        frame.translationY = newY
+                        frame.scaleX = scaleX
+                        frame.scaleY = scaleY
 
-                        val lp = frame.layoutParams
-                        lp.width = targetWidth
-                        frame.layoutParams = lp
+                        lastTargetWidth = targetWidth
+                        lastTargetHeight = (initialResizeHeight * clampedRatio).toInt()
                     }
                     true
                 }
@@ -464,10 +505,8 @@ class FloatingKeyboardManager(private val context: Context, private val latinIME
                             activeResizePointerId = event.getPointerId(newIndex)
                             initialResizeTouchX = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) event.getRawX(newIndex) else event.rawX
                             initialResizeTouchY = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) event.getRawY(newIndex) else event.rawY
-                            initialResizeTransX = frame.translationX
-                            initialResizeTransY = frame.translationY
-                            initialResizeWidth = frame.width.takeIf { it > 0 } ?: ResourceUtils.getFloatingKeyboardWidth()
-                            initialResizeHeight = frame.height
+                            initialResizeWidth = lastTargetWidth
+                            initialResizeHeight = lastTargetHeight
                         }
                     }
                     true
@@ -476,13 +515,21 @@ class FloatingKeyboardManager(private val context: Context, private val latinIME
                     isResizing = false
                     activeResizePointerId = MotionEvent.INVALID_POINTER_ID
                     paint.color = (textColor and 0x00FFFFFF) or defaultAlpha
-                    paint.strokeWidth = 3.5f * density
+                    paint.strokeWidth = 3.0f * density
                     resizeBg.setColor(defaultBgColor)
                     resizeBtn.invalidate()
 
-                    val finalWidth = frame.layoutParams.width
-                    val heightRatio = if (initialResizeHeight > 0) frame.height.toFloat() / initialResizeHeight else 1.0f
+                    frame.scaleX = 1.0f
+                    frame.scaleY = 1.0f
+
+                    val finalWidth = lastTargetWidth
+                    val heightRatio = if (initialResizeHeight > 0) lastTargetHeight.toFloat() / initialResizeHeight else 1.0f
                     val finalScale = (initialResizeScale * heightRatio).coerceIn(0.5f, 1.8f)
+
+                    val lp = frame.layoutParams
+                    lp.width = finalWidth
+                    lp.height = ViewGroup.LayoutParams.WRAP_CONTENT
+                    frame.layoutParams = lp
 
                     prefs.edit()
                         .putInt(PREF_X, frame.translationX.toInt())
@@ -500,11 +547,15 @@ class FloatingKeyboardManager(private val context: Context, private val latinIME
                 else -> false
             }
         }
-        headerBar.addView(resizeBtn)
+        bottomBar.addView(resizeBtn)
 
-        // Drag listener on the entire header bar
-        headerBar.setOnTouchListener { _, event ->
+        // Drag listener on the entire bottom bar
+        bottomBar.setOnTouchListener { _, event ->
             val frame = getKeyboardFrame() ?: return@setOnTouchListener false
+            val inputView = latinIME.mInputView
+            val availableWidth = inputView?.width?.takeIf { it > 0 } ?: dm.widthPixels
+            val availableHeight = inputView?.height?.takeIf { it > 0 } ?: dm.heightPixels
+
             when (event.actionMasked) {
                 MotionEvent.ACTION_DOWN -> {
                     activeDragPointerId = event.getPointerId(0)
@@ -526,9 +577,8 @@ class FloatingKeyboardManager(private val context: Context, private val latinIME
                         val dx = currentRawX - initialTouchX
                         val dy = currentRawY - initialTouchY
 
-                        val inputView = latinIME.mInputView
-                        val maxW = ((inputView?.width ?: dm.widthPixels) - frame.width).coerceAtLeast(0)
-                        val maxH = ((inputView?.height ?: dm.heightPixels) - frame.height).coerceAtLeast(0)
+                        val maxW = (availableWidth - frame.width).coerceAtLeast(0)
+                        val maxH = (availableHeight - frame.height).coerceAtLeast(0)
 
                         val newX = (initialTransX + dx).coerceIn(0f, maxW.toFloat())
                         val newY = (initialTransY + dy).coerceIn(0f, maxH.toFloat())
@@ -567,6 +617,6 @@ class FloatingKeyboardManager(private val context: Context, private val latinIME
             }
         }
 
-        return headerBar
+        return bottomBar
     }
 }

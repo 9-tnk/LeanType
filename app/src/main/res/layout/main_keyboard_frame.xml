@@ -12,11 +12,6 @@
     android:layout_gravity="bottom"
     android:orientation="vertical" >
 
-    <FrameLayout
-        android:id="@+id/floating_header_bar"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:visibility="gone" />
 
     <include
         android:id="@+id/strip_container"
@@ -85,5 +80,11 @@
             style="?attr/suggestionWordStyle" />
 
     </helium314.keyboard.latin.KeyboardWrapperView>
+
+    <FrameLayout
+        android:id="@+id/floating_bottom_bar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:visibility="gone" />
 
 </LinearLayout>

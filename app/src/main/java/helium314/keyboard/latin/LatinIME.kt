@@ -1564,6 +1564,11 @@ class LatinIME : InputMethodService(),
     @Suppress("DEPRECATION")
     private fun setNavigationBarColor() {
         val window = window?.window ?: return
+        if (!originalNavBarSaved) {
+            originalNavBarColor = window.navigationBarColor
+            originalNavBarFlags = window.decorView.systemUiVisibility
+            originalNavBarSaved = true
+        }
         if (floatingKeyboardManager?.isFloating == true) {
             window.navigationBarColor = Color.TRANSPARENT
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
@@ -1572,12 +1577,9 @@ class LatinIME : InputMethodService(),
             return
         }
         val settingsValues = settings.current
-        if (!settingsValues.mCustomNavBarColor) return
-        
-        if (!originalNavBarSaved) {
-            originalNavBarColor = window.navigationBarColor
-            originalNavBarFlags = window.decorView.systemUiVisibility
-            originalNavBarSaved = true
+        if (!settingsValues.mCustomNavBarColor) {
+            clearNavigationBarColor()
+            return
         }
         
         window.clearFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_NAVIGATION)
@@ -1598,8 +1600,7 @@ class LatinIME : InputMethodService(),
 
     @Suppress("DEPRECATION")
     private fun clearNavigationBarColor() {
-        val settingsValues = settings.current
-        if (!settingsValues.mCustomNavBarColor) return
+        if (!originalNavBarSaved) return
         val window = window?.window ?: return
         window.navigationBarColor = originalNavBarColor
         
