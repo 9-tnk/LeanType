@@ -197,12 +197,24 @@ class DeadKeyCombiner : Combiner {
     override fun processEvent(previousEvents: ArrayList<Event>?, event: Event): Event {
         if (TextUtils.isEmpty(mDeadSequence)) { // No dead char is currently being tracked: this is the most common case.
             if (event.isDead) { // The event was a dead key. Start tracking it.
-                mDeadSequence.appendCodePoint(event.codePoint)
-                return Event.createConsumedEvent(event)
+                if (Character.isValidCodePoint(event.codePoint)) {
+                    mDeadSequence.appendCodePoint(event.codePoint)
+                    return Event.createConsumedEvent(event)
+                }
+                return event
             }
             // Regular keystroke when not keeping track of a dead key. Simply said, there are
             // no dead keys at all in the current input, so this combiner has nothing to do and
             // simply returns the event as is. The majority of events will go through this path.
+            return event
+        }
+        if (event.codePoint <= 0 || !Character.isValidCodePoint(event.codePoint)) {
+            if (event.isFunctionalKeyEvent && KeyCode.DELETE == event.keyCode) { // Remove the last code point
+                val trimIndex = mDeadSequence.length - Character.charCount(
+                        mDeadSequence.codePointBefore(mDeadSequence.length))
+                mDeadSequence.setLength(trimIndex)
+                return Event.createConsumedEvent(event)
+            }
             return event
         }
         if (Character.isWhitespace(event.codePoint)
@@ -221,8 +233,11 @@ class DeadKeyCombiner : Combiner {
             return event
         }
         if (event.isDead) {
-            mDeadSequence.appendCodePoint(event.codePoint)
-            return Event.createConsumedEvent(event)
+            if (Character.isValidCodePoint(event.codePoint)) {
+                mDeadSequence.appendCodePoint(event.codePoint)
+                return Event.createConsumedEvent(event)
+            }
+            return event
         }
         // Combine normally.
         val sb = StringBuilder()

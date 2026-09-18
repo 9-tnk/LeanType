@@ -21,52 +21,53 @@ import helium314.keyboard.latin.common.Constants
 // TODO: get the layout for this hardware keyboard
 class HardwareKeyboardEventDecoder(val mDeviceId: Int) : HardwareEventDecoder {
     override fun decodeHardwareKey(keyEvent: KeyEvent): Event {
-        // KeyEvent#getUnicodeChar() does not exactly returns a unicode char, but rather a value
-        // that includes both the unicode char in the lower 21 bits and flags in the upper bits,
-        // hence the name "codePointAndFlags". {@see KeyEvent#getUnicodeChar()} for more info.
-        val codePointAndFlags = keyEvent.unicodeChar.takeIf { it != 0 }
-            ?: Event.NOT_A_CODE_POINT // KeyEvent has 0 if no codePoint, but that's actually valid so we convert it to -1
-
-        // The keyCode is the abstraction used by the KeyEvent to represent different keys that
-        // do not necessarily map to a unicode character. This represents a physical key, like
-        // the key for 'A' or Space, but also Backspace or Ctrl or Caps Lock.
         val keyCode = keyEvent.keyCode
         val metaState = keyEvent.metaState
         val isKeyRepeat = 0 != keyEvent.repeatCount
 
+        // KeyEvent#getUnicodeChar() does not exactly return a unicode char, but rather a value
+        // that includes both the unicode char in the lower 21 bits and flags in the upper bits,
+        // hence the name "codePointAndFlags". {@see KeyEvent#getUnicodeChar()} for more info.
+        // For numpad keys, if Android has NumLock off in metaState, resolve using META_NUM_LOCK_ON
+        // or the key's numeric label so numpad typing works consistently across all devices.
+        val rawUnicode = keyEvent.unicodeChar.takeIf { it != 0 }
+            ?: if (isNumpadKey(keyCode)) {
+                keyEvent.getUnicodeChar(metaState or KeyEvent.META_NUM_LOCK_ON).takeIf { it != 0 }
+                    ?: keyEvent.number.takeIf { it != 0.toChar() }?.code
+            } else null
+        val codePointAndFlags = rawUnicode ?: Event.NOT_A_CODE_POINT
+
         return if (KeyEvent.KEYCODE_DEL == keyCode) {
             Event.createHardwareKeypressEvent(Event.NOT_A_CODE_POINT, KeyCode.DELETE, metaState, null, isKeyRepeat)
-        } else if (
-            ((codePointAndFlags != Event.NOT_A_CODE_POINT && !keyEvent.isCtrlPressed && !keyEvent.isMetaPressed && (metaState and KeyEvent.META_ALT_LEFT_ON) == 0)
-                || keyEvent.isPrintingKey)
-                || KeyEvent.KEYCODE_SPACE == keyCode
-                || KeyEvent.KEYCODE_ENTER == keyCode
-        ) {
+        } else if (keyCode == KeyEvent.KEYCODE_ENTER || keyCode == KeyEvent.KEYCODE_NUMPAD_ENTER) {
+            // The Enter key. If the Shift key is not being pressed, this should send a
+            // CODE_ENTER to trigger the action if any, or a carriage return otherwise. If the
+            // Shift key is being pressed, this should send a CODE_SHIFT_ENTER and let
+            // Latin IME decide what to do with it.
+            if (keyEvent.isShiftPressed) {
+                Event.createHardwareKeypressEvent(Event.NOT_A_CODE_POINT,
+                        KeyCode.SHIFT_ENTER, 0, null, isKeyRepeat)
+            } else Event.createHardwareKeypressEvent(Constants.CODE_ENTER, keyCode, metaState, null, isKeyRepeat)
+        } else if (keyCode == KeyEvent.KEYCODE_SPACE) {
+            if (keyEvent.isCtrlPressed) {
+                Event.createHardwareKeypressEvent(Event.NOT_A_CODE_POINT, KeyCode.LANGUAGE_SWITCH, 0, null, isKeyRepeat)
+            } else {
+                val spaceMeta = metaState and (KeyEvent.META_SHIFT_ON or KeyEvent.META_SHIFT_LEFT_ON or KeyEvent.META_SHIFT_RIGHT_ON).inv()
+                Event.createHardwareKeypressEvent(Constants.CODE_SPACE, keyCode, spaceMeta, null, isKeyRepeat)
+            }
+        } else if (codePointAndFlags != Event.NOT_A_CODE_POINT) {
             if (0 != codePointAndFlags and KeyCharacterMap.COMBINING_ACCENT) { // A dead key.
-                Event.createDeadEvent(codePointAndFlags and KeyCharacterMap.COMBINING_ACCENT_MASK, keyCode, metaState, null)
-            } else if (KeyEvent.KEYCODE_ENTER == keyCode) {
-                // The Enter key. If the Shift key is not being pressed, this should send a
-                // CODE_ENTER to trigger the action if any, or a carriage return otherwise. If the
-                // Shift key is being pressed, this should send a CODE_SHIFT_ENTER and let
-                // Latin IME decide what to do with it.
-                if (keyEvent.isShiftPressed) {
-                    Event.createHardwareKeypressEvent(Event.NOT_A_CODE_POINT, // todo: maybe remove, see also related comment in input logic
-                            KeyCode.SHIFT_ENTER, 0, null, isKeyRepeat)
-                } else Event.createHardwareKeypressEvent(Constants.CODE_ENTER, keyCode, metaState, null, isKeyRepeat)
-            } else if (KeyEvent.KEYCODE_SPACE == keyCode) {
-                if (keyEvent.isCtrlPressed) {
-                    Event.createHardwareKeypressEvent(Event.NOT_A_CODE_POINT, KeyCode.LANGUAGE_SWITCH, 0, null, isKeyRepeat)
+                val deadCodePoint = codePointAndFlags and KeyCharacterMap.COMBINING_ACCENT_MASK
+                if (Character.isValidCodePoint(deadCodePoint)) {
+                    Event.createDeadEvent(deadCodePoint, keyCode, metaState, null)
                 } else {
-                    val spaceMeta = metaState and (KeyEvent.META_SHIFT_ON or KeyEvent.META_SHIFT_LEFT_ON or KeyEvent.META_SHIFT_RIGHT_ON).inv()
-                    Event.createHardwareKeypressEvent(Constants.CODE_SPACE, keyCode, spaceMeta, null, isKeyRepeat)
+                    Event.notHandledEvent
                 }
-            } else Event.createHardwareKeypressEvent(codePointAndFlags, keyCode, metaState, null, isKeyRepeat)
-            // If not Enter, then this is just a regular keypress event for a normal character
-            // that can be committed right away, taking into account the current state.
+            } else {
+                Event.createHardwareKeypressEvent(codePointAndFlags, keyCode, metaState, null, isKeyRepeat)
+            }
         } else if (isDpadDirection(keyCode)) {
             Event.createHardwareKeypressEvent(codePointAndFlags, keyCode, metaState, null, isKeyRepeat)
-//        } else if (KeyEvent.isModifierKey(keyCode)) {
-//            todo: we could synchronize meta state across HW and SW keyboard, but that's more work for little benefit (especially with shift & caps lock)
         } else {
             Event.notHandledEvent
         }
@@ -77,6 +78,29 @@ class HardwareKeyboardEventDecoder(val mDeviceId: Int) : HardwareEventDecoder {
             KeyEvent.KEYCODE_DPAD_UP, KeyEvent.KEYCODE_DPAD_DOWN, KeyEvent.KEYCODE_DPAD_LEFT, KeyEvent.KEYCODE_DPAD_RIGHT,
             KeyEvent.KEYCODE_DPAD_DOWN_LEFT, KeyEvent.KEYCODE_DPAD_DOWN_RIGHT, KeyEvent.KEYCODE_DPAD_UP_RIGHT,
             KeyEvent.KEYCODE_DPAD_UP_LEFT -> true
+            else -> false
+        }
+
+        private fun isNumpadKey(keyCode: Int) = when (keyCode) {
+            KeyEvent.KEYCODE_NUMPAD_0,
+            KeyEvent.KEYCODE_NUMPAD_1,
+            KeyEvent.KEYCODE_NUMPAD_2,
+            KeyEvent.KEYCODE_NUMPAD_3,
+            KeyEvent.KEYCODE_NUMPAD_4,
+            KeyEvent.KEYCODE_NUMPAD_5,
+            KeyEvent.KEYCODE_NUMPAD_6,
+            KeyEvent.KEYCODE_NUMPAD_7,
+            KeyEvent.KEYCODE_NUMPAD_8,
+            KeyEvent.KEYCODE_NUMPAD_9,
+            KeyEvent.KEYCODE_NUMPAD_DOT,
+            KeyEvent.KEYCODE_NUMPAD_COMMA,
+            KeyEvent.KEYCODE_NUMPAD_DIVIDE,
+            KeyEvent.KEYCODE_NUMPAD_MULTIPLY,
+            KeyEvent.KEYCODE_NUMPAD_SUBTRACT,
+            KeyEvent.KEYCODE_NUMPAD_ADD,
+            KeyEvent.KEYCODE_NUMPAD_EQUALS,
+            KeyEvent.KEYCODE_NUMPAD_LEFT_PAREN,
+            KeyEvent.KEYCODE_NUMPAD_RIGHT_PAREN -> true
             else -> false
         }
     }
