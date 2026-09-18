@@ -174,7 +174,8 @@ namespace latinime {
     if (!proximityInfo->hasSweetSpotData(keyIndex)) {
         return ProximityInfoParams::NOT_A_DISTANCE_FLOAT;
     }
-    if (NOT_A_COORDINATE == (*sampledInputXs)[inputIndex]) {
+    const int sampledX = (*sampledInputXs)[inputIndex];
+    if (NOT_A_COORDINATE == sampledX || sampledX < 0) {
         return ProximityInfoParams::NOT_A_DISTANCE_FLOAT;
     }
     const float squaredDistance = calculateSquaredDistanceFromSweetSpotCenter(proximityInfo,

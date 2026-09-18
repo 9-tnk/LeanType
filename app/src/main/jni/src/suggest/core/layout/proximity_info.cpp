@@ -200,7 +200,7 @@ int ProximityInfo::getKeyCenterXOfKeyIdG(
     int centerX = (hasTouchPositionCorrectionData()) ? static_cast<int>(mSweetSpotCenterXs[keyId])
             : mCenterXsG[keyId];
     const int keyWidth = mKeyWidths[keyId];
-    if (referencePointX != NOT_A_COORDINATE
+    if (referencePointX != NOT_A_COORDINATE && referencePointX >= 0
             && keyWidth > getMostCommonKeyWidth()) {
         // For keys wider than most common keys, we use a line segment instead of the center point;
         // thus, centerX is adjusted depending on referencePointX.
@@ -232,7 +232,7 @@ int ProximityInfo::getKeyCenterYOfKeyIdG(
     } else {
         centerY = static_cast<int>(mSweetSpotCenterYs[keyId]);
     }
-    if (referencePointY != NOT_A_COORDINATE &&
+    if (referencePointY != NOT_A_COORDINATE && referencePointY >= 0 &&
             centerY + mKeyHeights[keyId] > KEYBOARD_HEIGHT && centerY < referencePointY) {
         // When the distance between center point and bottom edge of the keyboard is shorter than
         // the key height, we assume the key is located at the bottom row of the keyboard.

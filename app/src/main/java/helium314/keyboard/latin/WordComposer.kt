@@ -11,6 +11,7 @@ import helium314.keyboard.event.Event
 import helium314.keyboard.keyboard.internal.keyboard_parser.floris.KeyCode
 import helium314.keyboard.latin.SuggestedWords.SuggestedWordInfo
 import helium314.keyboard.latin.common.ComposedData
+import helium314.keyboard.latin.common.Constants
 import helium314.keyboard.latin.common.CoordinateUtils
 import helium314.keyboard.latin.common.InputPointers
 import helium314.keyboard.latin.common.StringUtils
@@ -185,8 +186,9 @@ class WordComposer {
                 // In the batch input mode, mInputPointers holds batch input points and shouldn't
                 // be overridden by the "typed key" coordinates.
                 if (!mIsBatchMode) {
-                    // TODO: Set correct pointer id and time.
-                    mInputPointers.addPointerAt(newIndex, keyX, keyY, 0, 0)
+                    val coordX = if (Constants.isValidCoordinate(keyX)) keyX else Constants.NOT_A_COORDINATE
+                    val coordY = if (Constants.isValidCoordinate(keyY)) keyY else Constants.NOT_A_COORDINATE
+                    mInputPointers.addPointerAt(newIndex, coordX, coordY, 0, 0)
                 }
             }
 
@@ -499,7 +501,9 @@ class WordComposer {
     fun getCombiningSpec(): String? = mCombiningSpec
 
     fun addInputPointerForTest(index: Int, keyX: Int, keyY: Int) {
-        mInputPointers.addPointerAt(index, keyX, keyY, 0, 0)
+        val coordX = if (Constants.isValidCoordinate(keyX)) keyX else Constants.NOT_A_COORDINATE
+        val coordY = if (Constants.isValidCoordinate(keyY)) keyY else Constants.NOT_A_COORDINATE
+        mInputPointers.addPointerAt(index, coordX, coordY, 0, 0)
     }
 
     fun setTypedWordCacheForTests(typedWordCacheForTests: String) {

@@ -149,7 +149,7 @@ class ProximityInfoUtils {
         const int mostCommonKeyWidthSquare = mostCommonKeyWidth * mostCommonKeyWidth;
         int insertPos = 0;
         proximities[insertPos++] = primaryKey;
-        if (x == NOT_A_COORDINATE || y == NOT_A_COORDINATE) {
+        if (x == NOT_A_COORDINATE || y == NOT_A_COORDINATE || x < 0 || y < 0) {
             for (int i = insertPos; i < MAX_PROXIMITY_CHARS_SIZE; ++i) {
                 proximities[i] = NOT_A_CODE_POINT;
             }

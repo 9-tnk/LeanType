@@ -2021,6 +2021,7 @@ class InputLogic(
         resetComposingState(true /* alsoResetLastComposedWord */)
         if (clearSuggestionStrip) {
             mSuggestionStripViewAccessor.setNeutralSuggestionStrip()
+            mSuggestedWords = SuggestedWords.getEmptyInstance()
         }
         mConnection.resetCachesUponCursorMoveAndReturnSuccess(newSelStart, newSelEnd, shouldFinishComposition)
     }
@@ -2738,7 +2739,14 @@ class InputLogic(
             typedWordInfo: SuggestedWordInfo,
             previousSuggestedWords: SuggestedWords
         ): SuggestedWords {
-            val oldSuggestedWords = if (previousSuggestedWords.isPunctuationSuggestions) {
+            val prevWord = previousSuggestedWords.typedWordInfo?.mWord
+            val oldSuggestedWords = if (previousSuggestedWords.isPunctuationSuggestions
+                || previousSuggestedWords.isPrediction
+                || previousSuggestedWords.isEmpty
+                || prevWord.isNullOrEmpty()
+                || (!typedWordInfo.mWord.startsWith(prevWord, ignoreCase = true)
+                    && !prevWord.startsWith(typedWordInfo.mWord, ignoreCase = true))
+            ) {
                 SuggestedWords.getEmptyInstance()
             } else {
                 previousSuggestedWords
