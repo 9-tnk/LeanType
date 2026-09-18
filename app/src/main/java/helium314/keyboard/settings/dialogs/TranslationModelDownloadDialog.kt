@@ -386,6 +386,17 @@ private fun downloadModelWithFallback(
         }
     }
 
+    val ifaceVersion = try {
+        provider.getInterfaceVersion()
+    } catch (_: Throwable) {
+        1
+    }
+    if (ifaceVersion < 2) {
+        Log.w("TranslationDownload", "Translation plugin interface version ($ifaceVersion) does not support in-app download. Falling back to browser.")
+        tryFallbackToBrowser()
+        return
+    }
+
     fun tryLegacyDownload(): Boolean {
         return try {
             val legacyMethod = provider.javaClass.methods.firstOrNull { method ->
@@ -444,7 +455,7 @@ private fun downloadModelWithFallback(
                     downloadingMap[item.code] = false
                     downloadedMap[item.code] = true
                     Toast.makeText(context, "Downloaded ${item.displayName}", Toast.LENGTH_SHORT).show()
-                } else if (errorMessage == "Unsupported") {
+                } else if (errorMessage == "Unsupported" || errorMessage?.contains("abstract method", ignoreCase = true) == true) {
                     if (!tryLegacyDownload()) {
                         tryFallbackToBrowser()
                     }

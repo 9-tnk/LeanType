@@ -42,6 +42,13 @@ object VoiceDownloadDispatcher {
         onSuccess: () -> Unit,
         onError: (String) -> Unit
     ) = withContext(Dispatchers.IO) {
+        if (!pluginManager.isPluginInstalled()) {
+            withContext(Dispatchers.Main) {
+                onError("Voice plugin is not installed. Please install the Voice Plugin first.")
+            }
+            return@withContext
+        }
+
         if (!hasInternetPermission(context)) {
             withContext(Dispatchers.Main) {
                 fallbackToBrowser(context, model)
@@ -133,7 +140,12 @@ object VoiceDownloadDispatcher {
                     Toast.makeText(context, "${model.displayName} model installed successfully!", Toast.LENGTH_SHORT).show()
                     onSuccess()
                 } else {
-                    onError("Failed to import model into voice plugin")
+                    val msg = if (!pluginManager.isPluginInstalled()) {
+                        "Voice plugin is not installed. Please install the Voice Plugin first."
+                    } else {
+                        "Failed to import model into voice plugin. Please ensure the Voice Plugin is updated."
+                    }
+                    onError(msg)
                 }
             }
         } catch (e: Exception) {
