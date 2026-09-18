@@ -138,7 +138,7 @@ fun WelcomeWizard(
     ) {
         // Progress indicator
         Row(Modifier.fillMaxWidth().padding(bottom = 24.dp), horizontalArrangement = Arrangement.SpaceEvenly) {
-            for (i in 1..9) {
+            for (i in 1..8) {
                 Box(
                     modifier = Modifier
                         .height(6.dp)
@@ -542,35 +542,6 @@ fun WelcomeWizard(
                 } else if (step == 6) {
                     Step(
                         6,
-                        "Floating Keyboard",
-                        "Enable floating keyboard by granting the 'Display over other apps' permission.",
-                        "Next",
-                        painterResource(R.drawable.sym_keyboard_language_switch),
-                        { step++ },
-                        { step-- }
-                    ) {
-                        val trigger = refreshTrigger
-                        val canDrawOverlays = AndroidSettings.canDrawOverlays(ctx)
-                        val overlayLauncher = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { refreshTrigger++ }
-                        Column(Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.shapes.medium).clickable {
-                            if (!canDrawOverlays) {
-                                val intent = Intent(AndroidSettings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:${ctx.packageName}"))
-                                overlayLauncher.launch(intent)
-                            }
-                        }.padding(16.dp)) {
-                            if (!canDrawOverlays) {
-                                Text("Permission required. Tap here to grant.", color = MaterialTheme.colorScheme.primary)
-                            } else {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(painterResource(R.drawable.ic_setup_check), null, Modifier.padding(end = 8.dp), tint = MaterialTheme.colorScheme.primary)
-                                    Text("Permission granted.", color = MaterialTheme.colorScheme.onSurface)
-                                }
-                            }
-                        }
-                    }
-                } else if (step == 7) {
-                    Step(
-                        7,
                         "Screenshot Suggestions",
                         "Suggest recently taken screenshots in the suggestion strip. Note: This permission also allows saving screenshots to the clipboard.",
                         "Next",
@@ -606,9 +577,9 @@ fun WelcomeWizard(
                             }.Preference()
                         }
                     }
-                } else if (step == 8) {
+                } else if (step == 7) {
                     Step(
-                        8,
+                        7,
                         "Keyboard Height",
                         "Adjust the height of the keyboard. Recommended: 77% for more square keys, 100% for taller keys.",
                         "Next",
@@ -635,9 +606,9 @@ fun WelcomeWizard(
                             }
                         }
                     }
-                } else { // step 9
+                } else { // step 8
                     Step(
-                        9,
+                        8,
                         stringResource(R.string.setup_step3_title),
                         stringResource(R.string.setup_step3_instruction, appName),
                         stringResource(R.string.setup_finish_action),
