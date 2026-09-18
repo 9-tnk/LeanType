@@ -94,7 +94,6 @@ fun PreferencesScreen(
         Settings.PREF_SAVE_SUBTYPE_PER_APP,
 
         R.string.settings_category_window_modes,
-        Settings.PREF_PERSIST_FLOATING_KEYBOARD,
         Settings.PREF_REMEMBER_FLOATING_KEYBOARD,
         Settings.PREF_PERSIST_TEXT_EDIT_MODE,
 
@@ -212,9 +211,6 @@ fun createPreferencesSettings(context: Context) = listOf(
         R.string.remove_redundant_popups, R.string.remove_redundant_popups_summary)
     {
         SwitchPreference(it, Defaults.PREF_REMOVE_REDUNDANT_POPUPS) { KeyboardSwitcher.getInstance().setThemeNeedsReload() }
-    },
-    Setting(context, Settings.PREF_PERSIST_FLOATING_KEYBOARD, R.string.persist_floating_keyboard_title, R.string.persist_floating_keyboard_summary) {
-        SwitchPreference(it, Defaults.PREF_PERSIST_FLOATING_KEYBOARD)
     },
     Setting(context, Settings.PREF_REMEMBER_FLOATING_KEYBOARD, R.string.remember_floating_keyboard_title, R.string.remember_floating_keyboard_summary) {
         SwitchPreference(it, Defaults.PREF_REMEMBER_FLOATING_KEYBOARD)

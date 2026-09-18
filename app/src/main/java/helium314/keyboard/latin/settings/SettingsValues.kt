@@ -195,6 +195,7 @@ open class SettingsValues(
     val mAutoCorrectEnabled: Boolean
     val mAutoCorrectionThreshold: Float
     val mAutoCorrectShortcuts: Boolean
+    @Deprecated("Retired with IME-native floating keyboard migration")
     val mPersistFloatingKeyboard: Boolean
     val mRememberFloatingKeyboard: Boolean
     val mPersistTextEditMode: Boolean
@@ -288,7 +289,8 @@ open class SettingsValues(
         mAutoCorrectionThreshold = if (mAutoCorrectEnabled) prefs.getFloat(Settings.PREF_AUTO_CORRECT_THRESHOLD, Defaults.PREF_AUTO_CORRECT_THRESHOLD) else Float.MAX_VALUE
         mScoreLimitForAutocorrect = if (mAutoCorrectionThreshold < 0) 600000 else (if (mAutoCorrectionThreshold < 0.07f) 800000 else 950000)
         mAutoCorrectShortcuts = prefs.getBoolean(Settings.PREF_AUTOCORRECT_SHORTCUTS, Defaults.PREF_AUTOCORRECT_SHORTCUTS)
-        mPersistFloatingKeyboard = prefs.getBoolean(Settings.PREF_PERSIST_FLOATING_KEYBOARD, Defaults.PREF_PERSIST_FLOATING_KEYBOARD)
+        @Suppress("DEPRECATION")
+        mPersistFloatingKeyboard = false
         mRememberFloatingKeyboard = prefs.getBoolean(Settings.PREF_REMEMBER_FLOATING_KEYBOARD, Defaults.PREF_REMEMBER_FLOATING_KEYBOARD)
         mPersistTextEditMode = prefs.getBoolean(Settings.PREF_PERSIST_TEXT_EDIT_MODE, Defaults.PREF_PERSIST_TEXT_EDIT_MODE)
         mBackspaceRevertsAutocorrect = prefs.getBoolean(Settings.PREF_BACKSPACE_REVERTS_AUTOCORRECT, Defaults.PREF_BACKSPACE_REVERTS_AUTOCORRECT)
