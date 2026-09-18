@@ -291,6 +291,9 @@ open class SettingsValues(
         mAutoCorrectShortcuts = prefs.getBoolean(Settings.PREF_AUTOCORRECT_SHORTCUTS, Defaults.PREF_AUTOCORRECT_SHORTCUTS)
         @Suppress("DEPRECATION")
         mPersistFloatingKeyboard = false
+        if (prefs.contains(Settings.PREF_PERSIST_FLOATING_KEYBOARD)) {
+            prefs.edit().remove(Settings.PREF_PERSIST_FLOATING_KEYBOARD).apply()
+        }
         mRememberFloatingKeyboard = prefs.getBoolean(Settings.PREF_REMEMBER_FLOATING_KEYBOARD, Defaults.PREF_REMEMBER_FLOATING_KEYBOARD)
         mPersistTextEditMode = prefs.getBoolean(Settings.PREF_PERSIST_TEXT_EDIT_MODE, Defaults.PREF_PERSIST_TEXT_EDIT_MODE)
         mBackspaceRevertsAutocorrect = prefs.getBoolean(Settings.PREF_BACKSPACE_REVERTS_AUTOCORRECT, Defaults.PREF_BACKSPACE_REVERTS_AUTOCORRECT)
