@@ -99,6 +99,10 @@ object DictionaryFactory {
         locale: Locale
     ): Dictionary? {
         if (!file.isFile) return null
+        if (file.length() < 1024) {
+            killDictionary(file)
+            return null
+        }
         val header = DictionaryInfoUtils.getDictionaryFileHeaderOrNull(file)
         if (header == null) {
             killDictionary(file)

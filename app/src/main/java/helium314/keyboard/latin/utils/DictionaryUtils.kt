@@ -257,9 +257,13 @@ private fun hasAnythingOtherThanExtractedMainDictionary(context: Context, dir: F
 fun downloadDictionary(context: Context, locale: Locale, type: String, linkUrl: String, onComplete: (Boolean) -> Unit) {
     val cacheDir = DictionaryInfoUtils.getCacheDirectoryForLocale(locale, context) ?: return onComplete(false)
     val targetFile = File(cacheDir, "${type}.dict")
+    val tempFile = File(cacheDir, "${type}.dict.download")
     CoroutineScope(Dispatchers.IO + kotlinx.coroutines.SupervisorJob()).launch {
         var success = false
         try {
+            if (tempFile.exists()) {
+                tempFile.delete()
+            }
             var url = java.net.URL(linkUrl)
             var connection = url.openConnection() as java.net.HttpURLConnection
             connection.setRequestProperty("User-Agent", "HeliboardL/3.8.9 (Android)")
@@ -286,22 +290,43 @@ fun downloadDictionary(context: Context, locale: Locale, type: String, linkUrl: 
             }
             
             if (status == java.net.HttpURLConnection.HTTP_OK) {
+                val expectedLength = conn.contentLengthLong
                 val lastModified = conn.lastModified
                 conn.inputStream.use { input ->
-                    targetFile.outputStream().use { output ->
+                    tempFile.outputStream().use { output ->
                         input.copyTo(output)
                     }
                 }
-                if (lastModified > 0L) {
-                    targetFile.setLastModified(lastModified)
+                val downloadedLength = tempFile.length()
+                if (expectedLength > 0 && downloadedLength != expectedLength) {
+                    Log.e("DictionaryUtils", "Downloaded size ($downloadedLength) does not match Content-Length ($expectedLength)")
+                    tempFile.delete()
+                } else if (downloadedLength < 1024) {
+                    Log.e("DictionaryUtils", "Downloaded dictionary file is suspiciously small ($downloadedLength bytes)")
+                    tempFile.delete()
+                } else {
+                    if (lastModified > 0L) {
+                        tempFile.setLastModified(lastModified)
+                    }
+                    if (targetFile.exists()) {
+                        targetFile.delete()
+                    }
+                    if (tempFile.renameTo(targetFile)) {
+                        success = true
+                    } else {
+                        Log.e("DictionaryUtils", "Failed to atomically rename temp dictionary to ${targetFile.name}")
+                        tempFile.delete()
+                    }
                 }
-                success = true
             } else {
                 Log.e("DictionaryUtils", "HTTP error downloading dictionary: $status")
             }
             conn.disconnect()
         } catch (e: Exception) {
             Log.e("DictionaryUtils", "Failed to download dictionary", e)
+            if (tempFile.exists()) {
+                tempFile.delete()
+            }
         }
         withContext(Dispatchers.Main) {
             onComplete(success)
