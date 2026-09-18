@@ -43,6 +43,8 @@ import helium314.keyboard.latin.translation.ITranslationProvider
 import helium314.keyboard.latin.translation.TranslationModelDownloadListener
 import helium314.keyboard.latin.translation.TranslationModelImporter
 import helium314.keyboard.latin.translation.TranslationModelUrls
+import android.util.Log
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -330,30 +332,15 @@ fun TranslationModelDownloadDialog(
                                                 } else {
                                                     Toast.makeText(context, "Download URL not available", Toast.LENGTH_SHORT).show()
                                                 }
-                                            } else {
-                                                downloadingMap[item.code] = true
-                                                try {
-                                                    provider.downloadModel(item.code, object : TranslationModelDownloadListener {
-                                                        override fun onComplete(success: Boolean, errorMessage: String?) {
-                                                            scope.launch(Dispatchers.Main) {
-                                                                downloadingMap[item.code] = false
-                                                                if (success) {
-                                                                    downloadedMap[item.code] = true
-                                                                    Toast.makeText(context, "Downloaded ${item.displayName}", Toast.LENGTH_SHORT).show()
-                                                                } else {
-                                                                    val err = if (!errorMessage.isNullOrBlank() && errorMessage != "Unsupported") ": $errorMessage" else ""
-                                                                    Toast.makeText(context, "Download failed$err", Toast.LENGTH_SHORT).show()
-                                                                }
-                                                            }
-                                                        }
-                                                        override fun onComplete(success: Boolean) {
-                                                            onComplete(success, null)
-                                                        }
-                                                    })
-                                                } catch (e: Throwable) {
-                                                    downloadingMap[item.code] = false
-                                                    Toast.makeText(context, "Download failed: ${e.message}", Toast.LENGTH_SHORT).show()
-                                                }
+                                             } else {
+                                                downloadModelWithFallback(
+                                                    provider = provider,
+                                                    item = item,
+                                                    context = context,
+                                                    scope = scope,
+                                                    downloadingMap = downloadingMap,
+                                                    downloadedMap = downloadedMap
+                                                )
                                             }
                                         },
                                         contentPadding = PaddingValues(horizontal = 10.dp, vertical = 0.dp),
@@ -369,4 +356,125 @@ fun TranslationModelDownloadDialog(
             }
         }
     )
+}
+
+private fun downloadModelWithFallback(
+    provider: ITranslationProvider,
+    item: TranslationLanguageItem,
+    context: android.content.Context,
+    scope: CoroutineScope,
+    downloadingMap: MutableMap<String, Boolean>,
+    downloadedMap: MutableMap<String, Boolean>
+) {
+    downloadingMap[item.code] = true
+
+    fun tryFallbackToBrowser() {
+        downloadingMap[item.code] = false
+        val url = TranslationModelUrls.getDownloadUrl(item.code)
+        if (url != null) {
+            try {
+                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url)).apply {
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                }
+                context.startActivity(intent)
+                Toast.makeText(context, "Plugin incompatible with in-app download. Downloading in browser… import .zip once finished.", Toast.LENGTH_LONG).show()
+            } catch (e: Exception) {
+                Toast.makeText(context, "Failed to launch browser: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
+        } else {
+            Toast.makeText(context, "Download not supported by this plugin version. Please update the plugin.", Toast.LENGTH_LONG).show()
+        }
+    }
+
+    fun tryLegacyDownload(): Boolean {
+        return try {
+            val legacyMethod = provider.javaClass.methods.firstOrNull { method ->
+                method.name == "downloadModel" &&
+                    method.parameterTypes.size == 2 &&
+                    method.parameterTypes[0] == String::class.java &&
+                    method.parameterTypes[1] != TranslationModelDownloadListener::class.java
+            } ?: return false
+
+            val paramType = legacyMethod.parameterTypes[1]
+            val callback = if (paramType.isInterface) {
+                java.lang.reflect.Proxy.newProxyInstance(
+                    provider.javaClass.classLoader ?: paramType.classLoader,
+                    arrayOf(paramType)
+                ) { _, method, args ->
+                    if (method.name == "invoke" || method.name == "onComplete") {
+                        val success = (args?.firstOrNull() as? Boolean) ?: false
+                        scope.launch(Dispatchers.Main) {
+                            downloadingMap[item.code] = false
+                            if (success) {
+                                downloadedMap[item.code] = true
+                                Toast.makeText(context, "Downloaded ${item.displayName}", Toast.LENGTH_SHORT).show()
+                            } else {
+                                Toast.makeText(context, "Download failed", Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                    }
+                    null
+                }
+            } else {
+                val f: (Boolean) -> Unit = { success ->
+                    scope.launch(Dispatchers.Main) {
+                        downloadingMap[item.code] = false
+                        if (success) {
+                            downloadedMap[item.code] = true
+                            Toast.makeText(context, "Downloaded ${item.displayName}", Toast.LENGTH_SHORT).show()
+                        } else {
+                            Toast.makeText(context, "Download failed", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                }
+                f
+            }
+            legacyMethod.invoke(provider, item.code, callback)
+            true
+        } catch (t: Throwable) {
+            Log.w("TranslationDownload", "Legacy reflection download failed", t)
+            false
+        }
+    }
+
+    val modernListener = object : TranslationModelDownloadListener {
+        override fun onComplete(success: Boolean, errorMessage: String?) {
+            scope.launch(Dispatchers.Main) {
+                if (success) {
+                    downloadingMap[item.code] = false
+                    downloadedMap[item.code] = true
+                    Toast.makeText(context, "Downloaded ${item.displayName}", Toast.LENGTH_SHORT).show()
+                } else if (errorMessage == "Unsupported") {
+                    if (!tryLegacyDownload()) {
+                        tryFallbackToBrowser()
+                    }
+                } else {
+                    downloadingMap[item.code] = false
+                    val err = if (!errorMessage.isNullOrBlank()) ": $errorMessage" else ""
+                    Toast.makeText(context, "Download failed$err", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+
+        override fun onComplete(success: Boolean) {
+            onComplete(success, null)
+        }
+    }
+
+    var invokedModern = false
+    try {
+        provider.downloadModel(item.code, modernListener)
+        invokedModern = true
+    } catch (_: AbstractMethodError) {
+    } catch (_: NoSuchMethodError) {
+    } catch (_: IncompatibleClassChangeError) {
+    } catch (e: Throwable) {
+        Log.w("TranslationDownload", "Modern downloadModel error", e)
+    }
+
+    if (!invokedModern) {
+        if (!tryLegacyDownload()) {
+            tryFallbackToBrowser()
+        }
+    }
 }

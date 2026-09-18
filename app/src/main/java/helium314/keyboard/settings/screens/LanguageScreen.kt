@@ -131,9 +131,7 @@ fun LanguagesListScreen(
     val ctx = LocalContext.current
     val sortedSubtypes by remember { mutableStateOf(getSortedSubtypes(ctx)) }
     val b = (LocalContext.current.getActivity() as? SettingsActivity)?.prefChanged?.collectAsState()
-    if ((b?.value ?: 0) < 0)
-        Log.v("irrelevant", "stupid way to trigger recomposition on preference change")
-    val enabledSubtypes = SubtypeSettings.getEnabledSubtypes()
+    val enabledSubtypes = remember(b?.value) { SubtypeSettings.getEnabledSubtypes().toSet() }
     SearchScreen(
         onClickBack = onClickBack,
         title = {
@@ -190,6 +188,7 @@ private fun SubtypeRow(subtype: InputMethodSubtype, isEnabled: Boolean) {
                     showNoDictDialog = true
                 if (it) SubtypeSettings.addEnabledSubtype(ctx.prefs(), subtype)
                 else SubtypeSettings.removeEnabledSubtype(ctx, subtype)
+                (ctx.getActivity() as? SettingsActivity)?.prefChanged()
             }
         )
         if (showNoDictDialog)
