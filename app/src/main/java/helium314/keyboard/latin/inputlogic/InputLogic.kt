@@ -208,7 +208,9 @@ class InputLogic(
             }
 
             mRecapitalizeStatus.enable()
-            mLatinIME.mHandler.postResumeSuggestions(true)
+            if (!mLatinIME.isCursorGestureActive) {
+                mLatinIME.mHandler.postResumeSuggestions(true)
+            }
             mRecapitalizeStatus.stop()
             mWordBeingCorrectedByCursor = null
             return true
@@ -735,7 +737,9 @@ class InputLogic(
             }
             KeyCode.WORD_LEFT -> {
                 if (mWordComposer.isComposingWord()) {
-                    commitTyped(inputTransaction.settingsValues, LastComposedWord.NOT_A_SEPARATOR)
+                    mConnection.finishComposingText()
+                    StatsUtils.onWordCommitUserTyped(mWordComposer.getTypedWord(), mWordComposer.isBatchMode())
+                    resetComposingState(true)
                 }
                 sendDownUpKeyEventWithMetaState(
                     if (ScriptUtils.isScriptRtl(currentKeyboardScript)) KeyEvent.KEYCODE_DPAD_RIGHT else KeyEvent.KEYCODE_DPAD_LEFT,
@@ -744,7 +748,9 @@ class InputLogic(
             }
             KeyCode.WORD_RIGHT -> {
                 if (mWordComposer.isComposingWord()) {
-                    commitTyped(inputTransaction.settingsValues, LastComposedWord.NOT_A_SEPARATOR)
+                    mConnection.finishComposingText()
+                    StatsUtils.onWordCommitUserTyped(mWordComposer.getTypedWord(), mWordComposer.isBatchMode())
+                    resetComposingState(true)
                 }
                 sendDownUpKeyEventWithMetaState(
                     if (ScriptUtils.isScriptRtl(currentKeyboardScript)) KeyEvent.KEYCODE_DPAD_LEFT else KeyEvent.KEYCODE_DPAD_RIGHT,
@@ -753,7 +759,9 @@ class InputLogic(
             }
             KeyCode.MOVE_START_OF_PAGE -> {
                 if (mWordComposer.isComposingWord()) {
-                    commitTyped(inputTransaction.settingsValues, LastComposedWord.NOT_A_SEPARATOR)
+                    mConnection.finishComposingText()
+                    StatsUtils.onWordCommitUserTyped(mWordComposer.getTypedWord(), mWordComposer.isBatchMode())
+                    resetComposingState(true)
                 }
                 val selectionEnd1 = mConnection.expectedSelectionEnd
                 val selectionStart1 = mConnection.expectedSelectionStart
@@ -768,7 +776,9 @@ class InputLogic(
             }
             KeyCode.MOVE_END_OF_PAGE -> {
                 if (mWordComposer.isComposingWord()) {
-                    commitTyped(inputTransaction.settingsValues, LastComposedWord.NOT_A_SEPARATOR)
+                    mConnection.finishComposingText()
+                    StatsUtils.onWordCommitUserTyped(mWordComposer.getTypedWord(), mWordComposer.isBatchMode())
+                    resetComposingState(true)
                 }
                 val selectionStart2 = mConnection.expectedSelectionStart
                 val selectionEnd2 = mConnection.expectedSelectionEnd
@@ -837,7 +847,9 @@ class InputLogic(
                 }
                 if (keyEventCode != KeyEvent.KEYCODE_UNKNOWN) {
                     if (mWordComposer.isComposingWord() && isNavigationOrDpadKey(keyEventCode)) {
-                        commitTyped(inputTransaction.settingsValues, LastComposedWord.NOT_A_SEPARATOR)
+                        mConnection.finishComposingText()
+                        StatsUtils.onWordCommitUserTyped(mWordComposer.getTypedWord(), mWordComposer.isBatchMode())
+                        resetComposingState(true)
                     }
                     sendDownUpKeyEventWithMetaState(keyEventCode, event.metaState)
                     return

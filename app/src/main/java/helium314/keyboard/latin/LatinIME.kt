@@ -175,6 +175,7 @@ class LatinIME : InputMethodService(),
     private val otpSuggestionManager = OtpSuggestionManager(this)
     private val mathSuggestionManager = MathSuggestionManager(this)
     var floatingKeyboardManager: FloatingKeyboardManager? = null
+    @Volatile var isCursorGestureActive = false
 
     private var voicePluginManager: VoicePluginManager? = null
     private var voiceInputManager: VoiceInputManager? = null
@@ -1611,6 +1612,7 @@ class LatinIME : InputMethodService(),
 
         fun postResumeSuggestions(shouldDelay: Boolean) {
             val latinIme = ownerInstance ?: return
+            if (latinIme.isCursorGestureActive) return
             if (latinIme.keyboardSwitcher.isHandwritingShowing) return
             if (!latinIme.settings.current.needsToLookupSuggestions()) return
             removeMessages(MSG_RESUME_SUGGESTIONS)

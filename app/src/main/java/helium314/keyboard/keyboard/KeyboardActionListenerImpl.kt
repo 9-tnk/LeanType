@@ -105,7 +105,7 @@ class KeyboardActionListenerImpl(private val latinIME: LatinIME, private val inp
         }
 
         if (isUnhandledNavigationKey(keyCode) && inputLogic.isComposingWord) {
-            inputLogic.commitTyped(settings.current, LastComposedWord.NOT_A_SEPARATOR)
+            inputLogic.finishInput()
         }
 
         val mode = settings.current.mPhysicalKeyboardSuggestionShortcuts
@@ -326,10 +326,17 @@ class KeyboardActionListenerImpl(private val latinIME: LatinIME, private val inp
             return latinIME.showInputPickerDialog()
         }
         if (requestCode == KeyboardActionListener.CODE_TOUCHPAD_ON) {
+            isSpaceSwipeActive = true
+            latinIME.isCursorGestureActive = true
+            latinIME.mHandler.cancelResumeSuggestions()
+            inputLogic.finishInput()
             keyboardSwitcher.mainKeyboardView?.alpha = 0.5f
             return true
         }
         if (requestCode == KeyboardActionListener.CODE_TOUCHPAD_OFF) {
+            isSpaceSwipeActive = false
+            latinIME.isCursorGestureActive = false
+            inputLogic.restartSuggestionsOnWordTouchedByCursor(settings.current)
             keyboardSwitcher.mainKeyboardView?.alpha = 1.0f
             return true
         }
@@ -353,6 +360,10 @@ class KeyboardActionListenerImpl(private val latinIME: LatinIME, private val inp
         }
         KeyboardActionListener.SWIPE_TOUCHPAD_MODE -> {
             // Activate touchpad mode - the actual cursor movement will be handled in PointerTracker
+            isSpaceSwipeActive = true
+            latinIME.isCursorGestureActive = true
+            latinIME.mHandler.cancelResumeSuggestions()
+            inputLogic.finishInput()
             PointerTracker.setTouchpadModeActive(true)
             true
         }
@@ -362,8 +373,9 @@ class KeyboardActionListenerImpl(private val latinIME: LatinIME, private val inp
     override fun onEndSpaceSwipe(){
         initialSubtype = null
         subtypeSwitchCount = 0
-        if (isSpaceSwipeActive) {
+        if (isSpaceSwipeActive || latinIME.isCursorGestureActive) {
             isSpaceSwipeActive = false
+            latinIME.isCursorGestureActive = false
             inputLogic.restartSuggestionsOnWordTouchedByCursor(settings.current)
         }
     }
@@ -447,6 +459,12 @@ class KeyboardActionListenerImpl(private val latinIME: LatinIME, private val inp
 
     private fun onMoveCursorVertically(steps: Int): Boolean {
         if (steps == 0) return false
+        if (!isSpaceSwipeActive) {
+            isSpaceSwipeActive = true
+            latinIME.isCursorGestureActive = true
+            latinIME.mHandler.cancelResumeSuggestions()
+            inputLogic.finishInput()
+        }
         val code = if (steps < 0) {
             gestureMoveBackHaptics()
             KeyCode.ARROW_UP
@@ -454,7 +472,9 @@ class KeyboardActionListenerImpl(private val latinIME: LatinIME, private val inp
             gestureMoveForwardHaptics()
             KeyCode.ARROW_DOWN
         }
-        onCodeInput(code, Constants.NOT_A_COORDINATE, Constants.NOT_A_COORDINATE, false)
+        repeat(abs(steps)) {
+            onCodeInput(code, Constants.NOT_A_COORDINATE, Constants.NOT_A_COORDINATE, false)
+        }
         return true
     }
 
@@ -466,6 +486,8 @@ class KeyboardActionListenerImpl(private val latinIME: LatinIME, private val inp
 
         if (!isSpaceSwipeActive) {
             isSpaceSwipeActive = true
+            latinIME.isCursorGestureActive = true
+            latinIME.mHandler.cancelResumeSuggestions()
             inputLogic.finishInput()
         }
 
@@ -677,6 +699,15 @@ class KeyboardActionListenerImpl(private val latinIME: LatinIME, private val inp
             override fun onClose() {
                 PointerTracker.sPersistentTouchpadModeActive = false
                 keyboardSwitcher.hideTouchpadView()
+            }
+            override fun onStartDragging() {
+                latinIME.isCursorGestureActive = true
+                latinIME.mHandler.cancelResumeSuggestions()
+                inputLogic.finishInput()
+            }
+            override fun onStopDragging() {
+                latinIME.isCursorGestureActive = false
+                inputLogic.restartSuggestionsOnWordTouchedByCursor(settings.current)
             }
         })
     }

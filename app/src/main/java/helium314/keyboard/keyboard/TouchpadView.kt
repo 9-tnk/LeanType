@@ -49,6 +49,8 @@ class TouchpadView @JvmOverloads constructor(
         fun onThreeFingerSwipeUp()
         fun onThreeFingerSwipeDown()
         fun onClose()
+        fun onStartDragging() {}
+        fun onStopDragging() {}
     }
 
     private var mListener: TouchpadListener? = null
@@ -237,6 +239,7 @@ class TouchpadView @JvmOverloads constructor(
                     mAccY = 0f
                     mIsDragging = true
                     mIsTwoFingerScroll = false
+                    mListener?.onStartDragging()
                     true
                 }
 
@@ -334,6 +337,7 @@ class TouchpadView @JvmOverloads constructor(
                         val baseThreshold = if (mSelectionMode) 70 else 110
                         var threshold = baseThreshold - (sensitivity * 0.6f).toInt()
                         if (threshold < 10) threshold = 10
+                        val thresholdY = (threshold * 1.5f).toInt()
 
                         while (mAccX >= threshold) {
                             mListener?.onCursorMove(KeyCode.ARROW_RIGHT, mSelectionMode)
@@ -343,13 +347,13 @@ class TouchpadView @JvmOverloads constructor(
                             mListener?.onCursorMove(KeyCode.ARROW_LEFT, mSelectionMode)
                             mAccX += threshold
                         }
-                        while (mAccY >= threshold) {
+                        while (mAccY >= thresholdY) {
                             mListener?.onCursorMove(KeyCode.ARROW_DOWN, mSelectionMode)
-                            mAccY -= threshold
+                            mAccY -= thresholdY
                         }
-                        while (mAccY <= -threshold) {
+                        while (mAccY <= -thresholdY) {
                             mListener?.onCursorMove(KeyCode.ARROW_UP, mSelectionMode)
-                            mAccY += threshold
+                            mAccY += thresholdY
                         }
                     }
                     true
@@ -366,6 +370,7 @@ class TouchpadView @JvmOverloads constructor(
                         mSelectionMode = false
                         applySurfaceColor()
                     }
+                    mListener?.onStopDragging()
                     true
                 }
 
@@ -382,6 +387,7 @@ class TouchpadView @JvmOverloads constructor(
                         mSelectionMode = false
                         applySurfaceColor()
                     }
+                    mListener?.onStopDragging()
                     true
                 }
 

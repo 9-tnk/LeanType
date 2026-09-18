@@ -757,26 +757,27 @@ class PointerTracker private constructor(
                     sCachedTouchpadSensitivity = Settings.getInstance().current.mTouchpadSensitivity
                     sLastTouchpadSensitivityUpdateTime = currentTime
                 }
-                val moveThreshold = 70 - (sCachedTouchpadSensitivity * 0.6f).toInt()
+                val moveThresholdX = 70 - (sCachedTouchpadSensitivity * 0.6f).toInt()
+                val moveThresholdY = (moveThresholdX * 1.75f).toInt()
 
-                while (mTouchpadAccX >= moveThreshold || mTouchpadAccX <= -moveThreshold) {
+                while (mTouchpadAccX >= moveThresholdX || mTouchpadAccX <= -moveThresholdX) {
                     val positive = mTouchpadAccX > 0
                     val direction = if (positive) KeyCode.ARROW_RIGHT else KeyCode.ARROW_LEFT
                     sListener.onCodeInput(direction, Constants.NOT_A_COORDINATE, Constants.NOT_A_COORDINATE, false)
-                    mTouchpadAccX -= if (positive) moveThreshold else -moveThreshold
+                    mTouchpadAccX -= if (positive) moveThresholdX else -moveThresholdX
                 }
 
-                while (mTouchpadAccY >= moveThreshold || mTouchpadAccY <= -moveThreshold) {
+                while (mTouchpadAccY >= moveThresholdY || mTouchpadAccY <= -moveThresholdY) {
                     val positive = mTouchpadAccY > 0
                     val direction = if (positive) KeyCode.ARROW_DOWN else KeyCode.ARROW_UP
                     sListener.onCodeInput(direction, Constants.NOT_A_COORDINATE, Constants.NOT_A_COORDINATE, false)
-                    mTouchpadAccY -= if (positive) moveThreshold else -moveThreshold
+                    mTouchpadAccY -= if (positive) moveThresholdY else -moveThresholdY
                 }
                 return
             }
 
             // Vertical movement
-            val stepsY = dY / sPointerStep
+            val stepsY = dY / sVerticalPointerStep
             if (stepsY != 0 && abs(dX) < abs(dY) && !mInHorizontalSwipe) {
                 if (!mInVerticalSwipe) {
                     getTimerProxy().cancelKeyTimersOf(this)
@@ -785,7 +786,7 @@ class PointerTracker private constructor(
                     return
                 }
                 if (sListener.onVerticalSpaceSwipe(stepsY)) {
-                    mStartY += stepsY * sPointerStep
+                    mStartY += stepsY * sVerticalPointerStep
                 }
                 return
             }
@@ -1181,6 +1182,7 @@ class PointerTracker private constructor(
 
         private var sParams: PointerTrackerParams? = null
         private val sPointerStep = 10.dpToPx(Resources.getSystem())
+        private val sVerticalPointerStep = 24.dpToPx(Resources.getSystem())
         private var sGestureStrokeRecognitionParams: GestureStrokeRecognitionParams? = null
         private var sGestureStrokeDrawingParams: GestureStrokeDrawingParams? = null
 
@@ -1203,7 +1205,7 @@ class PointerTracker private constructor(
         @Volatile
         private var sLastTouchpadSensitivityUpdateTime = 0L
         private const val TOUCHPAD_SENSITIVITY_UPDATE_INTERVAL_MS = 100
-        private const val TOUCHPAD_ACCELERATION_FACTOR = 50.0f
+        private const val TOUCHPAD_ACCELERATION_FACTOR = 300.0f
 
         fun setTouchpadModeActive(active: Boolean) {
             sTouchpadModeActive = active
