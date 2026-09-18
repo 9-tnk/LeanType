@@ -186,7 +186,7 @@ fun createCorrectionSettings(context: Context) = listOf(
         ) {
             Icon(
                 painter = painterResource(R.drawable.ic_arrow_right),
-                contentDescription = if (expanded) "Collapse" else "Expand",
+                contentDescription = null,
                 modifier = Modifier.rotate(if (expanded) 90f else 0f)
             )
         }
@@ -383,7 +383,7 @@ fun createCorrectionSettings(context: Context) = listOf(
         ) {
             Icon(
                 painter = painterResource(R.drawable.ic_arrow_right),
-                contentDescription = if (expanded) "Collapse" else "Expand",
+                contentDescription = null,
                 modifier = Modifier.rotate(if (expanded) 90f else 0f)
             )
         }
