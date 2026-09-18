@@ -824,6 +824,10 @@ class InputLogic(
             else -> {
                 val isModifier = with(KeyCode) { keyCode.isModifier() }
                 if (isModifier) return
+                if (event.codePoint >= 32 && (event.metaState and (KeyEvent.META_CTRL_MASK or KeyEvent.META_META_MASK or KeyEvent.META_ALT_LEFT_ON)) == 0) {
+                    handleNonFunctionalEvent(event, inputTransaction, handler)
+                    return
+                }
                 val keyEventCode = if (keyCode > 0) {
                     keyCode
                 } else if (event.codePoint >= 0) {

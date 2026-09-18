@@ -6,6 +6,7 @@
 
 package helium314.keyboard.event
 
+import android.view.KeyEvent
 import helium314.keyboard.latin.SuggestedWords.SuggestedWordInfo
 import helium314.keyboard.latin.common.Constants
 import helium314.keyboard.latin.common.StringUtils
@@ -65,7 +66,13 @@ class Event private constructor(
     // Returns whether this is a function key like backspace, ctrl, settings... as opposed to keys
     // that result in input like letters or space.
     val isFunctionalKeyEvent: Boolean
-        get() = NOT_A_CODE_POINT == codePoint || metaState != 0 // This logic may need to be refined in the future
+        get() {
+            if (NOT_A_CODE_POINT == codePoint) return true
+            // If it produces a character, it's only functional if Ctrl, Meta, or left Alt is held down.
+            // Lock states (NumLock, CapsLock, ScrollLock) and Shift must never make character input functional.
+            val functionalModifiers = KeyEvent.META_CTRL_MASK or KeyEvent.META_META_MASK or KeyEvent.META_ALT_LEFT_ON
+            return (metaState and functionalModifiers) != 0
+        }
 
     // Returns whether this event is for a dead character. @see {@link #FLAG_DEAD}
     val isDead: Boolean get() = 0 != FLAG_DEAD and flags

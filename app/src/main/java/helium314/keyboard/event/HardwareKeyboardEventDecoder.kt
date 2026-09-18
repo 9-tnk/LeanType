@@ -37,7 +37,8 @@ class HardwareKeyboardEventDecoder(val mDeviceId: Int) : HardwareEventDecoder {
         return if (KeyEvent.KEYCODE_DEL == keyCode) {
             Event.createHardwareKeypressEvent(Event.NOT_A_CODE_POINT, KeyCode.DELETE, metaState, null, isKeyRepeat)
         } else if (
-            (keyEvent.isPrintingKey && codePointAndFlags != Event.NOT_A_CODE_POINT) // can be NOT_A_CODE_POINT depending on meta state (e.g. ctrl+c)
+            ((codePointAndFlags != Event.NOT_A_CODE_POINT && !keyEvent.isCtrlPressed && !keyEvent.isMetaPressed && (metaState and KeyEvent.META_ALT_LEFT_ON) == 0)
+                || keyEvent.isPrintingKey)
                 || KeyEvent.KEYCODE_SPACE == keyCode
                 || KeyEvent.KEYCODE_ENTER == keyCode
         ) {
