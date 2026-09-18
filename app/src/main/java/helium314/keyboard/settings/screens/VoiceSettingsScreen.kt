@@ -346,7 +346,8 @@ fun VoiceSettingsScreen(
     LaunchedEffect(Unit) {
         while (isActive) {
             updatePluginStatus()
-            kotlinx.coroutines.delay(1500)
+            val delayMs = if (whisperState?.state == ModelState.STATE_READY) 5000L else 1500L
+            kotlinx.coroutines.delay(delayMs)
         }
     }
 

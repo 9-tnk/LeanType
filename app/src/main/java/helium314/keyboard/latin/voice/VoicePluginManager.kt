@@ -113,11 +113,14 @@ class VoicePluginManager(private val context: Context) : IBinder.DeathRecipient 
         handleDisconnection()
     }
 
+    private var lastLoggedModelState: Pair<String, Int?>? = null
+
     private fun handleDisconnection() {
         engine = null
         isBound = false
         isConnecting = false
         deathRecipientRegistered = false
+        lastLoggedModelState = null
         connectionListener?.onPluginDisconnected()
     }
 
@@ -150,7 +153,10 @@ class VoicePluginManager(private val context: Context) : IBinder.DeathRecipient 
     fun getModelState(engineType: String): ModelState? {
         return try {
             val state = engine?.getModelState(engineType)
-            Log.i(TAG, "getModelState for $engineType returned: ${state?.state} (${state?.message})")
+            if (lastLoggedModelState?.first != engineType || lastLoggedModelState?.second != state?.state) {
+                lastLoggedModelState = Pair(engineType, state?.state)
+                Log.i(TAG, "getModelState for $engineType: ${state?.state} (${state?.message})")
+            }
             state
         } catch (e: Exception) {
             Log.e(TAG, "Failed to get model state for $engineType", e)
