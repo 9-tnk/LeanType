@@ -157,7 +157,6 @@ class InputLogic(
         mInputLogicHandler.reset()
         mSpaceState = SpaceState.NONE
         mConnection.ensureBatchEditClosed()
-        mConnection.onFinishInput()
     }
 
     fun onUpdateSelection(
