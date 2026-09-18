@@ -228,6 +228,7 @@ class ContenteditableDuplicationFixTest {
         org.mockito.Mockito.`when`(mockIc.getTextBeforeCursor(32, 0)).thenReturn("A")
 
         val ric = RichInputConnection(mockIms)
+        ric.onStartInput()
         val icField = RichInputConnection::class.java.getDeclaredField("mIC").apply { isAccessible = true }
         icField.set(ric, mockIc)
 
@@ -251,6 +252,7 @@ class ContenteditableDuplicationFixTest {
         org.mockito.Mockito.`when`(mockIc.getTextBeforeCursor(32, 0)).thenReturn(emoji)
 
         val ric = RichInputConnection(mockIms)
+        ric.onStartInput()
         val icField = RichInputConnection::class.java.getDeclaredField("mIC").apply { isAccessible = true }
         icField.set(ric, mockIc)
 
