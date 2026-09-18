@@ -4,34 +4,30 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.content.SharedPreferences
 import android.graphics.Color
-import android.graphics.PixelFormat
+import android.graphics.Paint
+import android.graphics.Rect
+import android.graphics.RectF
 import android.graphics.drawable.GradientDrawable
 import android.os.Build
-import android.provider.Settings as AndroidSettings
-import android.content.Intent
-import android.net.Uri
-import android.util.TypedValue
 import android.view.Gravity
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
-import android.view.WindowManager
+import android.view.ViewOutlineProvider
 import android.widget.FrameLayout
 import android.widget.ImageButton
 import android.widget.LinearLayout
 import helium314.keyboard.keyboard.KeyboardSwitcher
 import helium314.keyboard.latin.common.ColorType
 import helium314.keyboard.latin.settings.Settings
+import helium314.keyboard.latin.utils.DeviceProtectedUtils
 import helium314.keyboard.latin.utils.Log
 import helium314.keyboard.latin.utils.ResourceUtils
-import helium314.keyboard.latin.utils.DeviceProtectedUtils
 
 /**
- * Manages the floating keyboard by reparenting the existing main_keyboard_frame
- * from the IME's InputView into a TYPE_APPLICATION_OVERLAY window.
- *
- * Key sizes are dynamically adjusted by setting a floating width override in
- * ResourceUtils before triggering a keyboard reload.
+ * Manages the floating keyboard within the IME's native TYPE_INPUT_METHOD window.
+ * The keyboard frame is positioned dynamically inside InputView via translation coordinates
+ * and wrapped with an interactive floating header bar (drag pill, close button, resize handle).
  */
 class FloatingKeyboardManager(private val context: Context, private val latinIME: LatinIME) {
 
@@ -54,153 +50,126 @@ class FloatingKeyboardManager(private val context: Context, private val latinIME
 
     fun wasFloatingLastTime(): Boolean = prefs.getBoolean(PREF_IS_ACTIVE, false)
 
-    var overlayRoot: FrameLayout? = null
+    var isFloating = false
         private set
-    private var windowManager: WindowManager? = null
-    private var windowParams: WindowManager.LayoutParams? = null
-    private var savedParent: ViewGroup? = null
-    private var savedLayoutParams: ViewGroup.LayoutParams? = null
-    private var savedParentIndex: Int = -1
+
+    @Volatile
+    var isDragging = false
+        private set
+
+    @Volatile
+    var isResizing = false
+        private set
 
     // Touch tracking for drag & resize
     private var initialTouchX = 0f
     private var initialTouchY = 0f
+    private var initialTransX = 0f
+    private var initialTransY = 0f
+
     private var initialResizeTouchX = 0f
     private var initialResizeTouchY = 0f
+    private var initialResizeTransX = 0f
+    private var initialResizeTransY = 0f
     private var initialResizeWidth = 0
     private var initialResizeHeight = 0
     private var initialResizeScale = 1.0f
 
-    var isFloating = false
-        private set
+    private var headerBar: FrameLayout? = null
 
-    fun canDrawOverlays(): Boolean = AndroidSettings.canDrawOverlays(context)
+    fun getKeyboardFrame(): View? = latinIME.mInputView?.findViewById(R.id.main_keyboard_frame)
 
-    fun requestOverlayPermission() {
-        val intent = Intent(
-            AndroidSettings.ACTION_MANAGE_OVERLAY_PERMISSION,
-            Uri.parse("package:${context.packageName}")
-        )
-        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        context.startActivity(intent)
+    /**
+     * Returns the bounding rectangle of the floating keyboard in window coordinates,
+     * or null if the keyboard is not currently floating.
+     */
+    fun getFloatingTouchableRect(): Rect? {
+        val frame = getKeyboardFrame() ?: return null
+        if (!isFloating || frame.visibility != View.VISIBLE || frame.width <= 0 || frame.height <= 0) {
+            return null
+        }
+        val loc = IntArray(2)
+        frame.getLocationInWindow(loc)
+        return Rect(loc[0], loc[1], loc[0] + frame.width, loc[1] + frame.height)
     }
 
-    @SuppressLint("ClickableViewAccessibility")
     fun show() {
-        if (!canDrawOverlays() || isFloating) return
+        val frame = getKeyboardFrame() ?: return
 
-        windowManager = context.getSystemService(Context.WINDOW_SERVICE) as WindowManager
-
-        // Calculate floating keyboard width & scale bounds
         val dm = context.resources.displayMetrics
+        val density = dm.density
         val minWidth = (dm.widthPixels * 0.40f).toInt()
         val maxWidth = (dm.widthPixels * 0.95f).toInt()
-        val minHeight = (120 * dm.density).toInt()
-        val maxHeight = (dm.heightPixels * 0.75f).toInt()
         val defaultWidth = (dm.widthPixels * FLOATING_WIDTH_FRACTION).toInt()
         val savedWidth = prefs.getInt(PREF_WIDTH, -1)
         val floatingWidth = (if (savedWidth != -1) savedWidth else defaultWidth).coerceIn(minWidth, maxWidth)
         val savedScale = prefs.getFloat(PREF_SCALE, 1.0f).coerceIn(0.5f, 1.8f)
 
-        // Get theme colors
         val colors = Settings.getValues().mColors
         val bgColor = colors.get(ColorType.MAIN_BACKGROUND)
         val textColor = colors.get(ColorType.KEY_TEXT)
-        val density = dm.density
         val cornerRadius = CORNER_RADIUS_DP * density
         val headerHeight = (HEADER_HEIGHT_DP * density).toInt()
 
-        // Create the overlay root with rounded corners and clipping
-        val overlayBg = GradientDrawable().apply {
-            setColor(Color.TRANSPARENT)
-            this.cornerRadius = cornerRadius
-        }
-        overlayRoot = FrameLayout(context).apply {
-            background = overlayBg
-            clipToOutline = true
-            outlineProvider = android.view.ViewOutlineProvider.BACKGROUND
-        }
-
-        // Create header bar with theme-matching colors and rounded top corners
-        val headerBar = createHeaderBar(headerHeight, bgColor, textColor, density, cornerRadius, minWidth, maxWidth, minHeight, maxHeight)
-
-        // Build content container: header on top, keyboard below
-        val contentContainer = LinearLayout(context).apply {
-            orientation = LinearLayout.VERTICAL
-            layoutParams = FrameLayout.LayoutParams(
-                FrameLayout.LayoutParams.MATCH_PARENT,
-                FrameLayout.LayoutParams.WRAP_CONTENT
-            )
-            background = GradientDrawable().apply {
-                setColor(bgColor)
-                cornerRadii = floatArrayOf(
-                    cornerRadius, cornerRadius,   // top-left
-                    cornerRadius, cornerRadius,   // top-right
-                    cornerRadius, cornerRadius,   // bottom-right
-                    cornerRadius, cornerRadius    // bottom-left
-                )
+        // Configure or create header bar inside main_keyboard_frame
+        val headerContainer = frame.findViewById<FrameLayout>(R.id.floating_header_bar)
+        if (headerContainer != null) {
+            if (headerContainer.childCount == 0) {
+                headerBar = createHeaderBar(headerHeight, bgColor, textColor, density, cornerRadius)
+                headerContainer.addView(headerBar)
             }
-            clipToOutline = true
-            outlineProvider = android.view.ViewOutlineProvider.BACKGROUND
+            headerContainer.visibility = View.VISIBLE
         }
 
-        contentContainer.addView(headerBar)      // Index 0
-        overlayRoot?.addView(contentContainer) ?: return
+        // Configure FrameLayout layoutParams
+        val lp = frame.layoutParams as? FrameLayout.LayoutParams ?: FrameLayout.LayoutParams(
+            floatingWidth,
+            ViewGroup.LayoutParams.WRAP_CONTENT
+        )
+        lp.gravity = Gravity.TOP or Gravity.START
+        lp.width = floatingWidth
+        lp.height = ViewGroup.LayoutParams.WRAP_CONTENT
+        frame.layoutParams = lp
 
-        // Calculate window position
+        // Calculate and clamp position
         val savedX = prefs.getInt(PREF_X, -1)
         val savedY = prefs.getInt(PREF_Y, -1)
+        val maxX = (dm.widthPixels - floatingWidth).coerceAtLeast(0)
+        val maxY = (dm.heightPixels - (220 * density).toInt()).coerceAtLeast(0)
 
-        windowParams = WindowManager.LayoutParams(
-            floatingWidth,
-            WindowManager.LayoutParams.WRAP_CONTENT,
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
-                WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
-            else
-                @Suppress("DEPRECATION")
-                WindowManager.LayoutParams.TYPE_PHONE,
-            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
-                WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL,
-            PixelFormat.TRANSLUCENT
-        ).apply {
-            gravity = Gravity.TOP or Gravity.START
-            if (savedX != -1 && savedY != -1) {
-                x = savedX
-                y = savedY
-            } else {
-                // Center horizontally, near bottom third
-                x = (dm.widthPixels - floatingWidth) / 2
-                y = dm.heightPixels / 3
-            }
+        val posX = if (savedX != -1) savedX.coerceIn(0, maxX) else (dm.widthPixels - floatingWidth) / 2
+        val posY = if (savedY != -1) savedY.coerceIn(0, maxY) else dm.heightPixels / 3
+
+        frame.translationX = posX.toFloat()
+        frame.translationY = posY.toFloat()
+
+        // Background styling: rounded corners and elevation
+        val bgDrawable = GradientDrawable().apply {
+            setColor(bgColor)
+            cornerRadii = floatArrayOf(
+                cornerRadius, cornerRadius,
+                cornerRadius, cornerRadius,
+                cornerRadius, cornerRadius,
+                cornerRadius, cornerRadius
+            )
         }
-
-        try {
-            windowManager?.addView(overlayRoot, windowParams)
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to add overlay view", e)
-            overlayRoot = null
-            return
+        frame.background = bgDrawable
+        frame.clipToOutline = true
+        frame.outlineProvider = ViewOutlineProvider.BACKGROUND
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            frame.elevation = 8f * density
         }
 
         isFloating = true
         prefs.edit().putBoolean(PREF_IS_ACTIVE, true).apply()
-        
-        // Manually trigger reparenting of the current input view into the overlay.
-        // reloadKeyboard() alone won't trigger setInputView() if the theme hasn't changed.
-        latinIME.mInputView?.let { onInputViewRecreated(it) }
 
-        // Set the floating width & scale overrides so keyboard keys re-measure
+        // Set floating overrides and reload keyboard to recalculate key geometry
         ResourceUtils.setFloatingKeyboardWidth(floatingWidth)
         ResourceUtils.setFloatingKeyboardScale(savedScale)
-
-        // Force keyboard reload so keys re-measure at the new width & scale
-        // This will trigger onInputViewRecreated which reparents the NEW keyboard into our overlay
         KeyboardSwitcher.getInstance().reloadKeyboard()
 
-        // Hide the IME window so the bottom nav bar goes away
         latinIME.onFloatingKeyboardShown()
-
-        Log.i(TAG, "Floating keyboard shown at ${floatingWidth}px width, scale ${savedScale}")
+        Log.i(TAG, "Floating keyboard shown at ${floatingWidth}px width, scale $savedScale")
     }
 
     fun hide(showDockedKeyboard: Boolean = true) {
@@ -210,36 +179,36 @@ class FloatingKeyboardManager(private val context: Context, private val latinIME
             prefs.edit().putBoolean(PREF_IS_ACTIVE, false).apply()
         }
 
-        // Clear the floating overrides FIRST
+        isFloating = false
+        isDragging = false
+        isResizing = false
+
         ResourceUtils.setFloatingKeyboardWidth(0)
         ResourceUtils.setFloatingKeyboardScale(0.0f)
 
-        val mainKeyboardFrame = overlayRoot?.findViewById<View>(R.id.main_keyboard_frame)
-        if (mainKeyboardFrame != null) {
-            // Remove from overlay content container so it can be safely GC'd
-            (mainKeyboardFrame.parent as? ViewGroup)?.removeView(mainKeyboardFrame)
-        }
+        val frame = getKeyboardFrame()
+        if (frame != null) {
+            frame.findViewById<View>(R.id.floating_header_bar)?.visibility = View.GONE
+            frame.translationX = 0f
+            frame.translationY = 0f
 
-        // Remove overlay window
-        overlayRoot?.let { root ->
-            try {
-                windowManager?.removeView(root)
-            } catch (e: Exception) {
-                Log.w(TAG, "Failed to remove overlay view", e)
+            val lp = frame.layoutParams as? FrameLayout.LayoutParams
+            if (lp != null) {
+                lp.gravity = Gravity.BOTTOM
+                lp.width = FrameLayout.LayoutParams.MATCH_PARENT
+                lp.height = FrameLayout.LayoutParams.WRAP_CONTENT
+                frame.layoutParams = lp
+            }
+
+            Settings.getValues().mColors.setBackground(frame, ColorType.MAIN_BACKGROUND)
+            frame.clipToOutline = false
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                frame.elevation = 0f
             }
         }
-        overlayRoot = null
-        savedParent = null
-        savedLayoutParams = null
-        savedParentIndex = -1
-        isFloating = false
 
-        // Show the IME window again
-        latinIME.onFloatingKeyboardHidden(showDockedKeyboard)
-
-        // Reload keyboard at full width so keys re-measure properly
         KeyboardSwitcher.getInstance().reloadKeyboard()
-
+        latinIME.onFloatingKeyboardHidden(showDockedKeyboard)
         Log.i(TAG, "Floating keyboard hidden, docked mode restored")
     }
 
@@ -247,65 +216,31 @@ class FloatingKeyboardManager(private val context: Context, private val latinIME
         if (isFloating) {
             hide()
         } else {
-            if (canDrawOverlays()) {
-                show()
-            } else {
-                requestOverlayPermission()
-            }
+            show()
         }
     }
 
-    /**
-     * Called from LatinIME.setInputView() when the input view is recreated
-     * (e.g., theme change, orientation change). If floating mode is active,
-     * we need to reparent the new keyboard views into the existing overlay.
-     */
+    fun resetDragAndResizeState() {
+        if (isDragging || isResizing) {
+            isDragging = false
+            isResizing = false
+            latinIME.requestInsetsUpdate()
+        }
+    }
+
     fun onInputViewRecreated(newInputView: View) {
         if (!isFloating) return
-
-        Log.i(TAG, "Input view recreated while floating, re-reparenting keyboard")
-
-        val newMainKeyboardFrame = newInputView.findViewById<View>(R.id.main_keyboard_frame)
-            ?: return
-        val newParent = newMainKeyboardFrame.parent as? ViewGroup ?: return
-
-        // Save new parent info
-        savedParent = newParent
-        savedLayoutParams = newMainKeyboardFrame.layoutParams
-        savedParentIndex = newParent.indexOfChild(newMainKeyboardFrame)
-
-        // Find the content container in our overlay (the LinearLayout)
-        val contentContainer = overlayRoot?.getChildAt(0) as? LinearLayout ?: return
-
-        // Remove old keyboard frame from overlay content container (index 1, after header)
-        if (contentContainer.childCount > 1) {
-            contentContainer.removeViewAt(1)
-        }
-
-        // Reparent new keyboard frame
-        val floatingWidth = ResourceUtils.getFloatingKeyboardWidth()
-        newParent.removeView(newMainKeyboardFrame)
-        newMainKeyboardFrame.layoutParams = LinearLayout.LayoutParams(
-            if (floatingWidth > 0) floatingWidth else LinearLayout.LayoutParams.MATCH_PARENT,
-            LinearLayout.LayoutParams.WRAP_CONTENT
-        )
-        contentContainer.addView(newMainKeyboardFrame)
+        Log.i(TAG, "Input view recreated while floating, reapplying floating layout")
+        show()
     }
 
-    /**
-     * Called from LatinIME.onDestroy() to clean up.
-     */
     fun destroy() {
         if (isFloating) {
             ResourceUtils.setFloatingKeyboardWidth(0)
             ResourceUtils.setFloatingKeyboardScale(0.0f)
-            overlayRoot?.let { root ->
-                try {
-                    windowManager?.removeView(root)
-                } catch (_: Exception) {}
-            }
-            overlayRoot = null
             isFloating = false
+            isDragging = false
+            isResizing = false
         }
     }
 
@@ -317,13 +252,14 @@ class FloatingKeyboardManager(private val context: Context, private val latinIME
         bgColor: Int,
         textColor: Int,
         density: Float,
-        cornerRadius: Float,
-        minWidth: Int,
-        maxWidth: Int,
-        minHeight: Int,
-        maxHeight: Int
+        cornerRadius: Float
     ): FrameLayout {
-        // Header with rounded top corners matching the container
+        val dm = context.resources.displayMetrics
+        val minWidth = (dm.widthPixels * 0.40f).toInt()
+        val maxWidth = (dm.widthPixels * 0.95f).toInt()
+        val minHeight = (120 * density).toInt()
+        val maxHeight = (dm.heightPixels * 0.75f).toInt()
+
         val headerBar = FrameLayout(context).apply {
             layoutParams = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
@@ -332,10 +268,10 @@ class FloatingKeyboardManager(private val context: Context, private val latinIME
             background = GradientDrawable().apply {
                 setColor(bgColor)
                 cornerRadii = floatArrayOf(
-                    cornerRadius, cornerRadius,   // top-left
-                    cornerRadius, cornerRadius,   // top-right
-                    0f, 0f,                       // bottom-right
-                    0f, 0f                        // bottom-left
+                    cornerRadius, cornerRadius,
+                    cornerRadius, cornerRadius,
+                    0f, 0f,
+                    0f, 0f
                 )
             }
         }
@@ -377,7 +313,7 @@ class FloatingKeyboardManager(private val context: Context, private val latinIME
             }
             contentDescription = "Close floating keyboard"
             scaleType = android.widget.ImageView.ScaleType.FIT_CENTER
-            setOnClickListener { toggle() }
+            setOnClickListener { hide(showDockedKeyboard = true) }
         }
         headerBar.addView(closeBtn)
 
@@ -388,11 +324,11 @@ class FloatingKeyboardManager(private val context: Context, private val latinIME
         val defaultBgColor = (textColor and 0x00FFFFFF) or 0x1F000000.toInt()
         val activeBgColor = (textColor and 0x00FFFFFF) or 0x55000000.toInt()
 
-        val paint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
+        val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = (textColor and 0x00FFFFFF) or defaultAlpha
             strokeWidth = 3.5f * density
-            strokeCap = android.graphics.Paint.Cap.ROUND
-            style = android.graphics.Paint.Style.STROKE
+            strokeCap = Paint.Cap.ROUND
+            style = Paint.Style.STROKE
         }
 
         val resizeBg = GradientDrawable().apply {
@@ -407,8 +343,7 @@ class FloatingKeyboardManager(private val context: Context, private val latinIME
                 val w = width.toFloat()
                 val h = height.toFloat()
                 val pad = 6.5f * density
-                val oval = android.graphics.RectF(pad, pad, w - pad, h - pad)
-                // Draw top-left inverted L arc (180 to 270 degrees)
+                val oval = RectF(pad, pad, w - pad, h - pad)
                 canvas.drawArc(oval, 180f, 90f, false, paint)
             }
         }.apply {
@@ -420,169 +355,117 @@ class FloatingKeyboardManager(private val context: Context, private val latinIME
             contentDescription = "Resize floating keyboard"
         }
 
-        var initialWindowX = 0
-        var initialWindowY = 0
-        var baseKeyboardHeight = 0
-
         resizeBtn.setOnTouchListener { _, event ->
+            val frame = getKeyboardFrame() ?: return@setOnTouchListener false
             when (event.action) {
                 MotionEvent.ACTION_DOWN -> {
+                    isResizing = true
                     initialResizeTouchX = event.rawX
                     initialResizeTouchY = event.rawY
-                    initialWindowX = windowParams?.x ?: 0
-                    initialWindowY = windowParams?.y ?: 0
-                    initialResizeWidth = windowParams?.width ?: ResourceUtils.getFloatingKeyboardWidth()
-                    initialResizeHeight = overlayRoot?.height ?: 0
+                    initialResizeTransX = frame.translationX
+                    initialResizeTransY = frame.translationY
+                    initialResizeWidth = frame.width.takeIf { it > 0 } ?: ResourceUtils.getFloatingKeyboardWidth()
+                    initialResizeHeight = frame.height
                     initialResizeScale = ResourceUtils.getFloatingKeyboardScale().let { if (it > 0f) it else 1.0f }
-                    val content = overlayRoot?.getChildAt(0) as? LinearLayout
-                    val keyboardFrame = if (content != null && content.childCount > 1) content.getChildAt(1) else null
-                    baseKeyboardHeight = keyboardFrame?.height?.takeIf { it > 0 }
-                        ?: (if (initialResizeHeight > 0) (initialResizeHeight - height).coerceAtLeast(1) else (220 * density).toInt())
+
                     paint.color = (textColor and 0x00FFFFFF) or activeAlpha
                     paint.strokeWidth = 4.5f * density
                     resizeBg.setColor(activeBgColor)
                     resizeBtn.invalidate()
-                    content?.let { setClipChildrenRecursively(it, false) }
-                    overlayRoot?.clipChildren = false
+                    latinIME.requestInsetsUpdate()
                     true
                 }
                 MotionEvent.ACTION_MOVE -> {
                     val dx = (event.rawX - initialResizeTouchX).toInt()
                     val dy = (event.rawY - initialResizeTouchY).toInt()
 
-                    // Dragging top-left corner: dx < 0 expands left, dy < 0 expands top
-                    val targetWidth = initialResizeWidth - dx
-                    val baseHeight = if (initialResizeHeight > 0) initialResizeHeight else (baseKeyboardHeight + height)
-                    val targetHeight = baseHeight - dy
+                    val targetWidth = (initialResizeWidth - dx).coerceIn(minWidth, maxWidth)
+                    val targetHeight = (initialResizeHeight - dy).coerceIn(minHeight, maxHeight)
 
-                    val newWidth = targetWidth.coerceIn(minWidth, maxWidth)
-                    val newHeight = targetHeight.coerceIn(minHeight, maxHeight)
+                    val effectiveDx = initialResizeWidth - targetWidth
+                    val effectiveDy = initialResizeHeight - targetHeight
 
-                    val effectiveDx = initialResizeWidth - newWidth
-                    val effectiveDy = baseHeight - newHeight
+                    val inputView = latinIME.mInputView
+                    val maxW = ((inputView?.width ?: dm.widthPixels) - targetWidth).coerceAtLeast(0)
+                    val maxH = ((inputView?.height ?: dm.heightPixels) - targetHeight).coerceAtLeast(0)
 
-                    windowParams?.let { lp ->
-                        lp.x = initialWindowX + effectiveDx
-                        lp.y = initialWindowY + effectiveDy
-                        lp.width = newWidth
-                        lp.height = newHeight
-                        try {
-                            val content = overlayRoot?.getChildAt(0) as? LinearLayout
-                            if (content != null) {
-                                content.layoutParams = FrameLayout.LayoutParams(
-                                    FrameLayout.LayoutParams.MATCH_PARENT,
-                                    FrameLayout.LayoutParams.MATCH_PARENT
-                                )
-                                if (content.childCount > 1) {
-                                    val keyboardFrame = content.getChildAt(1)
-                                    keyboardFrame.layoutParams = LinearLayout.LayoutParams(
-                                        initialResizeWidth,
-                                        baseKeyboardHeight
-                                    )
-                                    val targetKeyboardHeight = (newHeight - height).coerceAtLeast(1)
-                                    val scaleX = newWidth.toFloat() / initialResizeWidth.coerceAtLeast(1)
-                                    val scaleY = targetKeyboardHeight.toFloat() / baseKeyboardHeight.coerceAtLeast(1)
-                                    keyboardFrame.pivotX = 0f
-                                    keyboardFrame.pivotY = 0f
-                                    keyboardFrame.scaleX = scaleX
-                                    keyboardFrame.scaleY = scaleY
-                                }
-                            }
-                            windowManager?.updateViewLayout(overlayRoot, lp)
-                        } catch (e: Exception) {
-                            Log.w(TAG, "Failed to update overlay layout on resize", e)
-                        }
-                    }
+                    val newX = (initialResizeTransX - effectiveDx).coerceIn(0f, maxW.toFloat())
+                    val newY = (initialResizeTransY - effectiveDy).coerceIn(0f, maxH.toFloat())
+
+                    frame.translationX = newX
+                    frame.translationY = newY
+
+                    val lp = frame.layoutParams
+                    lp.width = targetWidth
+                    frame.layoutParams = lp
                     true
                 }
                 MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                    isResizing = false
                     paint.color = (textColor and 0x00FFFFFF) or defaultAlpha
                     paint.strokeWidth = 3.5f * density
                     resizeBg.setColor(defaultBgColor)
                     resizeBtn.invalidate()
 
-                    windowParams?.let { lp ->
-                        val finalWidth = lp.width
-                        val finalHeight = lp.height
-                        val targetKeyboardHeight = (finalHeight - height).coerceAtLeast(1)
-                        val heightRatio = targetKeyboardHeight.toFloat() / baseKeyboardHeight.coerceAtLeast(1)
-                        val finalScale = (initialResizeScale * heightRatio).coerceIn(0.5f, 1.8f)
+                    val finalWidth = frame.layoutParams.width
+                    val heightRatio = if (initialResizeHeight > 0) frame.height.toFloat() / initialResizeHeight else 1.0f
+                    val finalScale = (initialResizeScale * heightRatio).coerceIn(0.5f, 1.8f)
 
-                        // Reset visual scale transformations
-                        val content = overlayRoot?.getChildAt(0) as? LinearLayout
-                        if (content != null) {
-                            setClipChildrenRecursively(content, true)
-                            content.layoutParams = FrameLayout.LayoutParams(
-                                FrameLayout.LayoutParams.MATCH_PARENT,
-                                FrameLayout.LayoutParams.WRAP_CONTENT
-                            )
-                            if (content.childCount > 1) {
-                                val keyboardFrame = content.getChildAt(1)
-                                keyboardFrame.scaleX = 1.0f
-                                keyboardFrame.scaleY = 1.0f
-                                keyboardFrame.pivotX = 0f
-                                keyboardFrame.pivotY = 0f
-                                keyboardFrame.layoutParams = LinearLayout.LayoutParams(
-                                    finalWidth,
-                                    LinearLayout.LayoutParams.WRAP_CONTENT
-                                )
-                            }
-                        }
-                        overlayRoot?.clipChildren = true
+                    prefs.edit()
+                        .putInt(PREF_X, frame.translationX.toInt())
+                        .putInt(PREF_Y, frame.translationY.toInt())
+                        .putInt(PREF_WIDTH, finalWidth)
+                        .putFloat(PREF_SCALE, finalScale)
+                        .apply()
 
-                        // Reset window height back to WRAP_CONTENT so it wraps newly-measured keys tightly
-                        lp.height = WindowManager.LayoutParams.WRAP_CONTENT
-                        try {
-                            windowManager?.updateViewLayout(overlayRoot, lp)
-                        } catch (_: Exception) {}
-
-                        prefs.edit()
-                            .putInt(PREF_X, lp.x)
-                            .putInt(PREF_Y, lp.y)
-                            .putInt(PREF_WIDTH, finalWidth)
-                            .putFloat(PREF_SCALE, finalScale)
-                            .apply()
-
-                        ResourceUtils.setFloatingKeyboardWidth(finalWidth)
-                        ResourceUtils.setFloatingKeyboardScale(finalScale)
-                        KeyboardSwitcher.getInstance().reloadKeyboard()
-                    }
+                    ResourceUtils.setFloatingKeyboardWidth(finalWidth)
+                    ResourceUtils.setFloatingKeyboardScale(finalScale)
+                    KeyboardSwitcher.getInstance().reloadKeyboard()
+                    latinIME.requestInsetsUpdate()
                     true
                 }
                 else -> false
             }
         }
-
         headerBar.addView(resizeBtn)
 
-        // Setup drag on the entire header bar with touch state feedback
+        // Drag listener on the entire header bar
         headerBar.setOnTouchListener { _, event ->
+            val frame = getKeyboardFrame() ?: return@setOnTouchListener false
             when (event.action) {
                 MotionEvent.ACTION_DOWN -> {
+                    isDragging = true
                     initialTouchX = event.rawX
                     initialTouchY = event.rawY
+                    initialTransX = frame.translationX
+                    initialTransY = frame.translationY
                     dragHandleBg.setColor(activePillColor)
+                    latinIME.requestInsetsUpdate()
                     true
                 }
                 MotionEvent.ACTION_MOVE -> {
                     val dx = event.rawX - initialTouchX
                     val dy = event.rawY - initialTouchY
-                    windowParams?.let { lp ->
-                        lp.x = (lp.x + dx).toInt()
-                        lp.y = (lp.y + dy).toInt()
-                        try {
-                            windowManager?.updateViewLayout(overlayRoot, lp)
-                        } catch (e: Exception) {
-                            Log.w(TAG, "Failed to update overlay layout", e)
-                        }
-                    }
-                    initialTouchX = event.rawX
-                    initialTouchY = event.rawY
+
+                    val inputView = latinIME.mInputView
+                    val maxW = ((inputView?.width ?: dm.widthPixels) - frame.width).coerceAtLeast(0)
+                    val maxH = ((inputView?.height ?: dm.heightPixels) - frame.height).coerceAtLeast(0)
+
+                    val newX = (initialTransX + dx).coerceIn(0f, maxW.toFloat())
+                    val newY = (initialTransY + dy).coerceIn(0f, maxH.toFloat())
+
+                    frame.translationX = newX
+                    frame.translationY = newY
                     true
                 }
                 MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                    isDragging = false
                     dragHandleBg.setColor(defaultPillColor)
-                    savePosition()
+                    prefs.edit()
+                        .putInt(PREF_X, frame.translationX.toInt())
+                        .putInt(PREF_Y, frame.translationY.toInt())
+                        .apply()
+                    latinIME.requestInsetsUpdate()
                     true
                 }
                 else -> false
@@ -590,24 +473,5 @@ class FloatingKeyboardManager(private val context: Context, private val latinIME
         }
 
         return headerBar
-    }
-
-    private fun savePosition() {
-        windowParams?.let { lp ->
-            prefs.edit()
-                .putInt(PREF_X, lp.x)
-                .putInt(PREF_Y, lp.y)
-                .apply()
-        }
-    }
-
-    private fun setClipChildrenRecursively(view: View, clip: Boolean) {
-        if (view is ViewGroup) {
-            view.clipChildren = clip
-            view.clipToPadding = clip
-            for (i in 0 until view.childCount) {
-                setClipChildrenRecursively(view.getChildAt(i), clip)
-            }
-        }
     }
 }

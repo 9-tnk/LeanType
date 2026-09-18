@@ -11,6 +11,9 @@ import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.content.res.Configuration
 import android.graphics.Color
+import android.graphics.Rect
+import android.graphics.Region
+import android.graphics.drawable.ColorDrawable
 import android.inputmethodservice.InputMethodService
 import android.media.AudioManager
 import android.os.Build
@@ -502,20 +505,21 @@ class LatinIME : InputMethodService(),
         }
     }
 
+    fun requestInsetsUpdate() {
+        inputView?.post {
+            inputView?.requestLayout()
+        }
+    }
+
     fun onFloatingKeyboardShown() {
-        inputView?.visibility = View.GONE
-        requestHideSelf(0)
+        setNavigationBarColor()
+        workaroundForHuaweiStatusBarIssue()
+        requestInsetsUpdate()
     }
 
     fun onFloatingKeyboardHidden(showDockedKeyboard: Boolean) {
-        setInputView(onCreateInputView())
-        updateInputViewShown()
-        if (showDockedKeyboard) {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                requestShowSelf(0)
-            }
-            startShowingInputView(true)
-        }
+        setNavigationBarColor()
+        requestInsetsUpdate()
     }
 
     override fun setCandidatesView(view: View) { /* To ensure that CandidatesView will never be set. */ }
@@ -543,9 +547,7 @@ class LatinIME : InputMethodService(),
 
     override fun onFinishInput() {
         handler.onFinishInput()
-        if (!Settings.getInstance().current.mPersistFloatingKeyboard) {
-            floatingKeyboardManager?.takeIf { it.isFloating }?.hide(false)
-        }
+        floatingKeyboardManager?.resetDragAndResizeState()
         if (KeyboardActionListenerImpl.sPersistentTextEditModeActive && !Settings.getInstance().current.mPersistTextEditMode) {
             KeyboardActionListenerImpl.sPersistentTextEditModeActive = false
             keyboardSwitcher.hideTextEditView()
@@ -574,12 +576,8 @@ class LatinIME : InputMethodService(),
 
     fun onStartInputInternal(editorInfo: EditorInfo?, restarting: Boolean) {
         super.onStartInput(editorInfo, restarting)
+        floatingKeyboardManager?.resetDragAndResizeState()
         inputLogic.connection.onStartInput()
-        if (editorInfo == null || editorInfo.inputType == android.text.InputType.TYPE_NULL) {
-            if (!Settings.getInstance().current.mPersistFloatingKeyboard) {
-                floatingKeyboardManager?.takeIf { it.isFloating }?.hide(false)
-            }
-        }
         
         val subtypeForApp = if (editorInfo == null) null else settings.getSubtypeForApp(editorInfo.packageName)
         val hintLocales = EditorInfoCompatUtils.getHintLocales(editorInfo).toMutableList()
@@ -703,12 +701,10 @@ class LatinIME : InputMethodService(),
         
         val fkm = floatingKeyboardManager
         if (fkm != null && fkm.isFloating) {
-            inputView?.visibility = View.GONE
-            requestHideSelf(0)
+            fkm.show()
         } else if (currentSettingsValues.mRememberFloatingKeyboard &&
             fkm != null &&
-            fkm.wasFloatingLastTime() &&
-            fkm.canDrawOverlays()
+            fkm.wasFloatingLastTime()
         ) {
             fkm.show()
         }
@@ -721,6 +717,7 @@ class LatinIME : InputMethodService(),
 
     override fun onWindowShown() {
         super.onWindowShown()
+        window?.window?.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
         clipboardHistoryManager.onPrimaryClipChanged()
         if (isInputViewShown) {
             setNavigationBarColor()
@@ -731,6 +728,7 @@ class LatinIME : InputMethodService(),
     override fun onWindowHidden() {
         super.onWindowHidden()
         Log.i(TAG, "onWindowHidden")
+        floatingKeyboardManager?.resetDragAndResizeState()
         keyboardSwitcher.mainKeyboardView?.closing()
         clearNavigationBarColor()
         originalNavBarSaved = false
@@ -739,9 +737,7 @@ class LatinIME : InputMethodService(),
     fun onFinishInputInternal() {
         super.onFinishInput()
         Log.i(TAG, "onFinishInput")
-        if (!Settings.getInstance().current.mPersistFloatingKeyboard) {
-            floatingKeyboardManager?.takeIf { it.isFloating }?.hide(false)
-        }
+        floatingKeyboardManager?.resetDragAndResizeState()
         dictionaryFacilitator.onFinishInput()
         keyboardSwitcher.mainKeyboardView?.closing()
         inputLogic.connection.onFinishInput()
@@ -850,6 +846,54 @@ class LatinIME : InputMethodService(),
     override fun onComputeInsets(outInsets: Insets) {
         super.onComputeInsets(outInsets)
         val view = inputView ?: return
+
+        val fkm = floatingKeyboardManager
+        if (fkm != null && fkm.isFloating) {
+            val inputHeight = view.height
+            outInsets.contentTopInsets = inputHeight
+            outInsets.visibleTopInsets = inputHeight
+
+            if (fkm.isDragging || fkm.isResizing) {
+                outInsets.touchableInsets = InputMethodService.Insets.TOUCHABLE_INSETS_FRAME
+            } else {
+                outInsets.touchableInsets = InputMethodService.Insets.TOUCHABLE_INSETS_REGION
+                val floatingRect = fkm.getFloatingTouchableRect()
+                if (floatingRect != null && !floatingRect.isEmpty) {
+                    outInsets.touchableRegion.set(floatingRect)
+
+                    if (keyboardSwitcher.isShowingPopupKeysPanel) {
+                        val placer = keyboardSwitcher.mainKeyboardView?.drawingPreviewPlacerView
+                        if (placer != null) {
+                            for (i in 0 until placer.childCount) {
+                                val child = placer.getChildAt(i)
+                                if (child.isShown && child.visibility == View.VISIBLE) {
+                                    val loc = IntArray(2)
+                                    child.getLocationInWindow(loc)
+                                    val popupRect = Rect(loc[0], loc[1], loc[0] + child.width, loc[1] + child.height)
+                                    outInsets.touchableRegion.op(popupRect, Region.Op.UNION)
+                                }
+                            }
+                        }
+                        val emojiPlacer = keyboardSwitcher.emojiPalettesView?.getCurrentPageKeyboardView()?.popupKeysPlacerView
+                        if (emojiPlacer != null) {
+                            for (i in 0 until emojiPlacer.childCount) {
+                                val child = emojiPlacer.getChildAt(i)
+                                if (child.isShown && child.visibility == View.VISIBLE) {
+                                    val loc = IntArray(2)
+                                    child.getLocationInWindow(loc)
+                                    val popupRect = Rect(loc[0], loc[1], loc[0] + child.width, loc[1] + child.height)
+                                    outInsets.touchableRegion.op(popupRect, Region.Op.UNION)
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    outInsets.touchableRegion.setEmpty()
+                }
+            }
+            insetsUpdater?.setInsets(outInsets)
+            return
+        }
         
         if (keyboardSwitcher.isOcrCameraShowing) {
             val inputWidth = view.width
@@ -947,6 +991,7 @@ class LatinIME : InputMethodService(),
     }
 
     override fun onEvaluateFullscreenMode(): Boolean {
+        if (floatingKeyboardManager?.isFloating == true) return false
         if (isImeSuppressedByHardwareKeyboard() || settings.current.mHasHardwareKeyboard) return false
         val isFullscreenModeAllowed = Settings.readFullscreenModeAllowed(resources)
         if (super.onEvaluateFullscreenMode() && isFullscreenModeAllowed) {
@@ -1490,9 +1535,16 @@ class LatinIME : InputMethodService(),
 
     @Suppress("DEPRECATION")
     private fun setNavigationBarColor() {
+        val window = window?.window ?: return
+        if (floatingKeyboardManager?.isFloating == true) {
+            window.navigationBarColor = Color.TRANSPARENT
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                window.isNavigationBarContrastEnforced = false
+            }
+            return
+        }
         val settingsValues = settings.current
         if (!settingsValues.mCustomNavBarColor) return
-        val window = window?.window ?: return
         
         if (!originalNavBarSaved) {
             originalNavBarColor = window.navigationBarColor
@@ -1535,6 +1587,10 @@ class LatinIME : InputMethodService(),
 
     private fun workaroundForHuaweiStatusBarIssue() {
         val window = window?.window ?: return
+        if (floatingKeyboardManager?.isFloating == true) {
+            window.statusBarColor = Color.TRANSPARENT
+            return
+        }
         if (Build.VERSION.SDK_INT == Build.VERSION_CODES.S && Build.MANUFACTURER == "HUAWEI") {
             window.statusBarColor = Color.TRANSPARENT
         }
