@@ -61,7 +61,10 @@ class FloatingKeyboardManager(private val context: Context, private val latinIME
     var isResizing = false
         private set
 
-    // Touch tracking for drag & resize
+    // Multi-touch tracking for drag & resize
+    private var activeDragPointerId = MotionEvent.INVALID_POINTER_ID
+    private var activeResizePointerId = MotionEvent.INVALID_POINTER_ID
+
     private var initialTouchX = 0f
     private var initialTouchY = 0f
     private var initialTransX = 0f
@@ -75,22 +78,30 @@ class FloatingKeyboardManager(private val context: Context, private val latinIME
     private var initialResizeHeight = 0
     private var initialResizeScale = 1.0f
 
+    private var wasFloatingBeforeExtract = false
+    private val tempLocation = IntArray(2)
+
     private var headerBar: FrameLayout? = null
 
     fun getKeyboardFrame(): View? = latinIME.mInputView?.findViewById(R.id.main_keyboard_frame)
 
     /**
-     * Returns the bounding rectangle of the floating keyboard in window coordinates,
-     * or null if the keyboard is not currently floating.
+     * Fills [outRect] with the bounding rectangle of the floating keyboard in window coordinates,
+     * clamped to [windowWidth] and [windowHeight].
+     * Returns true if the keyboard is floating and [outRect] is non-empty, false otherwise.
      */
-    fun getFloatingTouchableRect(): Rect? {
-        val frame = getKeyboardFrame() ?: return null
-        if (!isFloating || frame.visibility != View.VISIBLE || frame.width <= 0 || frame.height <= 0) {
-            return null
+    fun getFloatingTouchableRect(outRect: Rect, windowWidth: Int, windowHeight: Int): Boolean {
+        val frame = getKeyboardFrame() ?: return false
+        if (!isFloating || !frame.isShown || frame.width <= 0 || frame.height <= 0) {
+            outRect.setEmpty()
+            return false
         }
-        val loc = IntArray(2)
-        frame.getLocationInWindow(loc)
-        return Rect(loc[0], loc[1], loc[0] + frame.width, loc[1] + frame.height)
+        frame.getLocationInWindow(tempLocation)
+        outRect.set(tempLocation[0], tempLocation[1], tempLocation[0] + frame.width, tempLocation[1] + frame.height)
+        if (windowWidth > 0 && windowHeight > 0) {
+            outRect.intersect(0, 0, windowWidth, windowHeight)
+        }
+        return !outRect.isEmpty
     }
 
     fun show() {
@@ -224,7 +235,46 @@ class FloatingKeyboardManager(private val context: Context, private val latinIME
         if (isDragging || isResizing) {
             isDragging = false
             isResizing = false
+            activeDragPointerId = MotionEvent.INVALID_POINTER_ID
+            activeResizePointerId = MotionEvent.INVALID_POINTER_ID
             latinIME.requestInsetsUpdate()
+        }
+    }
+
+    fun clampPositionToScreen() {
+        val frame = getKeyboardFrame() ?: return
+        if (!isFloating) return
+        val dm = context.resources.displayMetrics
+        val inputView = latinIME.mInputView
+        val availableWidth = inputView?.width?.takeIf { it > 0 } ?: dm.widthPixels
+        val availableHeight = inputView?.height?.takeIf { it > 0 } ?: dm.heightPixels
+
+        val maxX = (availableWidth - frame.width).coerceAtLeast(0)
+        val maxY = (availableHeight - frame.height).coerceAtLeast(0)
+
+        frame.translationX = frame.translationX.coerceIn(0f, maxX.toFloat())
+        frame.translationY = frame.translationY.coerceIn(0f, maxY.toFloat())
+
+        prefs.edit()
+            .putInt(PREF_X, frame.translationX.toInt())
+            .putInt(PREF_Y, frame.translationY.toInt())
+            .apply()
+        latinIME.requestInsetsUpdate()
+    }
+
+    fun onStartExtractMode() {
+        resetDragAndResizeState()
+        if (isFloating) {
+            wasFloatingBeforeExtract = true
+            hide(showDockedKeyboard = false)
+        }
+    }
+
+    fun onFinishExtractMode() {
+        resetDragAndResizeState()
+        if (wasFloatingBeforeExtract) {
+            wasFloatingBeforeExtract = false
+            show()
         }
     }
 
@@ -235,12 +285,11 @@ class FloatingKeyboardManager(private val context: Context, private val latinIME
     }
 
     fun destroy() {
+        resetDragAndResizeState()
         if (isFloating) {
             ResourceUtils.setFloatingKeyboardWidth(0)
             ResourceUtils.setFloatingKeyboardScale(0.0f)
             isFloating = false
-            isDragging = false
-            isResizing = false
         }
     }
 
@@ -357,8 +406,9 @@ class FloatingKeyboardManager(private val context: Context, private val latinIME
 
         resizeBtn.setOnTouchListener { _, event ->
             val frame = getKeyboardFrame() ?: return@setOnTouchListener false
-            when (event.action) {
+            when (event.actionMasked) {
                 MotionEvent.ACTION_DOWN -> {
+                    activeResizePointerId = event.getPointerId(0)
                     isResizing = true
                     initialResizeTouchX = event.rawX
                     initialResizeTouchY = event.rawY
@@ -375,33 +425,56 @@ class FloatingKeyboardManager(private val context: Context, private val latinIME
                     latinIME.requestInsetsUpdate()
                     true
                 }
+                MotionEvent.ACTION_POINTER_DOWN -> true
                 MotionEvent.ACTION_MOVE -> {
-                    val dx = (event.rawX - initialResizeTouchX).toInt()
-                    val dy = (event.rawY - initialResizeTouchY).toInt()
+                    val pointerIndex = event.findPointerIndex(activeResizePointerId)
+                    if (pointerIndex != -1) {
+                        val currentRawX = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) event.getRawX(pointerIndex) else event.rawX
+                        val currentRawY = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) event.getRawY(pointerIndex) else event.rawY
+                        val dx = (currentRawX - initialResizeTouchX).toInt()
+                        val dy = (currentRawY - initialResizeTouchY).toInt()
 
-                    val targetWidth = (initialResizeWidth - dx).coerceIn(minWidth, maxWidth)
-                    val targetHeight = (initialResizeHeight - dy).coerceIn(minHeight, maxHeight)
+                        val targetWidth = (initialResizeWidth - dx).coerceIn(minWidth, maxWidth)
+                        val targetHeight = (initialResizeHeight - dy).coerceIn(minHeight, maxHeight)
 
-                    val effectiveDx = initialResizeWidth - targetWidth
-                    val effectiveDy = initialResizeHeight - targetHeight
+                        val effectiveDx = initialResizeWidth - targetWidth
+                        val effectiveDy = initialResizeHeight - targetHeight
 
-                    val inputView = latinIME.mInputView
-                    val maxW = ((inputView?.width ?: dm.widthPixels) - targetWidth).coerceAtLeast(0)
-                    val maxH = ((inputView?.height ?: dm.heightPixels) - targetHeight).coerceAtLeast(0)
+                        val inputView = latinIME.mInputView
+                        val maxW = ((inputView?.width ?: dm.widthPixels) - targetWidth).coerceAtLeast(0)
+                        val maxH = ((inputView?.height ?: dm.heightPixels) - targetHeight).coerceAtLeast(0)
 
-                    val newX = (initialResizeTransX - effectiveDx).coerceIn(0f, maxW.toFloat())
-                    val newY = (initialResizeTransY - effectiveDy).coerceIn(0f, maxH.toFloat())
+                        val newX = (initialResizeTransX - effectiveDx).coerceIn(0f, maxW.toFloat())
+                        val newY = (initialResizeTransY - effectiveDy).coerceIn(0f, maxH.toFloat())
 
-                    frame.translationX = newX
-                    frame.translationY = newY
+                        frame.translationX = newX
+                        frame.translationY = newY
 
-                    val lp = frame.layoutParams
-                    lp.width = targetWidth
-                    frame.layoutParams = lp
+                        val lp = frame.layoutParams
+                        lp.width = targetWidth
+                        frame.layoutParams = lp
+                    }
+                    true
+                }
+                MotionEvent.ACTION_POINTER_UP -> {
+                    val pointerIndex = event.actionIndex
+                    if (event.getPointerId(pointerIndex) == activeResizePointerId) {
+                        val newIndex = if (pointerIndex == 0) 1 else 0
+                        if (newIndex < event.pointerCount) {
+                            activeResizePointerId = event.getPointerId(newIndex)
+                            initialResizeTouchX = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) event.getRawX(newIndex) else event.rawX
+                            initialResizeTouchY = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) event.getRawY(newIndex) else event.rawY
+                            initialResizeTransX = frame.translationX
+                            initialResizeTransY = frame.translationY
+                            initialResizeWidth = frame.width.takeIf { it > 0 } ?: ResourceUtils.getFloatingKeyboardWidth()
+                            initialResizeHeight = frame.height
+                        }
+                    }
                     true
                 }
                 MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
                     isResizing = false
+                    activeResizePointerId = MotionEvent.INVALID_POINTER_ID
                     paint.color = (textColor and 0x00FFFFFF) or defaultAlpha
                     paint.strokeWidth = 3.5f * density
                     resizeBg.setColor(defaultBgColor)
@@ -432,8 +505,9 @@ class FloatingKeyboardManager(private val context: Context, private val latinIME
         // Drag listener on the entire header bar
         headerBar.setOnTouchListener { _, event ->
             val frame = getKeyboardFrame() ?: return@setOnTouchListener false
-            when (event.action) {
+            when (event.actionMasked) {
                 MotionEvent.ACTION_DOWN -> {
+                    activeDragPointerId = event.getPointerId(0)
                     isDragging = true
                     initialTouchX = event.rawX
                     initialTouchY = event.rawY
@@ -443,23 +517,44 @@ class FloatingKeyboardManager(private val context: Context, private val latinIME
                     latinIME.requestInsetsUpdate()
                     true
                 }
+                MotionEvent.ACTION_POINTER_DOWN -> true
                 MotionEvent.ACTION_MOVE -> {
-                    val dx = event.rawX - initialTouchX
-                    val dy = event.rawY - initialTouchY
+                    val pointerIndex = event.findPointerIndex(activeDragPointerId)
+                    if (pointerIndex != -1) {
+                        val currentRawX = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) event.getRawX(pointerIndex) else event.rawX
+                        val currentRawY = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) event.getRawY(pointerIndex) else event.rawY
+                        val dx = currentRawX - initialTouchX
+                        val dy = currentRawY - initialTouchY
 
-                    val inputView = latinIME.mInputView
-                    val maxW = ((inputView?.width ?: dm.widthPixels) - frame.width).coerceAtLeast(0)
-                    val maxH = ((inputView?.height ?: dm.heightPixels) - frame.height).coerceAtLeast(0)
+                        val inputView = latinIME.mInputView
+                        val maxW = ((inputView?.width ?: dm.widthPixels) - frame.width).coerceAtLeast(0)
+                        val maxH = ((inputView?.height ?: dm.heightPixels) - frame.height).coerceAtLeast(0)
 
-                    val newX = (initialTransX + dx).coerceIn(0f, maxW.toFloat())
-                    val newY = (initialTransY + dy).coerceIn(0f, maxH.toFloat())
+                        val newX = (initialTransX + dx).coerceIn(0f, maxW.toFloat())
+                        val newY = (initialTransY + dy).coerceIn(0f, maxH.toFloat())
 
-                    frame.translationX = newX
-                    frame.translationY = newY
+                        frame.translationX = newX
+                        frame.translationY = newY
+                    }
+                    true
+                }
+                MotionEvent.ACTION_POINTER_UP -> {
+                    val pointerIndex = event.actionIndex
+                    if (event.getPointerId(pointerIndex) == activeDragPointerId) {
+                        val newIndex = if (pointerIndex == 0) 1 else 0
+                        if (newIndex < event.pointerCount) {
+                            activeDragPointerId = event.getPointerId(newIndex)
+                            initialTouchX = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) event.getRawX(newIndex) else event.rawX
+                            initialTouchY = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) event.getRawY(newIndex) else event.rawY
+                            initialTransX = frame.translationX
+                            initialTransY = frame.translationY
+                        }
+                    }
                     true
                 }
                 MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
                     isDragging = false
+                    activeDragPointerId = MotionEvent.INVALID_POINTER_ID
                     dragHandleBg.setColor(defaultPillColor)
                     prefs.edit()
                         .putInt(PREF_X, frame.translationX.toInt())

@@ -94,6 +94,11 @@ class InputView @JvmOverloads constructor(
         post { requestApplyInsets() }
     }
 
+    override fun onDetachedFromWindow() {
+        super.onDetachedFromWindow()
+        LatinIME.getInstance()?.floatingKeyboardManager?.resetDragAndResizeState()
+    }
+
     fun setKeyboardTopPadding(keyboardTopPadding: Int) {
         mKeyboardTopPaddingForwarder?.setKeyboardTopPadding(keyboardTopPadding)
     }

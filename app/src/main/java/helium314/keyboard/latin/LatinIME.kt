@@ -178,6 +178,9 @@ class LatinIME : InputMethodService(),
     private val otpSuggestionManager = OtpSuggestionManager(this)
     private val mathSuggestionManager = MathSuggestionManager(this)
     var floatingKeyboardManager: FloatingKeyboardManager? = null
+    private val mTempLocation = IntArray(2)
+    private val mTempRect = Rect()
+    private val mFloatingTouchableRect = Rect()
     @Volatile var isCursorGestureActive = false
 
     private var voicePluginManager: VoicePluginManager? = null
@@ -427,6 +430,8 @@ class LatinIME : InputMethodService(),
         
         keyboardSwitcher.updateKeyboardTheme(getDisplayContext())
         keyboardSwitcher.onConfigurationChanged(conf)
+        floatingKeyboardManager?.resetDragAndResizeState()
+        floatingKeyboardManager?.clampPositionToScreen()
         setNavigationBarColor()
     }
 
@@ -843,13 +848,37 @@ class LatinIME : InputMethodService(),
         setSuggestedWords(suggestedWords)
     }
 
+    private fun addVisibleChildWindowRects(parentView: ViewGroup?, outRegion: Region, windowWidth: Int, windowHeight: Int) {
+        if (parentView == null || !parentView.isShown) return
+        val count = parentView.childCount
+        for (i in 0 until count) {
+            val child = parentView.getChildAt(i) ?: continue
+            if (child.isShown && child.width > 0 && child.height > 0) {
+                child.getLocationInWindow(mTempLocation)
+                mTempRect.set(
+                    mTempLocation[0],
+                    mTempLocation[1],
+                    mTempLocation[0] + child.width,
+                    mTempLocation[1] + child.height
+                )
+                if (windowWidth > 0 && windowHeight > 0) {
+                    mTempRect.intersect(0, 0, windowWidth, windowHeight)
+                }
+                if (!mTempRect.isEmpty) {
+                    outRegion.op(mTempRect, Region.Op.UNION)
+                }
+            }
+        }
+    }
+
     override fun onComputeInsets(outInsets: Insets) {
         super.onComputeInsets(outInsets)
         val view = inputView ?: return
 
         val fkm = floatingKeyboardManager
-        if (fkm != null && fkm.isFloating) {
+        if (fkm != null && fkm.isFloating && !isFullscreenMode) {
             val inputHeight = view.height
+            val inputWidth = view.width
             outInsets.contentTopInsets = inputHeight
             outInsets.visibleTopInsets = inputHeight
 
@@ -857,35 +886,22 @@ class LatinIME : InputMethodService(),
                 outInsets.touchableInsets = InputMethodService.Insets.TOUCHABLE_INSETS_FRAME
             } else {
                 outInsets.touchableInsets = InputMethodService.Insets.TOUCHABLE_INSETS_REGION
-                val floatingRect = fkm.getFloatingTouchableRect()
-                if (floatingRect != null && !floatingRect.isEmpty) {
-                    outInsets.touchableRegion.set(floatingRect)
+                if (fkm.getFloatingTouchableRect(mFloatingTouchableRect, inputWidth, inputHeight)) {
+                    outInsets.touchableRegion.set(mFloatingTouchableRect)
 
                     if (keyboardSwitcher.isShowingPopupKeysPanel) {
-                        val placer = keyboardSwitcher.mainKeyboardView?.drawingPreviewPlacerView
-                        if (placer != null) {
-                            for (i in 0 until placer.childCount) {
-                                val child = placer.getChildAt(i)
-                                if (child.isShown && child.visibility == View.VISIBLE) {
-                                    val loc = IntArray(2)
-                                    child.getLocationInWindow(loc)
-                                    val popupRect = Rect(loc[0], loc[1], loc[0] + child.width, loc[1] + child.height)
-                                    outInsets.touchableRegion.op(popupRect, Region.Op.UNION)
-                                }
-                            }
-                        }
-                        val emojiPlacer = keyboardSwitcher.emojiPalettesView?.getCurrentPageKeyboardView()?.popupKeysPlacerView
-                        if (emojiPlacer != null) {
-                            for (i in 0 until emojiPlacer.childCount) {
-                                val child = emojiPlacer.getChildAt(i)
-                                if (child.isShown && child.visibility == View.VISIBLE) {
-                                    val loc = IntArray(2)
-                                    child.getLocationInWindow(loc)
-                                    val popupRect = Rect(loc[0], loc[1], loc[0] + child.width, loc[1] + child.height)
-                                    outInsets.touchableRegion.op(popupRect, Region.Op.UNION)
-                                }
-                            }
-                        }
+                        addVisibleChildWindowRects(
+                            keyboardSwitcher.mainKeyboardView?.drawingPreviewPlacerView,
+                            outInsets.touchableRegion,
+                            inputWidth,
+                            inputHeight
+                        )
+                        addVisibleChildWindowRects(
+                            keyboardSwitcher.emojiPalettesView?.getCurrentPageKeyboardView()?.popupKeysPlacerView,
+                            outInsets.touchableRegion,
+                            inputWidth,
+                            inputHeight
+                        )
                     }
                 } else {
                     outInsets.touchableRegion.setEmpty()
@@ -1013,7 +1029,19 @@ class LatinIME : InputMethodService(),
 
     override fun updateFullscreenMode() {
         super.updateFullscreenMode()
+        if (isFullscreenMode) {
+            floatingKeyboardManager?.onStartExtractMode()
+        } else {
+            floatingKeyboardManager?.onFinishExtractMode()
+        }
         updateSoftInputWindowLayoutParameters(inputView)
+    }
+
+    override fun onUpdateExtractingVisibility(ei: EditorInfo) {
+        super.onUpdateExtractingVisibility(ei)
+        if (isExtractViewShown) {
+            floatingKeyboardManager?.onStartExtractMode()
+        }
     }
 
     @RequiresApi(Build.VERSION_CODES.R)
