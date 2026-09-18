@@ -72,11 +72,11 @@ import java.net.HttpURLConnection
 import java.net.URL
 
 private val currentChangelogItems = listOf(
-    "• Web & Browser Typing Stability: Fixed contenteditable word duplication, cursor jump desyncs, and stutter syllable predictions in web fields",
-    "• Online AI Voice Input: Optional cloud-based speech-to-text supporting Groq Whisper, Gemini, and OpenAI-compatible endpoints in standard flavor",
-    "• Procedural Soft Sound Packs: Added 6 new zero-latency custom sound packs to the fallback catalog, including the restored Soft Pudding (Synth)",
-    "• Visual Shift & Caps Lock Distinction: Redesigned Shift arrow icons with distinct visual states for unshifted, shifted, and locked Caps Lock",
-    "• Immediate Clipboard Suggestions & Theme Polish: Instant copy suggestion strip, dedicated Action key corner radius slider, and bug fixes"
+    "• Hardware Keyboard Overhaul: Restored suggestions, autocorrect, and typing composition on physical keyboards; resolved NumLock bypass and dead-key crashes",
+    "• App Profiles & Quirks Engine: Added offline per-app compatibility configuration with direct commit, auto-space overrides, and per-app autocorrect toggles",
+    "• Calibrated Cursor Gestures: Eliminated cursor jumping, jitter, and overshoot during vertical swipe-up and spacebar touchpad scrolling",
+    "• Settings Overhaul: Separated Suggestions and Text Correction into distinct categories with coordinated preset sliders and fine-tuning drawers",
+    "• UI Polish & Stability: Polished gesture floating preview and screenshot suggestions, unified voice routing, and fixed non-English dictionary crash"
 )
 
 @Composable

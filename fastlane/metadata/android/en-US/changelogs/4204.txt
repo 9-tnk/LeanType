@@ -1,0 +1,5 @@
+- Hardware Keyboard Overhaul: Fixed suggestions with physical keyboards, resolved NumLock composition bypass, numpad keys, and dead-key crashes.
+- App Profiles: Added offline per-app compatibility configuration (direct commits, auto-space, per-app auto-correct toggle).
+- Calibrated Cursor Gestures: Eliminated cursor jumping and calibrated spacebar/touchpad swipe speeds.
+- Settings Overhaul: Separated Suggestions and Correction with coordinated preset sliders and drawers.
+- UI Polish & Stability: Polished gesture preview and screenshot suggestion, unified voice routing, and fixed non-English language screen crash.
