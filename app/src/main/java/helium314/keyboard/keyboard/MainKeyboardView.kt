@@ -21,7 +21,7 @@ import helium314.keyboard.accessibility.MainKeyboardAccessibilityDelegate
 import helium314.keyboard.compat.locale
 import helium314.keyboard.keyboard.internal.*
 import helium314.keyboard.keyboard.internal.keyboard_parser.floris.KeyCode
-import helium314.keyboard.latin.FloatingKeyboardManager
+import helium314.keyboard.latin.LatinIME
 import helium314.keyboard.latin.R
 import helium314.keyboard.latin.RichInputMethodSubtype
 import helium314.keyboard.latin.SuggestedWords
@@ -61,6 +61,7 @@ class MainKeyboardView @JvmOverloads constructor(
     private val mAltCodeKeyWhileTypingFadeinAnimator: ObjectAnimator?
 
     private val mDrawingPreviewPlacerView: DrawingPreviewPlacerView
+    val drawingPreviewPlacerView: ViewGroup get() = mDrawingPreviewPlacerView
     private val mOriginCoords = CoordinateUtils.newInstance()
     private val mGestureFloatingTextDrawingPreview: GestureFloatingTextDrawingPreview
     private val mGestureTrailsDrawingPreview: GestureTrailsDrawingPreview
@@ -187,18 +188,11 @@ class MainKeyboardView @JvmOverloads constructor(
     }
 
     private fun installPreviewPlacerView() {
-        val floatingManager = KeyboardSwitcher.getInstance().floatingKeyboardManager
-        if (floatingManager != null && floatingManager.isFloating) {
-            val overlayRoot = floatingManager.overlayRoot
-            if (overlayRoot != null) {
-                (mDrawingPreviewPlacerView.parent as? ViewGroup)?.removeView(mDrawingPreviewPlacerView)
-                overlayRoot.addView(mDrawingPreviewPlacerView)
-                return
-            }
-        }
         val rootView = rootView ?: return
         val windowContentView = rootView.findViewById<ViewGroup>(android.R.id.content) ?: return
-        windowContentView.addView(mDrawingPreviewPlacerView)
+        if (mDrawingPreviewPlacerView.parent == null) {
+            windowContentView.addView(mDrawingPreviewPlacerView)
+        }
     }
 
     override fun onKeyPressed(key: Key, withPreview: Boolean) {
@@ -301,11 +295,18 @@ class MainKeyboardView @JvmOverloads constructor(
         mSlidingKeyInputDrawingPreview.dismissSlidingKeyInputPreview()
         panel.showInParent(mDrawingPreviewPlacerView)
         mPopupKeysPanel = panel
+        LatinIME.getInstance()?.requestInsetsUpdate()
     }
 
     fun isShowingPopupKeysPanel(): Boolean = mPopupKeysPanel?.isShowingInParent == true
     override fun onCancelPopupKeysPanel() { PointerTracker.dismissAllPopupKeysPanels() }
-    override fun onDismissPopupKeysPanel() { if (isShowingPopupKeysPanel()) { mPopupKeysPanel?.removeFromParent(); mPopupKeysPanel = null } }
+    override fun onDismissPopupKeysPanel() {
+        if (isShowingPopupKeysPanel()) {
+            mPopupKeysPanel?.removeFromParent()
+            mPopupKeysPanel = null
+            LatinIME.getInstance()?.requestInsetsUpdate()
+        }
+    }
 
     fun startDoubleTapShiftKeyTimer() { mTimerHandler.startDoubleTapShiftKeyTimer() }
     fun cancelDoubleTapShiftKeyTimer() { mTimerHandler.cancelDoubleTapShiftKeyTimer() }

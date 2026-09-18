@@ -51,6 +51,18 @@ class InputView @JvmOverloads constructor(
 
     fun updateBottomPadding() {
         val mainKeyboardFrame = findViewById<View>(R.id.main_keyboard_frame) ?: return
+        if (LatinIME.getInstance()?.floatingKeyboardManager?.isFloating == true) {
+            if (mainKeyboardFrame.paddingBottom != 0) {
+                mainKeyboardFrame.setPadding(
+                    mainKeyboardFrame.paddingLeft,
+                    mainKeyboardFrame.paddingTop,
+                    mainKeyboardFrame.paddingRight,
+                    0
+                )
+                requestLayout()
+            }
+            return
+        }
         val wrapper = findViewById<View>(R.id.keyboard_view_wrapper)
         val showToolbarOnly = wrapper?.visibility != View.VISIBLE
         val bottomPadding = if (showToolbarOnly) mNavBarBottomInsets else 0
@@ -96,6 +108,9 @@ class InputView @JvmOverloads constructor(
     }
 
     override fun onInterceptTouchEvent(me: MotionEvent): Boolean {
+        if (LatinIME.getInstance()?.floatingKeyboardManager?.isFloating == true) {
+            return false
+        }
         val rect = mInputViewRect
         getGlobalVisibleRect(rect)
         val index = me.actionIndex

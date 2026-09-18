@@ -30,11 +30,14 @@ class InsetsOutlineProvider(private val mView: View) : ViewOutlineProvider() {
     }
 
     override fun getOutline(view: View, outline: Outline) {
+        if (helium314.keyboard.latin.LatinIME.getInstance()?.floatingKeyboardManager?.isFloating == true) {
+            outline.setEmpty()
+            return
+        }
         if (mLastVisibleTopInsets == NO_DATA) { // Call default implementation.
             BACKGROUND.getOutline(view, outline)
             return
         }
-        // TODO: Revisit this when floating/resize keyboard is supported.
         outline.setRect(view.left, mLastVisibleTopInsets, view.right, view.bottom)
     }
 

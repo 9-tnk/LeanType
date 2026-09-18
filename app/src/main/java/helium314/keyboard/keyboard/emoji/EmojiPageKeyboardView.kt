@@ -34,6 +34,7 @@ import helium314.keyboard.keyboard.PopupKeysKeyboard
 import helium314.keyboard.keyboard.PopupKeysKeyboardView
 import helium314.keyboard.keyboard.PopupKeysPanel
 import helium314.keyboard.keyboard.PopupTextView
+import helium314.keyboard.latin.LatinIME
 import helium314.keyboard.latin.R
 import helium314.keyboard.latin.common.ColorType
 import helium314.keyboard.latin.common.CoordinateUtils
@@ -71,6 +72,7 @@ class EmojiPageKeyboardView @JvmOverloads constructor(
     private val mPopupKeysKeyboardCache = WeakHashMap<Key, Keyboard>()
     private val mConfigShowPopupKeysKeyboardAtTouchedPoint: Boolean
     private val mPopupKeysPlacerView: ViewGroup
+    val popupKeysPlacerView: ViewGroup get() = mPopupKeysPlacerView
     // More keys panel (used by popup keys keyboard view)
     private var mPopupKeysPanel: PopupKeysPanel? = null
 
@@ -115,29 +117,12 @@ class EmojiPageKeyboardView @JvmOverloads constructor(
     }
 
     private fun installPopupKeysPlacerView(uninstall: Boolean) {
-        val floatingManager = KeyboardSwitcher.getInstance()?.floatingKeyboardManager
-        if (!uninstall && floatingManager?.isFloating == true) {
-            val overlayRoot = floatingManager.overlayRoot
-            if (overlayRoot != null) {
-                (mPopupKeysPlacerView.parent as? ViewGroup)?.removeView(mPopupKeysPlacerView)
-                overlayRoot.addView(mPopupKeysPlacerView)
-                return
-            }
-        }
-        val rootView = rootView
-        if (rootView == null) {
-            Log.w(TAG, "Cannot find root view")
-            return
-        }
-        val windowContentView = rootView.findViewById<ViewGroup>(android.R.id.content)
-        if (windowContentView == null) {
-            Log.w(TAG, "Cannot find android.R.id.content view to add DrawingPreviewPlacerView")
-            return
-        }
+        val rootView = rootView ?: return
+        val windowContentView = rootView.findViewById<ViewGroup>(android.R.id.content) ?: return
 
         if (uninstall) {
             windowContentView.removeView(mPopupKeysPlacerView)
-        } else {
+        } else if (mPopupKeysPlacerView.parent == null) {
             windowContentView.addView(mPopupKeysPlacerView)
         }
     }
@@ -279,6 +264,7 @@ class EmojiPageKeyboardView @JvmOverloads constructor(
         installPopupKeysPlacerView(false)
         panel.showInParent(mPopupKeysPlacerView)
         mPopupKeysPanel = panel
+        LatinIME.getInstance()?.requestInsetsUpdate()
     }
 
     override fun onDismissPopupKeysPanel() {
@@ -286,6 +272,7 @@ class EmojiPageKeyboardView @JvmOverloads constructor(
             mPopupKeysPanel?.removeFromParent()
             mPopupKeysPanel = null
             installPopupKeysPlacerView(true)
+            LatinIME.getInstance()?.requestInsetsUpdate()
         }
     }
 
