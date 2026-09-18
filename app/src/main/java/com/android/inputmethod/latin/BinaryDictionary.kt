@@ -16,6 +16,7 @@ import helium314.keyboard.latin.common.ComposedData
 import helium314.keyboard.latin.common.Constants
 import helium314.keyboard.latin.common.FileUtils
 import helium314.keyboard.latin.common.StringUtils
+import helium314.keyboard.latin.BuildConfig
 import helium314.keyboard.latin.define.DebugFlags
 import helium314.keyboard.latin.dictionary.Dictionary
 import helium314.keyboard.latin.makedict.DictionaryHeader
@@ -250,7 +251,7 @@ class BinaryDictionary : Dictionary {
         inOutWeightOfLangModelVsSpatialModel?.let { it[0] = session.mInputOutputWeightOfLangModelVsSpatialModel[0] }
 
         val count = session.mOutputSuggestionCount[0]
-        if (DebugFlags.DEBUG_ENABLED && composedData.mTypedWord.isEmpty()) {
+        if (BuildConfig.DEBUG && DebugFlags.SCORE_AUDIT && composedData.mTypedWord.isEmpty()) {
             Log.i("ScoreAudit", "BinaryDict.getSuggestions type=$mDictType outputCount=$count prevWordCount=${ngramContext.prevWordCount} isBOS=${ngramContext.isBeginningOfSentenceContext}")
         }
         val suggestions = ArrayList<SuggestedWordInfo>()
