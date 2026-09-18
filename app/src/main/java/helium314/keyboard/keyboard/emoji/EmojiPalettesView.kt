@@ -18,6 +18,7 @@ import android.text.TextWatcher
 import android.util.AttributeSet
 import android.util.Log
 import android.util.TypedValue
+import android.view.KeyEvent
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -88,6 +89,8 @@ class EmojiPalettesView @JvmOverloads constructor(
     private inner class PagerAdapter(private val pager: ViewPager2) : RecyclerView.Adapter<PagerViewHolder>() {
         private var mInitialized = false
         private val mViews = HashMap<Int, RecyclerView>(mEmojiCategory.getShownCategories().size)
+
+        fun getRecyclerViewForPosition(pos: Int): RecyclerView? = mViews[pos]
 
         init {
             setHasStableIds(true)
@@ -185,6 +188,7 @@ class EmojiPalettesView @JvmOverloads constructor(
     private var mKeyboardActionListener: KeyboardActionListener = KeyboardActionListener.EMPTY_LISTENER
     private val mEmojiCategory: EmojiCategory
     private var mPager: ViewPager2? = null
+    private var mPagerAdapter: PagerAdapter? = null
 
     private var mSearchContainer: LinearLayout? = null
     private var mSearchResultsList: RecyclerView? = null
@@ -248,7 +252,7 @@ class EmojiPalettesView @JvmOverloads constructor(
 
         val pager: ViewPager2 = findViewById(R.id.emoji_pager)
         mPager = pager
-        pager.adapter = PagerAdapter(pager)
+        mPagerAdapter = PagerAdapter(pager).also { pager.adapter = it }
         mEmojiLayoutParams.setEmojiListProperties(pager)
         val indicatorView: EmojiCategoryPageIndicatorView = findViewById(R.id.emoji_category_page_id_view)
         mEmojiCategoryPageIndicatorView = indicatorView
@@ -1117,6 +1121,150 @@ class EmojiPalettesView @JvmOverloads constructor(
                 }
             }
         }
+    }
+
+    fun getCurrentPageKeyboardView(): EmojiPageKeyboardView? {
+        val pager = mPager ?: return null
+        val currentCatPos = pager.currentItem
+        val recyclerView = mPagerAdapter?.getRecyclerViewForPosition(currentCatPos) ?: return null
+        val layoutManager = recyclerView.layoutManager as? LinearLayoutManager ?: return null
+        val firstPos = layoutManager.findFirstCompletelyVisibleItemPosition().takeIf { it >= 0 }
+            ?: layoutManager.findFirstVisibleItemPosition().takeIf { it >= 0 }
+            ?: 0
+        val holder = recyclerView.findViewHolderForAdapterPosition(firstPos) as? EmojiPalettesAdapter.ViewHolder
+        if (holder != null) return holder.getKeyboardView()
+        for (i in 0 until recyclerView.childCount) {
+            val child = recyclerView.getChildAt(i)
+            if (child is EmojiPageKeyboardView) return child
+        }
+        return null
+    }
+
+    fun selectNextCategory() {
+        val categories = mEmojiCategory.getShownCategories()
+        val curId = mEmojiCategory.getCurrentCategoryId()
+        val idx = categories.indexOfFirst { it.mCategoryId == curId }
+        val nextIdx = if (idx >= 0) (idx + 1) % categories.size else 0
+        setCurrentCategoryId(categories[nextIdx].mCategoryId, false)
+        updateEmojiCategoryPageIdView()
+    }
+
+    fun selectPreviousCategory() {
+        val categories = mEmojiCategory.getShownCategories()
+        val curId = mEmojiCategory.getCurrentCategoryId()
+        val idx = categories.indexOfFirst { it.mCategoryId == curId }
+        val prevIdx = if (idx > 0) idx - 1 else categories.size - 1
+        setCurrentCategoryId(categories[prevIdx].mCategoryId, false)
+        updateEmojiCategoryPageIdView()
+    }
+
+    fun onHardwareKeyEvent(keyCode: Int, keyEvent: KeyEvent): Boolean {
+        if (mInSearchMode) {
+            when (keyCode) {
+                KeyEvent.KEYCODE_ESCAPE -> {
+                    stopSearchMode(false)
+                    return true
+                }
+                KeyEvent.KEYCODE_ENTER, KeyEvent.KEYCODE_DPAD_CENTER -> {
+                    val first = mSearchAdapter?.getFirstEmoji()
+                    if (first != null) {
+                        mKeyboardActionListener.onTextInput(first)
+                        addRecentKey(first)
+                        stopSearchMode(returnToKeyboard = Settings.getValues().mAlphaAfterEmojiInEmojiView)
+                        return true
+                    }
+                    stopSearchMode(false)
+                    return true
+                }
+                KeyEvent.KEYCODE_DEL -> {
+                    val text = mSearchBar?.text
+                    if (text != null && text.isNotEmpty()) {
+                        text.delete(text.length - 1, text.length)
+                        return true
+                    } else {
+                        stopSearchMode(false)
+                        return true
+                    }
+                }
+                else -> {
+                    if (keyEvent.isPrintingKey && keyEvent.unicodeChar != 0) {
+                        mSearchBar?.text?.append(keyEvent.unicodeChar.toChar())
+                        return true
+                    }
+                }
+            }
+            return false
+        }
+
+        when (keyCode) {
+            KeyEvent.KEYCODE_ESCAPE -> {
+                KeyboardSwitcher.getInstance().onToggleKeyboard(KeyboardSwitcher.KeyboardSwitchState.EMOJI)
+                return true
+            }
+            KeyEvent.KEYCODE_SLASH -> {
+                startSearchMode()
+                return true
+            }
+            KeyEvent.KEYCODE_TAB -> {
+                if (keyEvent.isShiftPressed) selectPreviousCategory() else selectNextCategory()
+                return true
+            }
+            KeyEvent.KEYCODE_PAGE_UP -> {
+                selectPreviousCategory()
+                return true
+            }
+            KeyEvent.KEYCODE_PAGE_DOWN -> {
+                selectNextCategory()
+                return true
+            }
+            KeyEvent.KEYCODE_DPAD_LEFT -> {
+                if (keyEvent.isCtrlPressed) {
+                    selectPreviousCategory()
+                    return true
+                }
+                return getCurrentPageKeyboardView()?.moveFocus(-1, 0) ?: false
+            }
+            KeyEvent.KEYCODE_DPAD_RIGHT -> {
+                if (keyEvent.isCtrlPressed) {
+                    selectNextCategory()
+                    return true
+                }
+                return getCurrentPageKeyboardView()?.moveFocus(1, 0) ?: false
+            }
+            KeyEvent.KEYCODE_DPAD_UP -> {
+                return getCurrentPageKeyboardView()?.moveFocus(0, -1) ?: false
+            }
+            KeyEvent.KEYCODE_DPAD_DOWN -> {
+                return getCurrentPageKeyboardView()?.moveFocus(0, 1) ?: false
+            }
+            KeyEvent.KEYCODE_ENTER, KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_SPACE -> {
+                val committed = getCurrentPageKeyboardView()?.commitFocusedKey() ?: false
+                if (committed) {
+                    if (Settings.getValues().mAlphaAfterEmojiInEmojiView) {
+                        KeyboardSwitcher.getInstance().onToggleKeyboard(KeyboardSwitcher.KeyboardSwitchState.EMOJI)
+                    }
+                    return true
+                }
+                return false
+            }
+            else -> {
+                if (keyCode in KeyEvent.KEYCODE_1..KeyEvent.KEYCODE_9) {
+                    val categoryIdx = keyCode - KeyEvent.KEYCODE_1
+                    val categories = mEmojiCategory.getShownCategories()
+                    if (categoryIdx in categories.indices) {
+                        setCurrentCategoryId(categories[categoryIdx].mCategoryId, false)
+                        updateEmojiCategoryPageIdView()
+                        return true
+                    }
+                }
+                if (keyEvent.isPrintingKey && (keyEvent.unicodeChar in 'a'.code..'z'.code || keyEvent.unicodeChar in 'A'.code..'Z'.code)) {
+                    startSearchMode()
+                    mSearchBar?.text?.append(keyEvent.unicodeChar.toChar())
+                    return true
+                }
+            }
+        }
+        return false
     }
 
     companion object {

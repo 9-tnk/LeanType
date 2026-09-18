@@ -8,9 +8,11 @@ package helium314.keyboard.keyboard.emoji
 
 import android.annotation.SuppressLint
 import android.content.Context
+import android.graphics.Canvas
 import android.graphics.Paint
 import android.graphics.PorterDuff
 import android.graphics.PorterDuffXfermode
+import android.graphics.RectF
 import android.os.Handler
 import android.os.Looper
 import android.util.AttributeSet
@@ -33,6 +35,7 @@ import helium314.keyboard.keyboard.PopupKeysKeyboardView
 import helium314.keyboard.keyboard.PopupKeysPanel
 import helium314.keyboard.keyboard.PopupTextView
 import helium314.keyboard.latin.R
+import helium314.keyboard.latin.common.ColorType
 import helium314.keyboard.latin.common.CoordinateUtils
 import helium314.keyboard.latin.settings.Settings
 import helium314.keyboard.latin.utils.Log
@@ -143,7 +146,86 @@ class EmojiPageKeyboardView @JvmOverloads constructor(
         mEmojiViewCallback = emojiViewCallback ?: EMPTY_EMOJI_VIEW_CALLBACK
     }
 
+    private var mFocusedKeyIndex = -1
+    private val mFocusPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.STROKE
+        strokeWidth = 6f
+    }
+
+    override fun onDraw(canvas: Canvas) {
+        super.onDraw(canvas)
+        val keys = keyboard?.sortedKeys ?: return
+        if (mFocusedKeyIndex in keys.indices) {
+            val key = keys[mFocusedKeyIndex]
+            val keyDrawX = key.drawX + paddingLeft
+            val keyDrawY = key.y + paddingTop
+            val strokePadding = 4f
+            val rect = RectF(
+                keyDrawX + strokePadding,
+                keyDrawY + strokePadding,
+                keyDrawX + key.width - strokePadding,
+                keyDrawY + key.height - strokePadding
+            )
+            mFocusPaint.color = Settings.getValues().mColors.get(ColorType.EMOJI_CATEGORY_SELECTED)
+            canvas.drawRoundRect(rect, 12f, 12f, mFocusPaint)
+        }
+    }
+
+    fun moveFocus(dx: Int, dy: Int): Boolean {
+        val keys = keyboard?.sortedKeys ?: return false
+        if (keys.isEmpty()) return false
+        if (mFocusedKeyIndex !in keys.indices) {
+            mFocusedKeyIndex = 0
+            invalidate()
+            return true
+        }
+        if (dx != 0) {
+            val newIndex = (mFocusedKeyIndex + dx).coerceIn(0, keys.size - 1)
+            if (newIndex != mFocusedKeyIndex) {
+                mFocusedKeyIndex = newIndex
+                invalidate()
+                return true
+            }
+        }
+        if (dy != 0) {
+            val currentKey = keys[mFocusedKeyIndex]
+            val targetY = if (dy > 0) {
+                keys.filter { it.y > currentKey.y }.minOfOrNull { it.y }
+            } else {
+                keys.filter { it.y < currentKey.y }.maxOfOrNull { it.y }
+            }
+            if (targetY != null) {
+                val rowKeys = keys.filter { it.y == targetY }
+                val closest = rowKeys.minByOrNull { kotlin.math.abs((it.x + it.width / 2) - (currentKey.x + currentKey.width / 2)) }
+                if (closest != null) {
+                    mFocusedKeyIndex = keys.indexOf(closest)
+                    invalidate()
+                    return true
+                }
+            }
+        }
+        return false
+    }
+
+    fun commitFocusedKey(): Boolean {
+        val keys = keyboard?.sortedKeys ?: return false
+        if (mFocusedKeyIndex in keys.indices) {
+            val key = keys[mFocusedKeyIndex]
+            callListenerOnReleaseKey(key, true)
+            return true
+        }
+        return false
+    }
+
+    fun clearKeyFocus() {
+        if (mFocusedKeyIndex != -1) {
+            mFocusedKeyIndex = -1
+            invalidate()
+        }
+    }
+
     override fun setKeyboard(keyboard: Keyboard) {
+        clearKeyFocus()
         super.setKeyboard(keyboard)
         mKeyDetector.setKeyboard(keyboard, 0f, 0f)
         mPopupKeysKeyboardCache.clear()

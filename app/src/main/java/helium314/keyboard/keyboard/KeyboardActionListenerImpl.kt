@@ -96,6 +96,14 @@ class KeyboardActionListenerImpl(private val latinIME: LatinIME, private val inp
         if (!ProductionFlags.IS_HARDWARE_KEYBOARD_SUPPORTED)
             return false
 
+        if (keyboardSwitcher.isShowingEmojiPalettes) {
+            val emojiPalettesView = keyboardSwitcher.emojiPalettesView
+            if (emojiPalettesView != null && emojiPalettesView.onHardwareKeyEvent(keyCode, keyEvent)) {
+                mConsumedPhysicalKeys.add(keyCode)
+                return true
+            }
+        }
+
         if (isUnhandledNavigationKey(keyCode) && inputLogic.isComposingWord) {
             inputLogic.commitTyped(settings.current, LastComposedWord.NOT_A_SEPARATOR)
         }

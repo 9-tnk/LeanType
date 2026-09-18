@@ -19,6 +19,12 @@ class EmojiSearchAdapter(
         notifyDataSetChanged()
     }
 
+    fun getFirstEmoji(): String? = emojis.firstOrNull()
+
+    fun getEmoji(position: Int): String? = emojis.getOrNull(position)
+
+    fun getEmojiCount(): Int = emojis.size
+
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
         // We can reuse emoji_key_view or just a simple text view.
         // Let's use a simple TextView with appropriate styling.
