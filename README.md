@@ -47,20 +47,24 @@
 
 ## 📦 Flavor Comparison
 
-LeanType is available in **3 distinct flavors** designed to match your exact privacy preferences, hardware specifications, and feature requirements:
+LeanType is available in flavors designed to match your exact privacy preferences, hardware specifications, and feature requirements:
 
-| Feature / Capability | 🌟 Standard Full<br>`-standardfull-release.apk` | 🌿 Standard (FOSS)<br>`-standard-release.apk` | 🛡️ Offline<br>`-offline-release.apk` |
+> [!IMPORTANT]
+> **Flavor Transition Notice (v4.2.6 Merger)**:  
+> Starting in **v4.2.6**, `standardfull` will be merged into `standard`. In preparation, both flavors now share a unified release viewing mechanism and have zero `REQUEST_INSTALL_PACKAGES` permission overhead. Users currently using `standardfull` can update directly to `standard` with full data and settings compatibility.
+
+| Feature / Capability | 🌿 Standard (Recommended)<br>`-standard-release.apk` | 🌟 Standard Full (Merging in v4.2.6)<br>`-standardfull-release.apk` | 🛡️ Offline<br>`-offline-release.apk` |
 | :--- | :---: | :---: | :---: |
-| **Target Audience** | **Recommended** for full feature set | F-Droid / 100% Pure FOSS users | Privacy purists & Offline users |
+| **Target Audience** | **Recommended** (F-Droid & Direct users) | Transitioning users | Privacy purists & Offline users |
 | **Cloud AI** *(Gemini, Groq, OpenAI)* | ✅ Yes | ✅ Yes | ❌ No |
 | **Offline AI** *(Local GGUF via llama.cpp)* | ❌ No | ❌ No | ✅ **Yes** *(Android 8.0+ via plugin)* |
 | **Translation** *(Offline & AI)* | ✅ **Yes** *(Plugin or AI)* | ✅ **Yes** *(Plugin or AI)* | ✅ **Yes** *(via Plugin)* |
 | **Voice Typing** *(On-device Whisper)* | ✅ **Yes** *(via plugin)* | ✅ **Yes** *(via plugin)* | ✅ **Yes** *(via plugin)* |
 | **Handwriting Input** | ✅ **Yes** *(via plugin)* | ✅ **Yes** *(via plugin)* | ✅ **Yes** *(via plugin)* |
 | **OCR Text Extraction** *(Camera & Screenshots)* | ✅ **Yes** *(via plugin)* | ✅ **Yes** *(via plugin)* | ✅ **Yes** *(via plugin)* |
-| **In-App Self-Updater** | ✅ **Yes** *(GitHub Releases)* | ❌ No *(F-Droid managed)* | ❌ No |
+| **Release Update Checker** | ✅ **Yes** *(GitHub Releases / View Release)* | ✅ **Yes** *(GitHub Releases / View Release)* | ❌ No |
 | **Plugins & Models Setup** | In-app download or File import | In-app download or File import | Browser download + File import |
-| **Internet Permission** | 🌐 Optional *(Cloud AI/Updates)* | 🌐 Optional *(Cloud AI)* | 🚫 **None** *(OS-level blocked)* |
+| **Internet Permission** | 🌐 Optional *(Cloud AI / Updates)* | 🌐 Optional *(Cloud AI / Updates)* | 🚫 **None** *(OS-level blocked)* |
 | **Package ID** | `com.leanbitlab.leantype` | `com.leanbitlab.leantype` | `com.leanbitlab.leantype.offline` |
 | **Min Android Version** | Android 6.0+ *(SDK 23)* | Android 6.0+ *(SDK 23)* | Android 5.0+ *(SDK 21)* |
 | **Approximate APK Size** | **~10.8 MB** | **~10.8 MB** | **~9.8 MB** |
@@ -110,7 +114,7 @@ LeanType is available in **3 distinct flavors** designed to match your exact pri
 - **📚 Smart Learning & Session Boost**: Adaptive personal dictionary learning threshold (1 to 5 times) and dynamic session word boosting.
 - **🚫 Blacklist & Regex Filtering**: Filter offensive words or unwanted suggestions with custom regex pattern support.
 - **🔄 Google Dictionary Import**: Seamlessly import personal dictionary words exported from Gboard.
-- **🔄 In-App Streaming Updater**: Direct GitHub release checks and streaming APK self-updating with single-version changelogs (`standardfull` flavor).
+- **🔄 In-App Update Checker**: Direct GitHub release checks with single-version changelogs and 1-tap "View Release" redirection (`standard` & `standardfull` flavors).
 
 ---
 

@@ -30,8 +30,8 @@ LeanType combines a lightweight, privacy-focused keyboard foundation with cuttin
 | 👆 **[Gesture / Glide Typing](#19-gesture--glide-typing)** | Smooth swipe typing powered by native C++ library |
 | ⌨️ **[Direct Switch Target IME](#20-direct-switch-target-ime)** | Switch directly to a specific target keyboard with keycode `-10076` |
 | 🎨 **[Custom Layout Profiles](#21-custom-layout-profiles)** | Save up to 5 custom layout profiles with persistent slot tracking |
-| 🔄 **[In-App Streaming Self-Updater](#22-in-app-streaming-self-updater)** | Direct GitHub release checks and streaming APK installer |
-| 📦 **[Flavor Architecture & Privacy](#23-flavor-architecture--privacy)** | Breakdown of Standard Full, Standard FOSS, Offline, and Lite |
+| 🔄 **[In-App Update Checker & Release Viewer](#22-in-app-update-checker--release-viewer)** | Direct GitHub release checks and 1-tap release viewer |
+| 📦 **[Flavor Architecture & Privacy](#23-flavor-architecture--privacy)** | Breakdown of Standard, Standard Full, and Offline flavors |
 | 📷 **[Offline Camera OCR & Screenshot Extraction](#24-offline-camera-ocr--screenshot-extraction)** | In-keyboard camera viewfinder, automated screenshot extraction pill, and advanced formatting cleaners |
 | 🔢 **[Inline Math Calculation Suggestions](#25-inline-math-calculation-suggestions)** | High-precision arithmetic expression evaluator on typing `=` with 1-tap replacement |
 | 🎵 **[Custom Sound Packs & Audio Customization](#26-custom-sound-packs--audio-customization)** | Zero-latency key audio engine, 12+ built-in presets, remote repository catalog, and `.zip` imports |
@@ -66,7 +66,7 @@ LeanType combines a lightweight, privacy-focused keyboard foundation with cuttin
 | **Gesture Typing** | Swipe typing powered by native C++ spatial scoring engine. | `Gesture typing > Enable gesture typing` |
 | **Direct Switch Target IME** | Fast 1-tap switching to another configured IME using custom keycode `-10076`. | `Preferences > Direct Switch Target IME` |
 | **Custom Layout Profiles** | Store up to 5 custom keyboard layouts with persistent slot tracking. | `Languages > Custom layouts` |
-| **In-App Self-Updater** | Checks GitHub releases and streams updates directly (`standardfull` flavor). | `About > Check for updates` |
+| **In-App Update Checker** | Checks GitHub releases with changelogs and 1-tap release viewing (`standard` & `standardfull`; merging in v4.2.6). | `Settings > Updates` |
 
 ---
 
@@ -362,30 +362,35 @@ Map the custom keycode `-10076` (`SWITCH_TO_USER_IME`) to any toolbar key:
 
 ---
 
-## 22. In-App Streaming Self-Updater
+## 22. In-App Update Checker & Release Viewer
 
 > [!NOTE]
-> Available in the **Standard Full** (`-standardfull-release.apk`) build flavor.
+> Available in the **Standard** (`-standard-release.apk`) and **Standard Full** (`-standardfull-release.apk`) build flavors.
 
 - Automatically checks GitHub releases for updates in the background.
-- Streams and installs updates directly without requiring third-party app stores.
-- View single-version changelogs directly inside the update dialog.
-- Configure check frequency under **Settings → About → Check for updates**.
+- Eliminates sensitive package installation permissions (`REQUEST_INSTALL_PACKAGES`) by redirecting to official GitHub Releases for safe and verified APK updates.
+- View single-version changelogs directly inside the update screen.
+- Configure check frequency under **Settings → Updates**.
+- **Upcoming Merger**: In v4.2.6, `standardfull` is merging into `standard`, and updates point directly to the unified standard release.
 
 ---
 
 ## 23. Flavor Architecture & Privacy
  
-LeanType is published in **3 purpose-built flavors**:
+LeanType is published in purpose-built flavors to balance cloud AI capabilities and strict air-gapped offline operation:
+
+> [!IMPORTANT]
+> **Upcoming Flavor Merger (v4.2.6)**:  
+> In version **v4.2.5**, `standard` and `standardfull` have been unified to use the same permission model (zero `REQUEST_INSTALL_PACKAGES`) and release viewing mechanism. Starting in **v4.2.6**, `standardfull` will be merged completely into `standard`. Users on `standardfull` can transition directly to `standard`.
  
-| Flavor | Cloud AI | Offline AI | Voice Input | Handwriting | OCR Extraction | Translation | In-App Updates | Internet Permission | Min SDK | Approx Size |
+| Flavor | Cloud AI | Offline AI | Voice Input | Handwriting | OCR Extraction | Translation | Update Checker | Internet Permission | Min SDK | Approx Size |
 | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
-| **Standard Full** | ✅ | ❌ | ✅ *(Plugin)* | ✅ *(Plugin)* | ✅ *(Plugin)* | ✅ *(Plugin/AI)* | ✅ | 🌐 Optional *(Opt-in)* | SDK 23 (6.0+) | **~10.8 MB** |
-| **Standard (FOSS)** | ✅ | ❌ | ✅ *(Plugin)* | ✅ *(Plugin)* | ✅ *(Plugin)* | ✅ *(Plugin/AI)* | ❌ | 🌐 Optional *(Opt-in)* | SDK 23 (6.0+) | **~10.8 MB** |
+| **Standard (Recommended)** | ✅ | ❌ | ✅ *(Plugin)* | ✅ *(Plugin)* | ✅ *(Plugin)* | ✅ *(Plugin/AI)* | ✅ *(View Release)* | 🌐 Optional *(Opt-in)* | SDK 23 (6.0+) | **~10.8 MB** |
+| **Standard Full (Merging in v4.2.6)** | ✅ | ❌ | ✅ *(Plugin)* | ✅ *(Plugin)* | ✅ *(Plugin)* | ✅ *(Plugin/AI)* | ✅ *(View Release)* | 🌐 Optional *(Opt-in)* | SDK 23 (6.0+) | **~10.8 MB** |
 | **Offline** | ❌ | ✅ *(Plugin on 8.0+)* | ✅ *(Plugin)* | ✅ *(Plugin)* | ✅ *(Plugin)* | ✅ *(Plugin)* | ❌ | 🚫 **None** | SDK 21 (5.0+) | **~9.8 MB** |
 
 > [!TIP]
-> **Concurrent Installation**: The `offline` (`com.leanbitlab.leantype.offline`) build uses a unique package ID, allowing you to install it alongside `standardfull` on the same device!
+> **Concurrent Installation**: The `offline` (`com.leanbitlab.leantype.offline`) build uses a unique package ID, allowing you to install it alongside `standard` / `standardfull` on the same device!
 
 ---
 

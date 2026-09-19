@@ -19,10 +19,12 @@ As an open-source, community-funded project, we operate on a very limited budget
 
 ## 📦 Choose Your Flavor
 
-| Flavor | Primary Focus | AI Engine | Plugins Setup | Internet | Self-Updater |
+> ⚠️ **Flavor Merger Notice**: Starting in **v4.2.6**, `standardfull` will be merged into `standard`. In preparation, both flavors now share a unified release viewing mechanism with zero `REQUEST_INSTALL_PACKAGES` permission overhead. Users currently using `standardfull` can transition directly to `standard`.
+
+| Flavor | Primary Focus | AI Engine | Plugins Setup | Internet | Release Updater |
 |:---|:---|:---|:---|:---|:---|
-| **`1-LeanType_4.2.4-standardfull-release.apk`** | **Convenience (Recommended)** | Cloud AI | In-app download or File import | Optional (AI/Updates/plugins) | ✅ In-App Auto Update |
-| **`1-LeanType_4.2.4-standard-release.apk`** | **F-Droid** | Cloud AI | In-app download or File import | Optional (AI/plugins) | ❌ None |
+| **`1-LeanType_4.2.4-standard-release.apk`** | **Recommended (FOSS)** | Cloud AI | In-app download or File import | Optional (AI/plugins) | ✅ View Release |
+| **`1-LeanType_4.2.4-standardfull-release.apk`** | **Transitioning (Merging in v4.2.6)** | Cloud AI | In-app download or File import | Optional (AI/plugins) | ✅ View Release |
 | **`2-LeanType_4.2.4-offline-release.apk`** | **Offline** | Local LLM Plugin (8.0+) | Browser download + File import | 🚫 Zero Internet (No Permission) | ❌ None |
 
 > 💡 **Plugin Compatibility**: All flavors support **Offline Voice Dictation** (Android 8.1+), **Offline Translation** (Android 6.0+), **Offline Handwriting Recognition** (Android 6.0+), **Offline OCR Text Extraction** (Android 5.0+), and **Offline AI Proofreading** (Android 8.0+, 64-bit) via modular plugins, and work 100% offline.

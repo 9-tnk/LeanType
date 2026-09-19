@@ -41,7 +41,7 @@ jobs:
       - name: Build Release APKs
         run: |
           if [[ "${{ github.ref_name }}" == beta-* ]]; then
-            ./gradlew assembleStandardfullRelease
+            ./gradlew assembleStandardRelease assembleStandardfullRelease
           else
             ./gradlew assembleStandardRelease assembleStandardfullRelease assembleOfflineRelease
           fi
