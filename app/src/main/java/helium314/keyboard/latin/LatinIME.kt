@@ -725,13 +725,18 @@ class LatinIME : InputMethodService(),
         )
         
         val fkm = floatingKeyboardManager
-        if (fkm != null && fkm.isFloating) {
-            fkm.show()
-        } else if (currentSettingsValues.mRememberFloatingKeyboard &&
-            fkm != null &&
-            fkm.wasFloatingLastTime()
-        ) {
-            fkm.show()
+        if (fkm != null) {
+            if (currentSettingsValues.mRememberFloatingKeyboard) {
+                if (fkm.isFloating || fkm.wasFloatingLastTime()) {
+                    fkm.show()
+                }
+            } else {
+                if (fkm.isFloating) {
+                    fkm.show()
+                } else if (fkm.wasFloatingLastTime()) {
+                    fkm.clearFloatingActiveState()
+                }
+            }
         }
         
         if (isInputViewShown) setNavigationBarColor()
@@ -753,7 +758,14 @@ class LatinIME : InputMethodService(),
     override fun onWindowHidden() {
         super.onWindowHidden()
         Log.i(TAG, "onWindowHidden")
-        floatingKeyboardManager?.resetDragAndResizeState()
+        val fkm = floatingKeyboardManager
+        if (fkm != null) {
+            if (!settings.current.mRememberFloatingKeyboard) {
+                fkm.clearFloatingActiveState()
+            } else {
+                fkm.resetDragAndResizeState()
+            }
+        }
         keyboardSwitcher.mainKeyboardView?.closing()
         clearNavigationBarColor()
         originalNavBarSaved = false

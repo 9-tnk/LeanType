@@ -22,6 +22,8 @@ import helium314.keyboard.latin.utils.getActivity
 import helium314.keyboard.latin.utils.locale
 import helium314.keyboard.latin.utils.prefs
 import helium314.keyboard.latin.RichInputMethodManager
+import helium314.keyboard.latin.LatinIME
+import helium314.keyboard.latin.utils.DeviceProtectedUtils
 import helium314.keyboard.latin.utils.SubtypeLocaleUtils.displayName
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -213,7 +215,14 @@ fun createPreferencesSettings(context: Context) = listOf(
         SwitchPreference(it, Defaults.PREF_REMOVE_REDUNDANT_POPUPS) { KeyboardSwitcher.getInstance().setThemeNeedsReload() }
     },
     Setting(context, Settings.PREF_REMEMBER_FLOATING_KEYBOARD, R.string.remember_floating_keyboard_title, R.string.remember_floating_keyboard_summary) {
-        SwitchPreference(it, Defaults.PREF_REMEMBER_FLOATING_KEYBOARD)
+        val ctx = LocalContext.current
+        SwitchPreference(it, Defaults.PREF_REMEMBER_FLOATING_KEYBOARD, onCheckedChange = { enabled ->
+            if (!enabled) {
+                LatinIME.getInstance()?.floatingKeyboardManager?.clearFloatingActiveState()
+                    ?: DeviceProtectedUtils.getSharedPreferences(ctx, "floating_keyboard_prefs")
+                        .edit().putBoolean("floating_is_active", false).apply()
+            }
+        })
     },
     Setting(context, Settings.PREF_PERSIST_TEXT_EDIT_MODE, R.string.persist_text_edit_mode_title, R.string.persist_text_edit_mode_summary) {
         SwitchPreference(it, Defaults.PREF_PERSIST_TEXT_EDIT_MODE)

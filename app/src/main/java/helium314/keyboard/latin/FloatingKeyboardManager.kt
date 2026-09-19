@@ -48,6 +48,13 @@ class FloatingKeyboardManager(private val context: Context, private val latinIME
 
     fun wasFloatingLastTime(): Boolean = prefs.getBoolean(PREF_IS_ACTIVE, false)
 
+    fun clearFloatingActiveState() {
+        prefs.edit().putBoolean(PREF_IS_ACTIVE, false).apply()
+        if (isFloating) {
+            hide(showDockedKeyboard = true)
+        }
+    }
+
     var isFloating = false
         private set
 
@@ -169,7 +176,9 @@ class FloatingKeyboardManager(private val context: Context, private val latinIME
         }
 
         isFloating = true
-        prefs.edit().putBoolean(PREF_IS_ACTIVE, true).apply()
+        if (Settings.getValues().mRememberFloatingKeyboard) {
+            prefs.edit().putBoolean(PREF_IS_ACTIVE, true).apply()
+        }
 
         // Set floating overrides and reload keyboard to recalculate key geometry
         ResourceUtils.setFloatingKeyboardWidth(floatingWidth)
