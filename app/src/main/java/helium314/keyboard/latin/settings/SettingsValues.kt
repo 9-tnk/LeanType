@@ -362,7 +362,11 @@ open class SettingsValues(
         val suggestionsEnabled = prefs.getBoolean(Settings.PREF_SHOW_SUGGESTIONS, Defaults.PREF_SHOW_SUGGESTIONS)
         mSuggestionsEnabledPerUserSettings = suggestionsEnabled && (mInputAttributes.mShouldShowSuggestions || mOverrideShowingSuggestions) && !mSuggestionStripHiddenPerUserSettings
         mSecondaryStripVisible = mToolbarMode != ToolbarMode.HIDDEN || !mToolbarHidingGlobal
-        mIncognitoModeEnabled = prefs.getBoolean(Settings.PREF_ALWAYS_INCOGNITO_MODE, Defaults.PREF_ALWAYS_INCOGNITO_MODE) || mInputAttributes.mNoLearning || mInputAttributes.mIsPasswordField
+        mIncognitoModeEnabled = if (AppQuirksManager.isNonIncognitoApp(mInputAttributes.mTargetApplicationPackageName)) {
+            mInputAttributes.mIsPasswordField
+        } else {
+            prefs.getBoolean(Settings.PREF_ALWAYS_INCOGNITO_MODE, Defaults.PREF_ALWAYS_INCOGNITO_MODE) || mInputAttributes.mNoLearning || mInputAttributes.mIsPasswordField
+        }
         mKeyboardHeightScale = Settings.readHeightScale(prefs, isLandscape, mScreenProfile)
         mSpaceSwipeHorizontal = Settings.readHorizontalSpaceSwipe(prefs)
         mSpaceSwipeVertical = Settings.readVerticalSpaceSwipe(prefs)

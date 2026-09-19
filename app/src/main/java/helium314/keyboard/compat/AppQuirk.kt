@@ -12,6 +12,7 @@ data class AppQuirk(
     val stripNoEnterAction: Boolean = false,
     val forceEnterAction: Int? = null,
     val forceIncognito: Boolean = false,
+    val forceNonIncognito: Boolean = false,
     val forceDirectCommit: Boolean = false,
     val disableAutoSpace: Boolean = false,
     val allowTypeNullKeyboard: Boolean = false,
@@ -19,7 +20,8 @@ data class AppQuirk(
 ) {
     fun hasCustomSettings(): Boolean =
         forceWebEditor || stripNoEnterAction || (forceEnterAction != null) || forceIncognito ||
-                forceDirectCommit || disableAutoSpace || allowTypeNullKeyboard || (autoCorrectionMode != null)
+                forceNonIncognito || forceDirectCommit || disableAutoSpace || allowTypeNullKeyboard ||
+                (autoCorrectionMode != null)
 
     fun toJson(): JSONObject {
         val json = JSONObject()
@@ -28,6 +30,7 @@ data class AppQuirk(
         if (stripNoEnterAction) json.put("stripNoEnterAction", true)
         if (forceEnterAction != null) json.put("forceEnterAction", forceEnterAction)
         if (forceIncognito) json.put("forceIncognito", true)
+        if (forceNonIncognito) json.put("forceNonIncognito", true)
         if (forceDirectCommit) json.put("forceDirectCommit", true)
         if (disableAutoSpace) json.put("disableAutoSpace", true)
         if (allowTypeNullKeyboard) json.put("allowTypeNullKeyboard", true)
@@ -42,6 +45,7 @@ data class AppQuirk(
             val stripNoEnterAction = json.optBoolean("stripNoEnterAction", false)
             val forceEnterAction = if (json.has("forceEnterAction")) json.getInt("forceEnterAction") else null
             val forceIncognito = json.optBoolean("forceIncognito", false)
+            val forceNonIncognito = json.optBoolean("forceNonIncognito", false)
             val forceDirectCommit = json.optBoolean("forceDirectCommit", false)
             val disableAutoSpace = json.optBoolean("disableAutoSpace", false)
             val allowTypeNullKeyboard = json.optBoolean("allowTypeNullKeyboard", false)
@@ -52,6 +56,7 @@ data class AppQuirk(
                 stripNoEnterAction = stripNoEnterAction,
                 forceEnterAction = forceEnterAction,
                 forceIncognito = forceIncognito,
+                forceNonIncognito = forceNonIncognito,
                 forceDirectCommit = forceDirectCommit,
                 disableAutoSpace = disableAutoSpace,
                 allowTypeNullKeyboard = allowTypeNullKeyboard,

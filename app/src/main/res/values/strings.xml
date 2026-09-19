@@ -1694,6 +1694,8 @@ New dictionary:
     <string name="app_quirks_force_web_editor_summary">Force web-safe backspace, batch sync, and cache bypass for text fields</string>
     <string name="app_quirks_force_incognito">Automatic Incognito</string>
     <string name="app_quirks_force_incognito_summary">Never learn typed words or record history when typing in this app</string>
+    <string name="app_quirks_force_non_incognito">Force Non-Incognito</string>
+    <string name="app_quirks_force_non_incognito_summary">Override incognito flags (such as IME_FLAG_NO_PERSONALIZED_LEARNING) to enable normal suggestions and learning</string>
     <string name="app_quirks_strip_no_enter">Strip No-Enter Flag</string>
     <string name="app_quirks_strip_no_enter_summary">Show action key even when app sets IME_FLAG_NO_ENTER_ACTION (e.g. Pixel Launcher)</string>
     <string name="app_quirks_enter_action">Action Key Override</string>
@@ -1706,6 +1708,7 @@ New dictionary:
     <string name="app_quirks_enter_action_done">Force Done</string>
     <string name="app_quirks_badge_web">Web</string>
     <string name="app_quirks_badge_incognito">Incognito</string>
+    <string name="app_quirks_badge_non_incognito">Non-Incognito</string>
     <string name="app_quirks_badge_action">Action</string>
     <string name="app_quirks_badge_no_enter">No-Enter Strip</string>
     <string name="app_quirks_badge_default">Default Profile</string>

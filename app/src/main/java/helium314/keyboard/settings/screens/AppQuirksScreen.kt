@@ -200,6 +200,13 @@ fun AppQuirksScreen(
                         MaterialTheme.colorScheme.onErrorContainer
                     ))
                 }
+                if (effective?.forceNonIncognito == true) {
+                    badges.add(BadgeInfo(
+                        stringResource(R.string.app_quirks_badge_non_incognito),
+                        MaterialTheme.colorScheme.primaryContainer,
+                        MaterialTheme.colorScheme.onPrimaryContainer
+                    ))
+                }
                 if (effective?.forceDirectCommit == true) {
                     badges.add(BadgeInfo(
                         stringResource(R.string.app_quirks_badge_direct_commit),
@@ -379,6 +386,7 @@ private fun AppQuirkDialog(
 
     var forceWebEditor by remember { mutableStateOf(initialEffective.forceWebEditor) }
     var forceIncognito by remember { mutableStateOf(initialEffective.forceIncognito) }
+    var forceNonIncognito by remember { mutableStateOf(initialEffective.forceNonIncognito) }
     var stripNoEnterAction by remember { mutableStateOf(initialEffective.stripNoEnterAction) }
     var forceDirectCommit by remember { mutableStateOf(initialEffective.forceDirectCommit) }
     var disableAutoSpace by remember { mutableStateOf(initialEffective.disableAutoSpace) }
@@ -413,6 +421,7 @@ private fun AppQuirkDialog(
                 stripNoEnterAction = stripNoEnterAction,
                 forceEnterAction = selectedAction,
                 forceIncognito = forceIncognito,
+                forceNonIncognito = forceNonIncognito,
                 forceDirectCommit = forceDirectCommit,
                 disableAutoSpace = disableAutoSpace,
                 allowTypeNullKeyboard = allowTypeNullKeyboard,
@@ -458,7 +467,19 @@ private fun AppQuirkDialog(
                     title = stringResource(R.string.app_quirks_force_incognito),
                     summary = stringResource(R.string.app_quirks_force_incognito_summary),
                     checked = forceIncognito,
-                    onCheckedChange = { forceIncognito = it }
+                    onCheckedChange = {
+                        forceIncognito = it
+                        if (it) forceNonIncognito = false
+                    }
+                )
+                QuirkToggleRow(
+                    title = stringResource(R.string.app_quirks_force_non_incognito),
+                    summary = stringResource(R.string.app_quirks_force_non_incognito_summary),
+                    checked = forceNonIncognito,
+                    onCheckedChange = {
+                        forceNonIncognito = it
+                        if (it) forceIncognito = false
+                    }
                 )
                 QuirkToggleRow(
                     title = stringResource(R.string.app_quirks_strip_no_enter),

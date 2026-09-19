@@ -119,6 +119,14 @@ object AppQuirksManager {
     }
 
     /**
+     * Returns true if user configured this app to force non-incognito mode.
+     */
+    fun isNonIncognitoApp(packageName: String?): Boolean {
+        if (packageName == null) return false
+        return getEffectiveQuirk(packageName)?.forceNonIncognito == true
+    }
+
+    /**
      * Returns whether direct text commit (without composing spans) should be forced.
      */
     fun isDirectCommitApp(packageName: String?): Boolean {

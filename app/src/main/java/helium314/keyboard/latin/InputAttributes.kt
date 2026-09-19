@@ -101,11 +101,15 @@ class InputAttributes(
                     InputType.TYPE_TEXT_VARIATION_WEB_EMAIL_ADDRESS != variation &&
                     InputType.TYPE_TEXT_VARIATION_WEB_PASSWORD != variation
 
-            mNoLearning = (if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                (editorInfo?.imeOptions?.and(EditorInfo.IME_FLAG_NO_PERSONALIZED_LEARNING) ?: 0) != 0
-            } else {
+            mNoLearning = if (AppQuirksManager.isNonIncognitoApp(mTargetApplicationPackageName)) {
                 false
-            }) || AppQuirksManager.isIncognitoApp(mTargetApplicationPackageName)
+            } else {
+                (if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    (editorInfo?.imeOptions?.and(EditorInfo.IME_FLAG_NO_PERSONALIZED_LEARNING) ?: 0) != 0
+                } else {
+                    false
+                }) || AppQuirksManager.isIncognitoApp(mTargetApplicationPackageName)
+            }
         }
     }
 

@@ -153,6 +153,31 @@ class ContenteditableDuplicationFixTest {
     }
 
     @Test
+    fun testAppQuirksManager_forceNonIncognito() {
+        val pkg = "com.nonincognito.test.app"
+        assertFalse(AppQuirksManager.isNonIncognitoApp(pkg))
+        assertFalse(AppQuirksManager.isIncognitoApp(pkg))
+
+        val quirk = AppQuirk(
+            packageName = pkg,
+            forceNonIncognito = true
+        )
+        // Verify JSON roundtrip
+        val json = quirk.toJson()
+        val restored = AppQuirk.fromJson(json)
+        assertEquals(pkg, restored.packageName)
+        assertTrue(restored.forceNonIncognito)
+        assertFalse(restored.forceIncognito)
+
+        AppQuirksManager.saveQuirk(quirk)
+        assertTrue(AppQuirksManager.isNonIncognitoApp(pkg))
+        assertFalse(AppQuirksManager.isIncognitoApp(pkg))
+
+        AppQuirksManager.removeQuirk(pkg)
+        assertFalse(AppQuirksManager.isNonIncognitoApp(pkg))
+    }
+
+    @Test
     fun testInputTypeUtils_isWebEditText() {
         val webText = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_WEB_EDIT_TEXT
         val webEmail = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_WEB_EMAIL_ADDRESS
