@@ -46,9 +46,6 @@ fun BackgroundServicesScreen(
     var spellCheckerEnabled by remember {
         mutableStateOf(prefs.getBoolean(Settings.PREF_ENABLE_SPELL_CHECKER_SERVICE, Defaults.PREF_ENABLE_SPELL_CHECKER_SERVICE))
     }
-    var contactsEnabled by remember {
-        mutableStateOf(prefs.getBoolean(Settings.PREF_USE_CONTACTS, Defaults.PREF_USE_CONTACTS))
-    }
     var clipboardEnabled by remember {
         mutableStateOf(prefs.getBoolean(Settings.PREF_ENABLE_CLIPBOARD_LISTENER, Defaults.PREF_ENABLE_CLIPBOARD_LISTENER))
     }
@@ -97,24 +94,7 @@ fun BackgroundServicesScreen(
                 }
             )
 
-            // 2. Contacts Observer
-            CompactServiceCard(
-                title = "Contacts Observer",
-                description = "Monitors contact changes for name suggestions.",
-                status = if (contactsEnabled) "LISTENING" else "DISABLED",
-                enabled = contactsEnabled,
-                onToggle = { enabled ->
-                    contactsEnabled = enabled
-                    prefs.edit().putBoolean(Settings.PREF_USE_CONTACTS, enabled).apply()
-                },
-                onStopClicked = {
-                    contactsEnabled = false
-                    prefs.edit().putBoolean(Settings.PREF_USE_CONTACTS, false).apply()
-                    Toast.makeText(context, "Contacts observer stopped & unregistered", Toast.LENGTH_SHORT).show()
-                }
-            )
-
-            // 3. Clipboard History Listener
+            // 2. Clipboard History Listener
             CompactServiceCard(
                 title = "Clipboard Listener",
                 description = "Listens to system primary clip changes.",
@@ -131,7 +111,7 @@ fun BackgroundServicesScreen(
                 }
             )
 
-            // 4. SMS OTP Receiver
+            // 3. SMS OTP Receiver
             CompactServiceCard(
                 title = "SMS OTP Reader",
                 description = "Reads SMS notifications to suggest OTP passcodes.",
@@ -148,7 +128,7 @@ fun BackgroundServicesScreen(
                 }
             )
 
-            // 5. App Name Launcher Sync
+            // 4. App Name Launcher Sync
             CompactServiceCard(
                 title = "App Launcher Sync",
                 description = "Monitors app installs for app name suggestions.",
@@ -237,23 +217,6 @@ fun createBackgroundServicesSettings(context: android.content.Context): List<hel
             name = setting.title,
             key = setting.key,
             default = Defaults.PREF_ENABLE_SPELL_CHECKER_SERVICE,
-            description = setting.description,
-            onCheckedChange = {
-                enabled = it
-                context.prefs().edit().putBoolean(setting.key, it).apply()
-            }
-        )
-    },
-    helium314.keyboard.settings.Setting(
-        key = Settings.PREF_USE_CONTACTS,
-        title = "Contacts Observer",
-        description = "Monitors contact changes for name suggestions."
-    ) { setting ->
-        var enabled by remember { mutableStateOf(context.prefs().getBoolean(setting.key, Defaults.PREF_USE_CONTACTS)) }
-        helium314.keyboard.settings.preferences.SwitchPreference(
-            name = setting.title,
-            key = setting.key,
-            default = Defaults.PREF_USE_CONTACTS,
             description = setting.description,
             onCheckedChange = {
                 enabled = it

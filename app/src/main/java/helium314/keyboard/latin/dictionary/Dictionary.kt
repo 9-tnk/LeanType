@@ -150,7 +150,6 @@ abstract class Dictionary(
         return when (mDictType) {
             TYPE_USER_TYPED,
             TYPE_USER,
-            TYPE_CONTACTS,
             TYPE_APPS,
             TYPE_USER_HISTORY -> true
             else -> false
@@ -208,7 +207,6 @@ abstract class Dictionary(
         // The following types of dictionary have actual functional instances. We don't need final
         // phony dictionary instances for them.
         const val TYPE_MAIN = "main"
-        const val TYPE_CONTACTS = "contacts"
         const val TYPE_APPS = "apps"
         // User dictionary, the system-managed one.
         const val TYPE_USER = "user"

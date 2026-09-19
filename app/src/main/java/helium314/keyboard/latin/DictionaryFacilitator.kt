@@ -62,7 +62,6 @@ interface DictionaryFacilitator {
 
     fun usesSameSettings(
         locales: List<Locale>,
-        contacts: Boolean,
         apps: Boolean,
         personalization: Boolean
     ): Boolean
@@ -71,7 +70,6 @@ interface DictionaryFacilitator {
     fun resetDictionaries(
         context: Context,
         newLocale: Locale,
-        useContactsDict: Boolean,
         useAppsDict: Boolean,
         usePersonalizedDicts: Boolean,
         forceReloadMainDictionary: Boolean,
@@ -157,14 +155,12 @@ interface DictionaryFacilitator {
     companion object {
         val ALL_DICTIONARY_TYPES = arrayOf(
             Dictionary.TYPE_MAIN,
-            Dictionary.TYPE_CONTACTS,
             Dictionary.TYPE_APPS,
             Dictionary.TYPE_USER_HISTORY,
             Dictionary.TYPE_USER
         )
 
         val DYNAMIC_DICTIONARY_TYPES = arrayOf(
-            Dictionary.TYPE_CONTACTS,
             Dictionary.TYPE_APPS,
             Dictionary.TYPE_USER_HISTORY,
             Dictionary.TYPE_USER

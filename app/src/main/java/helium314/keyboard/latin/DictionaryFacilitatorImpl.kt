@@ -24,7 +24,6 @@ import helium314.keyboard.latin.common.mightBeEmoji
 import helium314.keyboard.latin.common.splitOnWhitespace
 import helium314.keyboard.latin.define.DebugFlags
 import helium314.keyboard.latin.dictionary.AppsBinaryDictionary
-import helium314.keyboard.latin.dictionary.ContactsBinaryDictionary
 import helium314.keyboard.latin.dictionary.Dictionary
 import helium314.keyboard.latin.dictionary.DictionaryFactory
 import helium314.keyboard.latin.dictionary.DictionaryStats
@@ -98,7 +97,6 @@ class DictionaryFacilitatorImpl : DictionaryFacilitator {
 
     private val SPELLING_DICTIONARY_TYPES = arrayOf(
         Dictionary.TYPE_MAIN,
-        Dictionary.TYPE_CONTACTS,
         Dictionary.TYPE_APPS,
         Dictionary.TYPE_USER,
         Dictionary.TYPE_USER_HISTORY
@@ -152,7 +150,7 @@ class DictionaryFacilitatorImpl : DictionaryFacilitator {
     override val currentLocale: Locale
         get() = currentlyPreferredDictionaryGroup.locale
 
-    override fun usesSameSettings(locales: List<Locale>, contacts: Boolean, apps: Boolean, personalization: Boolean): Boolean {
+    override fun usesSameSettings(locales: List<Locale>, apps: Boolean, personalization: Boolean): Boolean {
         val prefs = mPrefs
         if (prefs != null) {
             val currentPrefs = prefs.all.filterKeys { it.startsWith("pref_dict_enabled_") }
@@ -169,8 +167,7 @@ class DictionaryFacilitatorImpl : DictionaryFacilitator {
             return false
         }
         val dictGroup = dictionaryGroups[0] // settings are the same for all groups
-        return contacts == dictGroup.hasDict(Dictionary.TYPE_CONTACTS)
-                && apps == dictGroup.hasDict(Dictionary.TYPE_APPS)
+        return apps == dictGroup.hasDict(Dictionary.TYPE_APPS)
                 && personalization == dictGroup.hasDict(Dictionary.TYPE_USER_HISTORY)
                 && locales.size == dictionaryGroups.size
                 && locales.none { findDictionaryGroupWithLocale(dictionaryGroups, it) == null }
@@ -181,7 +178,6 @@ class DictionaryFacilitatorImpl : DictionaryFacilitator {
     override fun resetDictionaries(
         context: Context,
         newLocale: Locale,
-        useContactsDict: Boolean,
         useAppsDict: Boolean,
         usePersonalizedDicts: Boolean,
         forceReloadMainDictionary: Boolean,
@@ -206,9 +202,7 @@ class DictionaryFacilitatorImpl : DictionaryFacilitator {
         val subDictTypesToUse = listOfNotNull(
             Dictionary.TYPE_USER,
             if (useAppsDict) Dictionary.TYPE_APPS else null,
-            if (usePersonalizedDicts) Dictionary.TYPE_USER_HISTORY else null,
-            if (useContactsDict && PermissionsUtil.checkAllPermissionsGranted(context, Manifest.permission.READ_CONTACTS))
-                Dictionary.TYPE_CONTACTS else null
+            if (usePersonalizedDicts) Dictionary.TYPE_USER_HISTORY else null
         )
 
         val (newDictionaryGroups, existingDictsToCleanup) =
@@ -476,7 +470,6 @@ class DictionaryFacilitatorImpl : DictionaryFacilitator {
 
     private val DICTIONARY_TYPES_EXCLUDING_HISTORY = arrayOf(
         Dictionary.TYPE_MAIN,
-        Dictionary.TYPE_CONTACTS,
         Dictionary.TYPE_APPS,
         Dictionary.TYPE_USER
     )
@@ -1059,7 +1052,6 @@ class DictionaryFacilitatorImpl : DictionaryFacilitator {
                 return when (dictType) {
                     Dictionary.TYPE_USER_HISTORY -> UserHistoryDictionary.getDictionary(context, locale, dictFile, dictNamePrefix)
                     Dictionary.TYPE_USER -> UserBinaryDictionary.getDictionary(context, locale, dictFile, dictNamePrefix)
-                    Dictionary.TYPE_CONTACTS -> ContactsBinaryDictionary.getDictionary(context, locale, dictFile, dictNamePrefix)
                     Dictionary.TYPE_APPS -> AppsBinaryDictionary.getDictionary(context, locale, dictFile, dictNamePrefix)
                     else -> throw IllegalArgumentException("unknown dictionary type $dictType")
                 }
@@ -1161,11 +1153,6 @@ private class DictionaryGroup(
         getSubDict(Dictionary.TYPE_USER)?.removeUnigramEntryDynamically(word)
         if (word != lowercase) {
             getSubDict(Dictionary.TYPE_USER)?.removeUnigramEntryDynamically(lowercase)
-        }
-
-        val contactsDict = getSubDict(Dictionary.TYPE_CONTACTS)
-        if (contactsDict != null && contactsDict.isInDictionary(word)) {
-            contactsDict.removeUnigramEntryDynamically(word)
         }
 
         val appsDict = getSubDict(Dictionary.TYPE_APPS)

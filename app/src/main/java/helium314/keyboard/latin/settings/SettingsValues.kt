@@ -6,7 +6,6 @@
 
 package helium314.keyboard.latin.settings
 
-import android.Manifest
 import android.content.Context
 import android.content.SharedPreferences
 import android.content.res.Configuration
@@ -22,7 +21,6 @@ import helium314.keyboard.latin.InputAttributes
 import helium314.keyboard.latin.R
 import helium314.keyboard.latin.RichInputMethodManager
 import helium314.keyboard.latin.common.Colors
-import helium314.keyboard.latin.permissions.PermissionsUtil
 import helium314.keyboard.latin.utils.InputTypeUtils
 import helium314.keyboard.latin.utils.JniUtils
 import helium314.keyboard.latin.utils.ScriptUtils
@@ -137,10 +135,8 @@ open class SettingsValues(
     val mScreenMetrics: Int
     val mAddToPersonalDictionary: Boolean
     val mAddToPersonalDictThreshold: Int
-    val mUseContactsDictionary: Boolean
     val mUseAppsDictionary: Boolean
     val mEnableSpellCheckerService: Boolean
-    val mEnableContactsObserver: Boolean
     val mEnableClipboardListener: Boolean
     val mEnableSmsOtpReceiver: Boolean
     val mEnableAppSyncListener: Boolean
@@ -267,7 +263,6 @@ open class SettingsValues(
         mVarToolbarDirection = mToolbarMode != ToolbarMode.HIDDEN && prefs.getBoolean(Settings.PREF_VARIABLE_TOOLBAR_DIRECTION, Defaults.PREF_VARIABLE_TOOLBAR_DIRECTION)
         mUsePersonalizedDicts = prefs.getBoolean(Settings.PREF_KEY_USE_PERSONALIZED_DICTS, Defaults.PREF_KEY_USE_PERSONALIZED_DICTS)
         mEnableSpellCheckerService = prefs.getBoolean(Settings.PREF_ENABLE_SPELL_CHECKER_SERVICE, Defaults.PREF_ENABLE_SPELL_CHECKER_SERVICE)
-        mEnableContactsObserver = prefs.getBoolean(Settings.PREF_ENABLE_CONTACTS_OBSERVER, Defaults.PREF_ENABLE_CONTACTS_OBSERVER)
         mEnableClipboardListener = prefs.getBoolean(Settings.PREF_ENABLE_CLIPBOARD_LISTENER, Defaults.PREF_ENABLE_CLIPBOARD_LISTENER)
         mEnableSmsOtpReceiver = prefs.getBoolean(Settings.PREF_ENABLE_SMS_OTP_RECEIVER, Defaults.PREF_ENABLE_SMS_OTP_RECEIVER)
         mEnableAppSyncListener = prefs.getBoolean(Settings.PREF_ENABLE_APP_SYNC_LISTENER, Defaults.PREF_ENABLE_APP_SYNC_LISTENER)
@@ -403,7 +398,6 @@ open class SettingsValues(
         mAddToPersonalDictionary = prefs.getBoolean(Settings.PREF_ADD_TO_PERSONAL_DICTIONARY, Defaults.PREF_ADD_TO_PERSONAL_DICTIONARY)
         val rawThreshold = prefs.getInt(Settings.PREF_ADD_TO_PERSONAL_DICT_THRESHOLD, Defaults.PREF_ADD_TO_PERSONAL_DICT_THRESHOLD)
         mAddToPersonalDictThreshold = if (rawThreshold in 3..10) rawThreshold else Defaults.PREF_ADD_TO_PERSONAL_DICT_THRESHOLD
-        mUseContactsDictionary = readUseContactsEnabled(prefs, context)
         mUseAppsDictionary = prefs.getBoolean(Settings.PREF_USE_APPS, Defaults.PREF_USE_APPS)
         mCustomNavBarColor = prefs.getBoolean(Settings.PREF_NAVBAR_COLOR, Defaults.PREF_NAVBAR_COLOR)
         mNarrowKeyGaps = prefs.getBoolean(Settings.PREF_NARROW_KEY_GAPS, Defaults.PREF_NARROW_KEY_GAPS)
@@ -533,16 +527,4 @@ Current settings :
    mSuggestionsEnabledPerUserSettings = $mSuggestionsEnabledPerUserSettings
    mDisplayOrientation = $mDisplayOrientation
     """.trimIndent()
-
-    companion object {
-        private fun readUseContactsEnabled(prefs: SharedPreferences, ctx: Context): Boolean {
-            val setting = prefs.getBoolean(Settings.PREF_USE_CONTACTS, Defaults.PREF_USE_CONTACTS)
-            if (!setting) return false
-            if (PermissionsUtil.checkAllPermissionsGranted(ctx, Manifest.permission.READ_CONTACTS)) {
-                return true
-            }
-            prefs.edit().putBoolean(Settings.PREF_USE_CONTACTS, false).apply()
-            return false
-        }
-    }
 }

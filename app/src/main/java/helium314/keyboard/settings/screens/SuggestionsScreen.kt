@@ -104,7 +104,6 @@ fun SuggestionsScreen(
             if (prefs.getBoolean(Settings.PREF_AUTO_READ_OTP, Defaults.PREF_AUTO_READ_OTP))
                 Settings.PREF_OTP_ALLOWED_SMS_PACKAGE else null,
             Settings.PREF_INLINE_MATH_CALCULATION,
-            Settings.PREF_USE_CONTACTS,
             Settings.PREF_USE_APPS,
         )
     }
@@ -343,25 +342,6 @@ fun createSuggestionsSettings(context: Context) = listOf(
         R.string.pref_inline_calculator_suggestions, R.string.pref_inline_calculator_suggestions_summary
     ) {
         SwitchPreference(it, Defaults.PREF_INLINE_MATH_CALCULATION)
-    },
-    Setting(context, Settings.PREF_USE_CONTACTS,
-        R.string.use_contacts_dict, R.string.use_contacts_dict_summary
-    ) { setting ->
-        val activity = LocalContext.current.getActivity() ?: return@Setting
-        var granted by remember { mutableStateOf(PermissionsUtil.checkAllPermissionsGranted(activity, Manifest.permission.READ_CONTACTS)) }
-        val launcher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {
-            granted = it
-            if (granted)
-                activity.prefs().edit { putBoolean(setting.key, true) }
-        }
-        SwitchPreference(setting, Defaults.PREF_USE_CONTACTS,
-            allowCheckedChange = {
-                if (it && !granted) {
-                    launcher.launch(Manifest.permission.READ_CONTACTS)
-                    false
-                } else true
-            }
-        )
     },
     Setting(context, Settings.PREF_USE_APPS,
         R.string.use_apps_dict, R.string.use_apps_dict_summary

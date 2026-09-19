@@ -324,7 +324,6 @@ class LatinIME : InputMethodService(),
 
         if (dictionaryFacilitator.usesSameSettings(
                 locales,
-                settings.current.mUseContactsDictionary,
                 settings.current.mUseAppsDictionary,
                 settings.current.mUsePersonalizedDicts
             )
@@ -344,7 +343,7 @@ class LatinIME : InputMethodService(),
         try {
             dictionaryFacilitator.resetDictionaries(
                 this, locale,
-                settingsValues.mUseContactsDictionary, settingsValues.mUseAppsDictionary,
+                settingsValues.mUseAppsDictionary,
                 settingsValues.mUsePersonalizedDicts, false, "", this
             )
         } catch (e: Throwable) {
@@ -357,7 +356,7 @@ class LatinIME : InputMethodService(),
         val settingsValues = settings.current
         dictionaryFacilitator.resetDictionaries(
             this, dictionaryFacilitator.mainLocale,
-            settingsValues.mUseContactsDictionary, settingsValues.mUseAppsDictionary,
+            settingsValues.mUseAppsDictionary,
             settingsValues.mUsePersonalizedDicts, true, "", this
         )
         EmojiPalettesView.closeDictionaryFacilitator()

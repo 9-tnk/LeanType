@@ -64,7 +64,6 @@ class AndroidSpellCheckerService : SpellCheckerService(), SharedPreferences.OnSh
         mRecommendedThreshold = getString(R.string.spellchecker_recommended_threshold_value).toFloat()
         val prefs = prefs()
         prefs.registerOnSharedPreferenceChangeListener(this)
-        onSharedPreferenceChanged(prefs, Settings.PREF_USE_CONTACTS)
         onSharedPreferenceChanged(prefs, Settings.PREF_USE_APPS)
         val blockOffensive = prefs.getBoolean(Settings.PREF_BLOCK_POTENTIALLY_OFFENSIVE, Defaults.PREF_BLOCK_POTENTIALLY_OFFENSIVE)
         mSettingsValuesForSuggestion = SettingsValuesForSuggestion(blockOffensive, false, "fallback")
@@ -81,10 +80,6 @@ class AndroidSpellCheckerService : SpellCheckerService(), SharedPreferences.OnSh
     override fun onSharedPreferenceChanged(prefs: SharedPreferences, key: String?) {
         if (key != null) {
             when (key) {
-                Settings.PREF_USE_CONTACTS -> {
-                    val useContactsDictionary = prefs.getBoolean(Settings.PREF_USE_CONTACTS, Defaults.PREF_USE_CONTACTS)
-                    mDictionaryFacilitatorCache.setUseContactsDictionary(useContactsDictionary)
-                }
                 Settings.PREF_USE_APPS -> {
                     val useAppsDictionary = prefs.getBoolean(Settings.PREF_USE_APPS, Defaults.PREF_USE_APPS)
                     mDictionaryFacilitatorCache.setUseAppsDictionary(useAppsDictionary)

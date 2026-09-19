@@ -337,7 +337,6 @@ class Settings private constructor() : SharedPreferences.OnSharedPreferenceChang
         const val PREF_ADDITIONAL_SUBTYPES = "additional_subtypes"
 
         const val PREF_ENABLE_SPELL_CHECKER_SERVICE = "enable_spell_checker_service"
-        const val PREF_ENABLE_CONTACTS_OBSERVER = "enable_contacts_observer"
         const val PREF_ENABLE_CLIPBOARD_LISTENER = "enable_clipboard_listener"
         const val PREF_ENABLE_SMS_OTP_RECEIVER = "enable_sms_otp_receiver"
         const val PREF_ENABLE_APP_SYNC_LISTENER = "enable_app_sync_listener"
@@ -404,7 +403,6 @@ class Settings private constructor() : SharedPreferences.OnSharedPreferenceChang
         const val PREF_GESTURE_FAST_TYPING_COOLDOWN = "gesture_fast_typing_cooldown"
         const val PREF_GESTURE_TRAIL_FADEOUT_DURATION = "gesture_trail_fadeout_duration"
         const val PREF_SHOW_SETUP_WIZARD_ICON = "show_setup_wizard_icon"
-        const val PREF_USE_CONTACTS = "use_contacts"
         const val PREF_USE_APPS = "use_apps"
         const val PREFS_LONG_PRESS_SYMBOLS_FOR_NUMPAD = "long_press_symbols_for_numpad"
         const val PREF_DISABLE_MULTI_WORD_SUGGESTIONS = "disable_multi_word_suggestions"

@@ -22,25 +22,15 @@ class DictionaryFacilitatorLruCache(
     private val mLock = Any()
     private val mDictionaryFacilitator: DictionaryFacilitator =
         DictionaryFacilitatorProvider.getDictionaryFacilitator(true /* isNeededForSpellChecking */)
-    private var mUseContactsDictionary = false
     private var mUseAppsDictionary = false
     private var mLocale: Locale? = null
 
     private fun resetDictionariesForLocaleLocked() {
         val locale = mLocale ?: return
         mDictionaryFacilitator.resetDictionaries(
-            mContext, locale, mUseContactsDictionary, mUseAppsDictionary,
+            mContext, locale, mUseAppsDictionary,
             false, false, mDictionaryNamePrefix, null
         )
-    }
-
-    fun setUseContactsDictionary(useContactsDictionary: Boolean) {
-        synchronized(mLock) {
-            if (mUseContactsDictionary == useContactsDictionary) return
-            mUseContactsDictionary = useContactsDictionary
-            resetDictionariesForLocaleLocked()
-            waitForLoadingMainDictionary(mDictionaryFacilitator)
-        }
     }
 
     fun setUseAppsDictionary(useAppsDictionary: Boolean) {
