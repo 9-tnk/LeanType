@@ -23,7 +23,7 @@ As an open-source, community-funded project, we operate on a very limited budget
 
 | Flavor | Primary Focus | AI Engine | Plugins Setup | Internet | Release Updater |
 |:---|:---|:---|:---|:---|:---|
-| **`1-LeanType_4.2.4-standard-release.apk`** | **Recommended (FOSS)** | Cloud AI | In-app download or File import | Optional (AI/plugins) | ✅ View Release |
+| **`1-LeanType_4.2.4-standard-release.apk`** | **Recommended** | Cloud AI | In-app download or File import | Optional (AI/plugins) | ✅ View Release |
 | **`1-LeanType_4.2.4-standardfull-release.apk`** | **Transitioning (Merging in v4.2.6)** | Cloud AI | In-app download or File import | Optional (AI/plugins) | ✅ View Release |
 | **`2-LeanType_4.2.4-offline-release.apk`** | **Offline** | Local LLM Plugin (8.0+) | Browser download + File import | 🚫 Zero Internet (No Permission) | ❌ None |
 
