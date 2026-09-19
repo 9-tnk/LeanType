@@ -18,7 +18,7 @@ import helium314.keyboard.latin.common.toSortedCodepointArrays
 import java.util.Arrays
 import java.util.Locale
 
-class SpacingAndPunctuations(res: Resources, urlDetection: Boolean) {
+class SpacingAndPunctuations(res: Resources, urlDetection: Boolean, val composeUnderscore: Boolean = false) {
     private val mSortedSymbolsPrecededBySpace: IntArray
     private val mSortedSymbolsFollowedBySpace: IntArray
     private val mSortedSymbolsClusteringTogether: IntArray
@@ -64,6 +64,7 @@ class SpacingAndPunctuations(res: Resources, urlDetection: Boolean) {
     }
 
     fun isWordSeparator(code: Int): Boolean {
+        if (composeUnderscore && code == '_'.code) return false
         return Arrays.binarySearch(mSortedWordSeparators, code) >= 0
     }
 
@@ -72,6 +73,7 @@ class SpacingAndPunctuations(res: Resources, urlDetection: Boolean) {
     }
 
     fun isWordConnector(code: Int): Boolean {
+        if (composeUnderscore && code == '_'.code) return true
         return Arrays.binarySearch(mSortedWordConnectors, code) >= 0
     }
 
@@ -92,6 +94,7 @@ class SpacingAndPunctuations(res: Resources, urlDetection: Boolean) {
     }
 
     fun isWordCodePoint(code: Int): Boolean {
+        if (composeUnderscore && code == '_'.code) return true
         return Character.isLetter(code) || isWordConnector(code) || Character.getType(code) == Character.COMBINING_SPACING_MARK.toInt()
     }
 

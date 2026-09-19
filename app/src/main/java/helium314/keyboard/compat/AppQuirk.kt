@@ -14,14 +14,15 @@ data class AppQuirk(
     val forceIncognito: Boolean = false,
     val forceNonIncognito: Boolean = false,
     val forceDirectCommit: Boolean = false,
+    val allowSymbolComposing: Boolean = false,
     val disableAutoSpace: Boolean = false,
     val allowTypeNullKeyboard: Boolean = false,
     val autoCorrectionMode: Int? = null,
 ) {
     fun hasCustomSettings(): Boolean =
         forceWebEditor || stripNoEnterAction || (forceEnterAction != null) || forceIncognito ||
-                forceNonIncognito || forceDirectCommit || disableAutoSpace || allowTypeNullKeyboard ||
-                (autoCorrectionMode != null)
+                forceNonIncognito || forceDirectCommit || allowSymbolComposing || disableAutoSpace ||
+                allowTypeNullKeyboard || (autoCorrectionMode != null)
 
     fun toJson(): JSONObject {
         val json = JSONObject()
@@ -32,6 +33,7 @@ data class AppQuirk(
         if (forceIncognito) json.put("forceIncognito", true)
         if (forceNonIncognito) json.put("forceNonIncognito", true)
         if (forceDirectCommit) json.put("forceDirectCommit", true)
+        if (allowSymbolComposing) json.put("allowSymbolComposing", true)
         if (disableAutoSpace) json.put("disableAutoSpace", true)
         if (allowTypeNullKeyboard) json.put("allowTypeNullKeyboard", true)
         if (autoCorrectionMode != null) json.put("autoCorrectionMode", autoCorrectionMode)
@@ -47,6 +49,7 @@ data class AppQuirk(
             val forceIncognito = json.optBoolean("forceIncognito", false)
             val forceNonIncognito = json.optBoolean("forceNonIncognito", false)
             val forceDirectCommit = json.optBoolean("forceDirectCommit", false)
+            val allowSymbolComposing = json.optBoolean("allowSymbolComposing", false)
             val disableAutoSpace = json.optBoolean("disableAutoSpace", false)
             val allowTypeNullKeyboard = json.optBoolean("allowTypeNullKeyboard", false)
             val autoCorrectionMode = if (json.has("autoCorrectionMode")) json.getInt("autoCorrectionMode") else null
@@ -58,6 +61,7 @@ data class AppQuirk(
                 forceIncognito = forceIncognito,
                 forceNonIncognito = forceNonIncognito,
                 forceDirectCommit = forceDirectCommit,
+                allowSymbolComposing = allowSymbolComposing,
                 disableAutoSpace = disableAutoSpace,
                 allowTypeNullKeyboard = allowTypeNullKeyboard,
                 autoCorrectionMode = autoCorrectionMode,

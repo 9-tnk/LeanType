@@ -218,6 +218,7 @@ open class SettingsValues(
     val mLongPressSymbolsForNumpad: Boolean
     val mFoldableMode: Boolean
     val mColors: Colors
+    val isSymbolComposingApp: Boolean = AppQuirksManager.isSymbolComposingApp(mInputAttributes.mTargetApplicationPackageName)
 
     init {
         mLocale = res.configuration.locale()
@@ -412,7 +413,7 @@ open class SettingsValues(
         mKeyBorderRadiusFunctional = prefs.getFloat(Settings.PREF_KEY_BORDER_RADIUS_FUNCTIONAL, Defaults.PREF_KEY_BORDER_RADIUS_FUNCTIONAL)
         mKeyBorderRadiusAction = prefs.getFloat(Settings.PREF_KEY_BORDER_RADIUS_ACTION, Defaults.PREF_KEY_BORDER_RADIUS_ACTION)
         mSettingsValuesForSuggestion = SettingsValuesForSuggestion(mBlockPotentiallyOffensive, prefs.getBoolean(Settings.PREF_GESTURE_SPACE_AWARE, Defaults.PREF_GESTURE_SPACE_AWARE), mGestureMethod)
-        mSpacingAndPunctuations = SpacingAndPunctuations(res, mUrlDetectionEnabled)
+        mSpacingAndPunctuations = SpacingAndPunctuations(res, mUrlDetectionEnabled, isSymbolComposingApp)
         mBottomPaddingScale = Settings.readBottomPaddingScale(prefs, isLandscape)
         mSidePaddingScale = Settings.readSidePaddingScale(prefs, isLandscape, mIsSplitKeyboardEnabled)
         mLongPressSymbolsForNumpad = prefs.getBoolean(Settings.PREFS_LONG_PRESS_SYMBOLS_FOR_NUMPAD, Defaults.PREFS_LONG_PRESS_SYMBOLS_FOR_NUMPAD)
@@ -444,7 +445,7 @@ open class SettingsValues(
     }
 
     fun needsToLookupSuggestions(): Boolean {
-        return (mInputAttributes.mShouldShowSuggestions || mOverrideShowingSuggestions) && (mAutoCorrectEnabled || mSuggestionsEnabledPerUserSettings)
+        return (mInputAttributes.mShouldShowSuggestions || mOverrideShowingSuggestions || isSymbolComposingApp) && (mAutoCorrectEnabled || mSuggestionsEnabledPerUserSettings || isSymbolComposingApp)
     }
 
     fun isSuggestionsEnabledPerUserSettings(): Boolean {

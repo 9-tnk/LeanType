@@ -1715,10 +1715,13 @@ New dictionary:
     <string name="app_quirks_filter_configured">Configured only</string>
     <string name="app_quirks_reset_default">Reset to Default</string>
     <string name="app_quirks_force_direct_commit">Force Direct Text Commit</string>
-    <string name="app_quirks_force_direct_commit_summary">Bypass composing spans and commit characters directly to input connection (fixes Tasker variable inputs, broken text watchers)</string>
+    <string name="app_quirks_force_direct_commit_summary">Bypass composing spans and commit characters directly to input connection (fixes broken text watchers)</string>
+    <string name="app_quirks_allow_symbol_composing">Allow Symbol Composing</string>
+    <string name="app_quirks_allow_symbol_composing_summary">Keep symbols like underscores inside composing words instead of committing immediately (fixes Tasker variable fields)</string>
     <string name="app_quirks_disable_auto_space">Disable Auto-Spacing</string>
     <string name="app_quirks_disable_auto_space_summary">Never insert automatic spaces before or after punctuation and symbols</string>
     <string name="app_quirks_badge_direct_commit">Direct Commit</string>
+    <string name="app_quirks_badge_symbol_composing">Symbol Composing</string>
     <string name="app_quirks_badge_no_auto_space">No Auto-Space</string>
     <string name="app_quirks_allow_type_null">Allow on Non-Editable Fields</string>
     <string name="app_quirks_allow_type_null_summary">Keep keyboard available even when the app specifies no editable text field (InputType.TYPE_NULL)</string>

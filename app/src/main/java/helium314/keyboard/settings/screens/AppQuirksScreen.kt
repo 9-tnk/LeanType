@@ -214,6 +214,13 @@ fun AppQuirksScreen(
                         MaterialTheme.colorScheme.onSecondaryContainer
                     ))
                 }
+                if (effective?.allowSymbolComposing == true) {
+                    badges.add(BadgeInfo(
+                        stringResource(R.string.app_quirks_badge_symbol_composing),
+                        MaterialTheme.colorScheme.tertiaryContainer,
+                        MaterialTheme.colorScheme.onTertiaryContainer
+                    ))
+                }
                 if (effective?.disableAutoSpace == true) {
                     badges.add(BadgeInfo(
                         stringResource(R.string.app_quirks_badge_no_auto_space),
@@ -389,6 +396,7 @@ private fun AppQuirkDialog(
     var forceNonIncognito by remember { mutableStateOf(initialEffective.forceNonIncognito) }
     var stripNoEnterAction by remember { mutableStateOf(initialEffective.stripNoEnterAction) }
     var forceDirectCommit by remember { mutableStateOf(initialEffective.forceDirectCommit) }
+    var allowSymbolComposing by remember { mutableStateOf(initialEffective.allowSymbolComposing) }
     var disableAutoSpace by remember { mutableStateOf(initialEffective.disableAutoSpace) }
     var allowTypeNullKeyboard by remember { mutableStateOf(initialEffective.allowTypeNullKeyboard) }
     var autoCorrectionMode by remember { mutableStateOf(initialEffective.autoCorrectionMode) }
@@ -423,6 +431,7 @@ private fun AppQuirkDialog(
                 forceIncognito = forceIncognito,
                 forceNonIncognito = forceNonIncognito,
                 forceDirectCommit = forceDirectCommit,
+                allowSymbolComposing = allowSymbolComposing,
                 disableAutoSpace = disableAutoSpace,
                 allowTypeNullKeyboard = allowTypeNullKeyboard,
                 autoCorrectionMode = autoCorrectionMode,
@@ -491,7 +500,19 @@ private fun AppQuirkDialog(
                     title = stringResource(R.string.app_quirks_force_direct_commit),
                     summary = stringResource(R.string.app_quirks_force_direct_commit_summary),
                     checked = forceDirectCommit,
-                    onCheckedChange = { forceDirectCommit = it }
+                    onCheckedChange = {
+                        forceDirectCommit = it
+                        if (it) allowSymbolComposing = false
+                    }
+                )
+                QuirkToggleRow(
+                    title = stringResource(R.string.app_quirks_allow_symbol_composing),
+                    summary = stringResource(R.string.app_quirks_allow_symbol_composing_summary),
+                    checked = allowSymbolComposing,
+                    onCheckedChange = {
+                        allowSymbolComposing = it
+                        if (it) forceDirectCommit = false
+                    }
                 )
                 QuirkToggleRow(
                     title = stringResource(R.string.app_quirks_disable_auto_space),

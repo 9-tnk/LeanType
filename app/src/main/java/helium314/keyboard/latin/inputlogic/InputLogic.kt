@@ -994,6 +994,13 @@ class InputLogic(
             restartSuggestions(range, settingsValues)
         }
 
+        if (settingsValues.isSymbolComposingApp && codePoint == '_'.code && !isComposingWord
+            && mConnection.isCursorTouchingWord(settingsValues.mSpacingAndPunctuations, true)
+        ) {
+            restartSuggestionsOnWordTouchedByCursor(settingsValues)
+            isComposingWord = mWordComposer.isComposingWord()
+        }
+
         if (SpaceState.PHANTOM == inputTransaction.spaceState
             && !settingsValues.isWordConnector(codePoint)
             && !settingsValues.isUsuallyFollowedBySpace(codePoint)

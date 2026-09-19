@@ -178,6 +178,29 @@ class ContenteditableDuplicationFixTest {
     }
 
     @Test
+    fun testAppQuirksManager_allowSymbolComposing() {
+        val pkg = "net.dinglisch.android.taskerm"
+        assertFalse(AppQuirksManager.isSymbolComposingApp(pkg))
+
+        val quirk = AppQuirk(
+            packageName = pkg,
+            allowSymbolComposing = true
+        )
+        // Verify JSON roundtrip
+        val json = quirk.toJson()
+        val restored = AppQuirk.fromJson(json)
+        assertEquals(pkg, restored.packageName)
+        assertTrue(restored.allowSymbolComposing)
+        assertFalse(restored.forceDirectCommit)
+
+        AppQuirksManager.saveQuirk(quirk)
+        assertTrue(AppQuirksManager.isSymbolComposingApp(pkg))
+
+        AppQuirksManager.removeQuirk(pkg)
+        assertFalse(AppQuirksManager.isSymbolComposingApp(pkg))
+    }
+
+    @Test
     fun testInputTypeUtils_isWebEditText() {
         val webText = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_WEB_EDIT_TEXT
         val webEmail = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_WEB_EMAIL_ADDRESS

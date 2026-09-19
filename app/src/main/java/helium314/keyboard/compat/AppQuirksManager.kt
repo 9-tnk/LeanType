@@ -135,6 +135,14 @@ object AppQuirksManager {
     }
 
     /**
+     * Returns whether symbols like underscore should be composed as word connectors.
+     */
+    fun isSymbolComposingApp(packageName: String?): Boolean {
+        if (packageName == null) return false
+        return getEffectiveQuirk(packageName)?.allowSymbolComposing == true
+    }
+
+    /**
      * Returns whether automatic spacing is disabled for this application.
      */
     fun isAutoSpaceDisabled(packageName: String?): Boolean {
