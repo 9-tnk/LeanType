@@ -146,7 +146,8 @@ object AppQuirksManager {
      */
     fun isTypeNullKeyboardAllowed(packageName: String?): Boolean {
         if (packageName == null) return false
-        if (packageName == "com.termux" || packageName.endsWith(".termux") || packageName.contains("terminal")) return true
+        if (packageName == "com.termux" || packageName.startsWith("com.termux.") || packageName.endsWith(".termux") || packageName.contains("terminal")) return true
+        if (isWebEditor(packageName)) return true
         return getEffectiveQuirk(packageName)?.allowTypeNullKeyboard == true
     }
 

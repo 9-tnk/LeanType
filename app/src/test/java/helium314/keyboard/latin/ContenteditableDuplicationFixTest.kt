@@ -259,4 +259,35 @@ class ContenteditableDuplicationFixTest {
         assertEquals(0x1F600, ric.codePointBeforeCursor)
         assertEquals(2, ric.charCountToDeleteBeforeCursor)
     }
+
+    @Test
+    fun testAppQuirksManager_isTypeNullKeyboardAllowed() {
+        // Known browsers must allow TYPE_NULL keyboard by default for Gecko/web compatibility
+        assertTrue(AppQuirksManager.isTypeNullKeyboardAllowed("org.mozilla.firefox"))
+        assertTrue(AppQuirksManager.isTypeNullKeyboardAllowed("org.mozilla.fenix"))
+        assertTrue(AppQuirksManager.isTypeNullKeyboardAllowed("org.mozilla.fennec_fdroid"))
+        assertTrue(AppQuirksManager.isTypeNullKeyboardAllowed("io.github.forkmaintainers.iceraven"))
+        assertTrue(AppQuirksManager.isTypeNullKeyboardAllowed("com.android.chrome"))
+
+        // Terminal apps must allow TYPE_NULL
+        assertTrue(AppQuirksManager.isTypeNullKeyboardAllowed("com.termux"))
+        assertTrue(AppQuirksManager.isTypeNullKeyboardAllowed("com.termux.test"))
+
+        // Arbitrary non-browser app should NOT allow TYPE_NULL by default
+        val nonBrowser = "com.example.regularapp"
+        assertFalse(AppQuirksManager.isTypeNullKeyboardAllowed(nonBrowser))
+
+        // Custom quirk with forceWebEditor should allow TYPE_NULL
+        AppQuirksManager.saveQuirk(AppQuirk(packageName = nonBrowser, forceWebEditor = true))
+        assertTrue(AppQuirksManager.isTypeNullKeyboardAllowed(nonBrowser))
+        AppQuirksManager.removeQuirk(nonBrowser)
+        assertFalse(AppQuirksManager.isTypeNullKeyboardAllowed(nonBrowser))
+
+        // Custom quirk with allowTypeNullKeyboard should allow TYPE_NULL
+        AppQuirksManager.saveQuirk(AppQuirk(packageName = nonBrowser, allowTypeNullKeyboard = true))
+        assertTrue(AppQuirksManager.isTypeNullKeyboardAllowed(nonBrowser))
+        AppQuirksManager.removeQuirk(nonBrowser)
+        assertFalse(AppQuirksManager.isTypeNullKeyboardAllowed(nonBrowser))
+    }
 }
+

@@ -1009,6 +1009,9 @@ class LatinIME : InputMethodService(),
         if (AppQuirksManager.isTypeNullKeyboardAllowed(editorInfo.packageName)) {
             return false
         }
+        if (AppQuirksManager.isWebEditor(editorInfo.packageName)) {
+            return false
+        }
         // If cursor position is -1, -1 and inputType is TYPE_NULL (0),
         // it is a non-editable focusable widget (e.g. Sort, Filter, Menu button, or container view).
         // Opening the keyboard here causes transient open/close flicker.
