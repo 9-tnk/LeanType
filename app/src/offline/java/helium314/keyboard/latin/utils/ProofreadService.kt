@@ -381,57 +381,24 @@ class ProofreadService(private val context: Context) {
                     cleanedOutput = cleanedOutput.substring(text.length).trim()
                 }
             }
-            
-            // Truncate at the first occurrence of subsequent template markers
-            val markers = listOf("\nInput:", "\nInstruction:", "\nOutput:", "\nCorrected:", "Input:", "Instruction:", "Output:", "Corrected:")
-            for (marker in markers) {
-                val idx = cleanedOutput.indexOf(marker, ignoreCase = true)
-                if (idx != -1) {
-                    if (marker.startsWith("\n") || idx > 0) {
-                        cleanedOutput = cleanedOutput.substring(0, idx).trim()
-                    }
-                }
-            }
-            
-            // Also truncate at any newline followed by a potential template header (e.g., "\nDraft email:", "\nCorrection:")
-            val headerRegex = Regex("\\n[a-zA-Z0-9 ]+:")
-            val match = headerRegex.find(cleanedOutput)
-            if (match != null) {
-                cleanedOutput = cleanedOutput.substring(0, match.range.first).trim()
-            }
-            
-            // Also strip common prefixes that the model might generate or echo
-            val prefixesToStrip = listOf(
-                "Output:", "Corrected:", "Translation:", "Response:", "Result:",
-                "Output: ", "Corrected: ", "Translation: ", "Response: ", "Result: "
-            )
-            for (prefix in prefixesToStrip) {
-                if (cleanedOutput.startsWith(prefix, ignoreCase = true)) {
-                    cleanedOutput = cleanedOutput.substring(prefix.length).trim()
-                    break
-                }
-            }
-            
-            // If the model wrapped the output in quotes, strip them
-            if (cleanedOutput.startsWith("\"") && cleanedOutput.endsWith("\"")) {
-                cleanedOutput = cleanedOutput.substring(1, cleanedOutput.length - 1).trim()
-            }
-            if (cleanedOutput.startsWith("'") && cleanedOutput.endsWith("'")) {
-                cleanedOutput = cleanedOutput.substring(1, cleanedOutput.length - 1).trim()
-            }
-            
-            // Post-process to strip thinking/reasoning tags if showThinkingVal is false
-            val finalOutput = if (!showThinkingVal) {
-                stripThinkingTags(cleanedOutput)
-            } else {
-                cleanedOutput
+
+            // Post-process to strip thinking/reasoning tags first if showThinkingVal is false
+            if (!showThinkingVal) {
+                cleanedOutput = stripThinkingTags(cleanedOutput)
             }
 
-            Log.i(TAG, "proofread via plugin: input='$text' generated='$output' final='$finalOutput'")
+            // Clean output according to operation type (Translation vs Proofreading)
+            val finalOutput = if (targetLanguage != null) {
+                cleanTranslationOutput(cleanedOutput)
+            } else {
+                cleanProofreadOutput(text, cleanedOutput)
+            }
+
+            Log.i(TAG, "inference via plugin: input='$text' generated='$output' final='$finalOutput'")
             if (finalOutput.isNotBlank()) {
                 Result.success(finalOutput)
             } else {
-                Result.success(text)
+                Result.failure(ProofreadException("Model produced no output"))
             }
 
         } catch (e: Throwable) {
@@ -443,10 +410,11 @@ class ProofreadService(private val context: Context) {
 
     private fun stripThinkingTags(text: String): String {
         return text
-            .replace(Regex("<thinking>[\\s\\S]*?</thinking>", RegexOption.IGNORE_CASE), "")
-            .replace(Regex("<thought>[\\s\\S]*?</thought>", RegexOption.IGNORE_CASE), "")
-            .replace(Regex("<reasoning>[\\s\\S]*?</reasoning>", RegexOption.IGNORE_CASE), "")
-            .replace(Regex("<details>[\\s\\S]*?</details>", RegexOption.IGNORE_CASE), "")
+            .replace(Regex("<think>[\\s\\S]*?(?:</think>|$)", RegexOption.IGNORE_CASE), "")
+            .replace(Regex("<thinking>[\\s\\S]*?(?:</thinking>|$)", RegexOption.IGNORE_CASE), "")
+            .replace(Regex("<thought>[\\s\\S]*?(?:</thought>|$)", RegexOption.IGNORE_CASE), "")
+            .replace(Regex("<reasoning>[\\s\\S]*?(?:</reasoning>|$)", RegexOption.IGNORE_CASE), "")
+            .replace(Regex("<details>[\\s\\S]*?(?:</details>|$)", RegexOption.IGNORE_CASE), "")
             .trim()
     }
 
@@ -458,6 +426,7 @@ class ProofreadService(private val context: Context) {
             "\nReasoning", "\n\nReasoning",
             "\nExplanation", "\n\nExplanation",
             "\nNotes:", "\n\nNotes:",
+            "\nNote:", "\n\nNote:",
             "\nJustification:", "\n\nJustification:",
             "\n- The original", "\n\n- The original",
             "\n* The original", "\n\n* The original"
@@ -469,11 +438,91 @@ class ProofreadService(private val context: Context) {
             }
         }
 
-        // 2. Strip leading section prefixes
-        val prefixRegex = Regex("^(?i)(translated\\s+text:?|translation:?|here\\s+is\\s+the\\s+translation:?)\\s*", RegexOption.MULTILINE)
+        // 2. Truncate at repetition of prompt template markers (subsequent turns)
+        val turnMarkers = listOf("\nInput:", "\nInstruction:", "\nUser:", "\nHuman:", "\nPrompt:")
+        for (marker in turnMarkers) {
+            val idx = cleaned.indexOf(marker, ignoreCase = true)
+            if (idx > 0) {
+                cleaned = cleaned.substring(0, idx).trim()
+            }
+        }
+
+        // 3. Strip conversational preambles and section prefixes (e.g., "Translation:", "Output:")
+        val prefixRegex = Regex(
+            "^(?i)(?:sure[,!.]?\\s*(?:here(?:'s|\\s+is)\\s+(?:the\\s+)?(?:translated\\s+text|translation)[^:\n]*:?)?|" +
+            "(?:here(?:'s|\\s+is)\\s+(?:the\\s+)?(?:translated\\s+text|translation)[^:\n]*:?)|" +
+            "(?:translated\\s+text|translation|output|result|response)[^:\n]*:?|" +
+            "text\\s+to\\s+translate:?)\\s*",
+            RegexOption.MULTILINE
+        )
         cleaned = cleaned.replace(prefixRegex, "").trim()
 
-        // 3. Remove outer quotes if wrapped in quotes
+        // 4. Remove markdown code fences if wrapped in ```...```
+        if (cleaned.startsWith("```") && cleaned.endsWith("```") && cleaned.length >= 6) {
+            val lines = cleaned.lines()
+            if (lines.size >= 2) {
+                cleaned = lines.subList(1, lines.size - 1).joinToString("\n").trim()
+            }
+        }
+
+        // 5. Remove outer quotes if wrapped in quotes
+        if ((cleaned.startsWith("\"") && cleaned.endsWith("\"")) || (cleaned.startsWith("'") && cleaned.endsWith("'"))) {
+            if (cleaned.length >= 2) {
+                cleaned = cleaned.substring(1, cleaned.length - 1).trim()
+            }
+        }
+
+        return cleaned
+    }
+
+    private fun cleanProofreadOutput(originalText: String, text: String): String {
+        var cleaned = text.trim()
+
+        // 1. Truncate at repetition of prompt template markers (subsequent turns)
+        val turnMarkers = listOf("\nInput:", "\nInstruction:", "\nUser:", "\nHuman:", "\nPrompt:")
+        for (marker in turnMarkers) {
+            val idx = cleaned.indexOf(marker, ignoreCase = true)
+            if (idx > 0) {
+                cleaned = cleaned.substring(0, idx).trim()
+            }
+        }
+
+        // 2. Cut off reasoning / explanation sections at the end
+        val reasoningHeaders = listOf(
+            "\nReasoning", "\n\nReasoning",
+            "\nExplanation", "\n\nExplanation",
+            "\nNotes:", "\n\nNotes:",
+            "\nNote:", "\n\nNote:",
+            "\nJustification:"
+        )
+        for (header in reasoningHeaders) {
+            val index = cleaned.indexOf(header, ignoreCase = true)
+            if (index > 0) {
+                cleaned = cleaned.substring(0, index).trim()
+            }
+        }
+
+        // 3. Strip common output prefixes
+        val prefixesToStrip = listOf(
+            "Output:", "Corrected:", "Correction:", "Response:", "Result:",
+            "Output: ", "Corrected: ", "Correction: ", "Response: ", "Result: "
+        )
+        for (prefix in prefixesToStrip) {
+            if (cleaned.startsWith(prefix, ignoreCase = true)) {
+                cleaned = cleaned.substring(prefix.length).trim()
+                break
+            }
+        }
+
+        // 4. Remove markdown code fences if wrapped in ```...```
+        if (cleaned.startsWith("```") && cleaned.endsWith("```") && cleaned.length >= 6) {
+            val lines = cleaned.lines()
+            if (lines.size >= 2) {
+                cleaned = lines.subList(1, lines.size - 1).joinToString("\n").trim()
+            }
+        }
+
+        // 5. If wrapped in quotes, strip them
         if ((cleaned.startsWith("\"") && cleaned.endsWith("\"")) || (cleaned.startsWith("'") && cleaned.endsWith("'"))) {
             if (cleaned.length >= 2) {
                 cleaned = cleaned.substring(1, cleaned.length - 1).trim()

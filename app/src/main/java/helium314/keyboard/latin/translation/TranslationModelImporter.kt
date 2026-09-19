@@ -68,38 +68,91 @@ object TranslationModelImporter {
     fun migrateLegacyModels(context: Context) {
         try {
             val baseDirs = listOfNotNull(context.noBackupFilesDir, context.filesDir).distinct()
+
+            // 1. Gather all directories containing model files across both baseDirs
+            val foundModelNames = mutableSetOf<String>()
             for (baseDir in baseDirs) {
                 val modelsDir = File(baseDir, "com.google.mlkit.translate.models")
                 if (!modelsDir.exists() || !modelsDir.isDirectory) continue
-
                 modelsDir.listFiles()?.forEach { modelDir ->
                     if (modelDir.isDirectory && modelDir.name != "0") {
-                        val versionZeroDir = File(modelDir, "0")
-                        if (!versionZeroDir.exists()) {
-                            versionZeroDir.mkdirs()
+                        val hasRootFiles = modelDir.listFiles()?.any { it.isFile && it.length() > 0 } == true
+                        val zeroDir = File(modelDir, "0")
+                        val hasZeroFiles = zeroDir.exists() && zeroDir.isDirectory &&
+                            zeroDir.listFiles()?.any { it.isFile && it.length() > 0 } == true
+                        if (hasRootFiles || hasZeroFiles) {
+                            foundModelNames.add(modelDir.name)
                         }
-                        // Ensure all model files exist in both modelDir and modelDir/0
-                        modelDir.listFiles()?.forEach { file ->
-                            if (file.isFile) {
-                                val dest = File(versionZeroDir, file.name)
-                                if (!dest.exists() || dest.length() != file.length()) {
-                                    file.copyTo(dest, overwrite = true)
-                                }
-                            }
-                        }
-                        versionZeroDir.listFiles()?.forEach { file ->
-                            if (file.isFile) {
-                                val dest = File(modelDir, file.name)
-                                if (!dest.exists() || dest.length() != file.length()) {
-                                    file.copyTo(dest, overwrite = true)
-                                }
-                            }
+                    }
+                }
+            }
+
+            // 2. Synchronize all aliases and directories
+            for (modelName in foundModelNames) {
+                val aliases = mutableSetOf(modelName)
+                if (modelName.contains("_")) {
+                    val parts = modelName.split("_")
+                    if (parts.size == 2) {
+                        aliases.add("${parts[1]}_${parts[0]}")
+                        aliases.add(parts[0])
+                        aliases.add(parts[1])
+                    }
+                } else {
+                    val mapped = TranslationModelUrls.getModelName(modelName)
+                    if (mapped != null) {
+                        aliases.add(mapped)
+                        val parts = mapped.split("_")
+                        if (parts.size == 2) aliases.add("${parts[1]}_${parts[0]}")
+                    }
+                    aliases.add("${modelName}_en")
+                    aliases.add("en_${modelName}")
+                }
+
+                var sourceDir: File? = null
+                for (baseDir in baseDirs) {
+                    val dir = File(baseDir, "com.google.mlkit.translate.models/$modelName")
+                    if (dir.exists() && (dir.listFiles()?.any { it.isFile } == true || File(dir, "0").listFiles()?.any { it.isFile } == true)) {
+                        sourceDir = dir
+                        break
+                    }
+                }
+                if (sourceDir == null) continue
+
+                val sourceFiles = (sourceDir.listFiles()?.filter { it.isFile } ?: emptyList()) +
+                    (File(sourceDir, "0").listFiles()?.filter { it.isFile } ?: emptyList())
+                val distinctFiles = sourceFiles.distinctBy { it.name }
+
+                for (baseDir in baseDirs) {
+                    for (alias in aliases) {
+                        val aliasDir = File(baseDir, "com.google.mlkit.translate.models/$alias")
+                        val aliasZero = File(aliasDir, "0")
+                        if (!aliasDir.exists()) aliasDir.mkdirs()
+                        if (!aliasZero.exists()) aliasZero.mkdirs()
+
+                        for (srcFile in distinctFiles) {
+                            val destRoot = File(aliasDir, srcFile.name)
+                            val destZero = File(aliasZero, srcFile.name)
+                            syncModelFile(srcFile, destRoot)
+                            syncModelFile(srcFile, destZero)
                         }
                     }
                 }
             }
         } catch (e: Throwable) {
             Log.w(TAG, "Error synchronizing translation model folders", e)
+        }
+    }
+
+    private fun syncModelFile(src: File, dest: File) {
+        if (!dest.exists() || dest.length() != src.length()) {
+            try {
+                if (dest.exists()) dest.delete()
+                android.system.Os.link(src.absolutePath, dest.absolutePath)
+            } catch (_: Throwable) {
+                try {
+                    src.copyTo(dest, overwrite = true)
+                } catch (_: Throwable) {}
+            }
         }
     }
 

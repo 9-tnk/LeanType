@@ -27,6 +27,7 @@ import helium314.keyboard.keyboard.internal.keyboard_parser.floris.KeyCode
 import helium314.keyboard.latin.DictionaryFacilitator
 import helium314.keyboard.latin.LastComposedWord
 import helium314.keyboard.latin.LatinIME
+import helium314.keyboard.latin.R
 import helium314.keyboard.latin.NgramContext
 import helium314.keyboard.latin.RichInputConnection
 import helium314.keyboard.latin.SingleDictionaryFacilitator
@@ -631,7 +632,14 @@ class InputLogic(
             val before = textBefore?.toString() ?: ""
             val after = textAfter?.toString() ?: ""
             textToTranslate = before + after
-            mConnection.selectAll()
+            if (textToTranslate.isNotBlank()) {
+                mConnection.selectAll()
+            }
+        }
+
+        if (textToTranslate.isBlank()) {
+            KeyboardSwitcher.getInstance().showToast(mLatinIME.getString(R.string.translate_no_text), false)
+            return
         }
 
         mTextBeforeTranslate = textToTranslate
@@ -657,6 +665,9 @@ class InputLogic(
                     if (!hasSelection) {
                         val len = textBefore?.length ?: 0
                         mConnection.setSelection(len, len)
+                    }
+                    if (translatedText == textBefore) {
+                        KeyboardSwitcher.getInstance().showToast("Translation unchanged or identical to source text.", false)
                     }
                 }
             },
