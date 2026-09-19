@@ -176,6 +176,7 @@ class FloatingKeyboardManager(private val context: Context, private val latinIME
         ResourceUtils.setFloatingKeyboardScale(savedScale)
         KeyboardSwitcher.getInstance().reloadKeyboard()
 
+        (latinIME.mInputView as? InputView)?.resetChildrenFloatingPadding()
         (latinIME.mInputView as? InputView)?.updateBottomPadding()
         latinIME.onFloatingKeyboardShown()
         Log.i(TAG, "Floating keyboard shown at ${floatingWidth}px width, scale $savedScale")
@@ -219,6 +220,7 @@ class FloatingKeyboardManager(private val context: Context, private val latinIME
                 frame.elevation = 0f
             }
             (latinIME.mInputView as? InputView)?.updateBottomPadding()
+            latinIME.mInputView?.post { latinIME.mInputView?.requestApplyInsets() }
         }
 
         KeyboardSwitcher.getInstance().reloadKeyboard()

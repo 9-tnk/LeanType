@@ -389,11 +389,7 @@ class DynamicColors(context: Context, override val themeStyle: String, override 
                 else view.background.colorFilter = adjustedBackgroundFilter
             MAIN_BACKGROUND -> {
                 keyboardBackground?.let { bg ->
-                    if (!backgroundSetupDone && view.width > 0 && view.height > 0) {
-                        keyboardBackground = bg.toBitmap(view.width, view.height).toDrawable(view.context.resources)
-                        backgroundSetupDone = true
-                    }
-                    view.background = keyboardBackground
+                    view.background = bg
                 } ?: run { view.background.colorFilter = backgroundFilter }
             }
             else -> view.background.colorFilter = backgroundFilter
@@ -590,11 +586,7 @@ class DefaultColors (
             MORE_SUGGESTIONS_BACKGROUND -> view.background.colorFilter = backgroundFilter
             MAIN_BACKGROUND -> {
                 keyboardBackground?.let { bg ->
-                    if (!backgroundSetupDone && view.width > 0 && view.height > 0) {
-                        keyboardBackground = bg.toBitmap(view.width, view.height).toDrawable(view.context.resources)
-                        backgroundSetupDone = true
-                    }
-                    view.background = keyboardBackground
+                    view.background = bg
                 } ?: run { view.background.colorFilter = backgroundFilter }
             }
             else -> view.background.colorFilter = backgroundFilter
@@ -647,11 +639,7 @@ class AllColors(private val colorMap: EnumMap<ColorType, Int>, override val them
             ONE_HANDED_MODE_BUTTON -> setColor(view.background, MAIN_BACKGROUND) // button has no separate background color
             MAIN_BACKGROUND -> {
                 keyboardBackground?.let { bg ->
-                    if (!backgroundSetupDone && view.width > 0 && view.height > 0) {
-                        keyboardBackground = bg.toBitmap(view.width, view.height).toDrawable(view.context.resources)
-                        backgroundSetupDone = true
-                    }
-                    view.background = keyboardBackground
+                    view.background = bg
                 } ?: run { setColor(view.background, color) }
             }
             else -> setColor(view.background, color)

@@ -63,7 +63,7 @@ class CenterCropDrawable(private val bitmap: Bitmap) : Drawable() {
         }
     }
 
-    override fun getIntrinsicWidth(): Int = bitmap.width
+    override fun getIntrinsicWidth(): Int = -1
 
-    override fun getIntrinsicHeight(): Int = bitmap.height
+    override fun getIntrinsicHeight(): Int = -1
 }

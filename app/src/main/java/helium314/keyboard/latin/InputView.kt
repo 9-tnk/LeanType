@@ -46,12 +46,24 @@ class InputView @JvmOverloads constructor(
             mNavBarBottomInsets = navInsets
             updateBottomPadding()
         }
+        if (LatinIME.getInstance()?.floatingKeyboardManager?.isFloating == true) {
+            resetChildrenFloatingPadding()
+            return insets
+        }
         return super.onApplyWindowInsets(insets)
+    }
+
+    fun resetChildrenFloatingPadding() {
+        findViewById<View>(R.id.keyboard_view)?.setPadding(0, 0, 0, 0)
+        findViewById<View>(R.id.emoji_palettes_view)?.setPadding(0, 0, 0, 0)
+        findViewById<View>(R.id.clipboard_history_view)?.setPadding(0, 0, 0, 0)
+        findViewById<View>(R.id.touchpad_view)?.setPadding(0, 0, 0, 0)
     }
 
     fun updateBottomPadding() {
         val mainKeyboardFrame = findViewById<View>(R.id.main_keyboard_frame) ?: return
         if (LatinIME.getInstance()?.floatingKeyboardManager?.isFloating == true) {
+            resetChildrenFloatingPadding()
             if (mainKeyboardFrame.paddingBottom != 0) {
                 mainKeyboardFrame.setPadding(
                     mainKeyboardFrame.paddingLeft,

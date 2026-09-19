@@ -897,10 +897,12 @@ class LatinIME : InputMethodService(),
 
         val fkm = floatingKeyboardManager
         if (fkm != null && fkm.isFloating && !isFullscreenMode) {
+            val decorHeight = window?.window?.decorView?.height?.takeIf { it > 0 }
+                ?: (displayContext ?: this).resources.displayMetrics.heightPixels
             val inputHeight = view.height
             val inputWidth = view.width
-            outInsets.contentTopInsets = inputHeight
-            outInsets.visibleTopInsets = inputHeight
+            outInsets.contentTopInsets = decorHeight
+            outInsets.visibleTopInsets = decorHeight
 
             if (fkm.isDragging || fkm.isResizing) {
                 outInsets.touchableInsets = InputMethodService.Insets.TOUCHABLE_INSETS_FRAME
