@@ -3,10 +3,6 @@ package helium314.keyboard.settings.screens
 
 import android.content.Context
 import android.content.Intent
-import android.net.Uri
-import android.os.Build
-import android.provider.Settings as AndroidSettings
-import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -30,7 +26,6 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
@@ -38,7 +33,6 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -51,7 +45,6 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.core.content.FileProvider
 import androidx.core.net.toUri
 import helium314.keyboard.latin.BuildConfig
 import helium314.keyboard.latin.R
@@ -66,8 +59,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
-import java.io.File
-import java.io.FileOutputStream
 import java.net.HttpURLConnection
 import java.net.URL
 
@@ -93,107 +84,8 @@ fun UpdatesScreen(
     var isCheckingUpdates by remember { mutableStateOf(false) }
     var updateCheckStatus by remember { mutableStateOf<String?>(null) }
     var latestVersionTag by remember { mutableStateOf<String?>(null) }
-    var downloadApkUrl by remember { mutableStateOf<String?>(null) }
     var isUpdateAvailable by remember { mutableStateOf(false) }
-
-    var isDownloading by remember { mutableStateOf(false) }
-    var downloadProgress by remember { mutableFloatStateOf(0f) }
-    var downloadedApkFile by remember { mutableStateOf<File?>(null) }
     var isAutoCheckEnabled by remember { mutableStateOf(prefs.getBoolean("pref_auto_check_updates", true)) }
-
-    fun installApk(file: File) {
-        try {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                if (!context.packageManager.canRequestPackageInstalls()) {
-                    Toast.makeText(context, "Please allow LeanType to install unknown apps", Toast.LENGTH_LONG).show()
-                    val permissionIntent = Intent(
-                        AndroidSettings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
-                        Uri.parse("package:${context.packageName}")
-                    ).apply {
-                        flags = Intent.FLAG_ACTIVITY_NEW_TASK
-                    }
-                    context.startActivity(permissionIntent)
-                    return
-                }
-            }
-
-            val apkUri = FileProvider.getUriForFile(
-                context,
-                "${context.packageName}.fileprovider",
-                file
-            )
-
-            val installIntent = Intent(Intent.ACTION_VIEW).apply {
-                setDataAndType(apkUri, "application/vnd.android.package-archive")
-                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_GRANT_READ_URI_PERMISSION
-            }
-            context.startActivity(installIntent)
-        } catch (e: Exception) {
-            Toast.makeText(context, "Error starting installation: ${e.message}", Toast.LENGTH_LONG).show()
-        }
-    }
-
-    fun startDownload(apkUrl: String, versionTag: String) {
-        isDownloading = true
-        downloadProgress = 0f
-        scope.launch(Dispatchers.IO) {
-            try {
-                val updatesDir = File(context.cacheDir, "updates")
-                if (!updatesDir.exists()) updatesDir.mkdirs()
-                val targetFile = File(updatesDir, "LeanType_${versionTag}.apk")
-
-                var url = URL(apkUrl)
-                var conn = url.openConnection() as HttpURLConnection
-                conn.instanceFollowRedirects = true
-                conn.setRequestProperty("User-Agent", "LeanType-Android")
-                conn.connect()
-
-                // Follow redirects if any
-                var redirectCount = 0
-                while ((conn.responseCode == HttpURLConnection.HTTP_MOVED_PERM ||
-                            conn.responseCode == HttpURLConnection.HTTP_MOVED_TEMP ||
-                            conn.responseCode == 307 || conn.responseCode == 308) && redirectCount < 5) {
-                    val location = conn.getHeaderField("Location") ?: break
-                    url = URL(location)
-                    conn = url.openConnection() as HttpURLConnection
-                    conn.setRequestProperty("User-Agent", "LeanType-Android")
-                    conn.connect()
-                    redirectCount++
-                }
-
-                val totalBytes = conn.contentLength
-                var downloadedBytes = 0L
-
-                conn.inputStream.use { input ->
-                    FileOutputStream(targetFile).use { output ->
-                        val buffer = ByteArray(8192)
-                        var bytesRead: Int
-                        while (input.read(buffer).also { bytesRead = it } != -1) {
-                            output.write(buffer, 0, bytesRead)
-                            downloadedBytes += bytesRead
-                            if (totalBytes > 0) {
-                                val prog = downloadedBytes.toFloat() / totalBytes.toFloat()
-                                withContext(Dispatchers.Main) {
-                                    downloadProgress = prog
-                                }
-                            }
-                        }
-                    }
-                }
-
-                withContext(Dispatchers.Main) {
-                    downloadedApkFile = targetFile
-                    isDownloading = false
-                    installApk(targetFile)
-                }
-            } catch (e: Exception) {
-                withContext(Dispatchers.Main) {
-                    isDownloading = false
-                    Toast.makeText(context, "Download failed: ${e.message}", Toast.LENGTH_SHORT).show()
-                }
-            }
-        }
-    }
 
     fun checkForUpdates() {
         if (!isOnlineFlavor) return
@@ -214,30 +106,8 @@ fun UpdatesScreen(
                     val json = JSONObject(response)
                     val tag = json.optString("tag_name", "").trim()
 
-                    var targetApkUrl: String? = null
-                    val assets = json.optJSONArray("assets")
-                    if (assets != null) {
-                        for (i in 0 until assets.length()) {
-                            val asset = assets.getJSONObject(i)
-                            val name = asset.optString("name", "")
-                            val downloadUrl = asset.optString("browser_download_url", "")
-                            if (name.endsWith(".apk", ignoreCase = true)) {
-                                if (isStandardFull && name.contains("standardfull", ignoreCase = true)) {
-                                    targetApkUrl = downloadUrl
-                                    break
-                                } else if (!isStandardFull && name.contains("standard", ignoreCase = true) && !name.contains("standardfull", ignoreCase = true)) {
-                                    targetApkUrl = downloadUrl
-                                    break
-                                } else if (targetApkUrl == null) {
-                                    targetApkUrl = downloadUrl
-                                }
-                            }
-                        }
-                    }
-
                     withContext(Dispatchers.Main) {
                         latestVersionTag = tag
-                        downloadApkUrl = targetApkUrl
                         val cleanCurrent = BuildConfig.VERSION_NAME.removePrefix("v").trim()
                         val cleanRemote = tag.removePrefix("v").trim()
 
@@ -311,6 +181,34 @@ fun UpdatesScreen(
             ) {
                 // Section 1: App Updates (OMITTED entirely on offline flavor)
                 if (isOnlineFlavor) {
+                    if (isStandardFull) {
+                        Surface(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 6.dp),
+                            shape = RoundedCornerShape(12.dp),
+                            color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.7f)
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(12.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                            ) {
+                                Icon(
+                                    painter = painterResource(R.drawable.ic_settings_about),
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Text(
+                                    text = "Notice: 'standardfull' is merging into 'standard' starting in v4.2.6. Updates now direct to the unified standard release.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSecondaryContainer
+                                )
+                            }
+                        }
+                    }
+
                     // Minimal Update Indicator Banner if update is available
                     if (isUpdateAvailable && latestVersionTag != null) {
                         Card(
@@ -343,62 +241,19 @@ fun UpdatesScreen(
                                     }
                                 }
 
-                                if (isDownloading) {
-                                    Spacer(modifier = Modifier.height(12.dp))
-                                    LinearProgressIndicator(
-                                        progress = { downloadProgress },
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .height(6.dp),
-                                        color = MaterialTheme.colorScheme.primary,
-                                        trackColor = MaterialTheme.colorScheme.surfaceVariant
-                                    )
-                                    Spacer(modifier = Modifier.height(6.dp))
-                                    Text(
-                                        text = "Downloading: ${(downloadProgress * 100).toInt()}%",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.onPrimaryContainer
-                                    )
-                                } else {
-                                    Spacer(modifier = Modifier.height(12.dp))
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.End
+                                Spacer(modifier = Modifier.height(12.dp))
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.End
+                                ) {
+                                    Button(
+                                        onClick = {
+                                            val intent = Intent(Intent.ACTION_VIEW, Links.GITHUB_RELEASES_PAGE.toUri())
+                                            context.startActivity(intent)
+                                        },
+                                        shape = RoundedCornerShape(12.dp)
                                     ) {
-                                        if (isStandardFull) {
-                                            Button(
-                                                onClick = {
-                                                    val localApk = downloadedApkFile
-                                                    val apkUrl = downloadApkUrl
-                                                    val versionTag = latestVersionTag
-                                                    if (localApk != null && localApk.exists()) {
-                                                        installApk(localApk)
-                                                    } else if (apkUrl != null && versionTag != null) {
-                                                        startDownload(apkUrl, versionTag)
-                                                    } else {
-                                                        val intent = Intent(Intent.ACTION_VIEW, Links.GITHUB_RELEASES_PAGE.toUri())
-                                                        context.startActivity(intent)
-                                                    }
-                                                },
-                                                shape = RoundedCornerShape(12.dp),
-                                                colors = ButtonDefaults.buttonColors(
-                                                    containerColor = MaterialTheme.colorScheme.primary
-                                                )
-                                            ) {
-                                                val btnText = if (downloadedApkFile?.exists() == true) "Install Now" else "Download & Install"
-                                                Text(btnText, fontWeight = FontWeight.Bold)
-                                            }
-                                        } else {
-                                            Button(
-                                                onClick = {
-                                                    val intent = Intent(Intent.ACTION_VIEW, Links.GITHUB_RELEASES_PAGE.toUri())
-                                                    context.startActivity(intent)
-                                                },
-                                                shape = RoundedCornerShape(12.dp)
-                                            ) {
-                                                Text("View Release", fontWeight = FontWeight.Bold)
-                                            }
-                                        }
+                                        Text("View Release", fontWeight = FontWeight.Bold)
                                     }
                                 }
                             }
@@ -414,7 +269,11 @@ fun UpdatesScreen(
                         )
                     ) {
                         Column(modifier = Modifier.padding(vertical = 4.dp)) {
-                            val currentVersionText = "Installed: v${BuildConfig.VERSION_NAME} (${BuildConfig.FLAVOR})"
+                            val currentVersionText = if (isStandardFull) {
+                                "Installed: v${BuildConfig.VERSION_NAME} (standardfull — merging to standard in v4.2.6)"
+                            } else {
+                                "Installed: v${BuildConfig.VERSION_NAME} (${BuildConfig.FLAVOR})"
+                            }
                             val status = updateCheckStatus
                             val checkDescription = when {
                                 isCheckingUpdates -> stringResource(R.string.updates_checking)

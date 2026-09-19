@@ -47,7 +47,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
-import androidx.core.content.FileProvider
 import com.leanbitlab.leantype.voice.ModelImportRequest
 import com.leanbitlab.leantype.voice.ModelState
 import com.leanbitlab.leantype.voice.VoiceConstants
@@ -165,130 +164,6 @@ fun VoiceSettingsScreen(
                 // ignore network errors
             } finally {
                 isCheckingUpdate = false
-            }
-        }
-    }
-
-    var isDownloadingPlugin by remember { mutableStateOf(false) }
-    var pluginDownloadProgress by remember { mutableFloatStateOf(0f) }
-
-    fun installDownloadedPlugin(file: File) {
-        try {
-            val apkUri = FileProvider.getUriForFile(
-                context,
-                "${context.packageName}.fileprovider",
-                file
-            )
-            val installIntent = Intent(Intent.ACTION_VIEW).apply {
-                setDataAndType(apkUri, "application/vnd.android.package-archive")
-                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_GRANT_READ_URI_PERMISSION
-            }
-            context.startActivity(installIntent)
-        } catch (e: Exception) {
-            Toast.makeText(context, "Error starting installation: ${e.message}", Toast.LENGTH_LONG).show()
-        }
-    }
-
-    fun downloadAndInstallPlugin() {
-        isDownloadingPlugin = true
-        pluginDownloadProgress = 0f
-        scope.launch(Dispatchers.IO) {
-            try {
-                var downloadUrl: String? = null
-                try {
-                    val url = URL(Links.VOICE_PLUGIN_RELEASES_API)
-                    val conn = url.openConnection() as HttpURLConnection
-                    conn.setRequestProperty("User-Agent", "LeanType-Android")
-                    conn.connectTimeout = 8000
-                    conn.readTimeout = 8000
-                    if (conn.responseCode == 200) {
-                        val resp = conn.inputStream.bufferedReader().use { it.readText() }
-                        val json = JSONObject(resp)
-                        val assets = json.optJSONArray("assets")
-                        if (assets != null) {
-                            for (i in 0 until assets.length()) {
-                                val asset = assets.getJSONObject(i)
-                                val name = asset.optString("name", "")
-                                if (name.endsWith(".apk", ignoreCase = true)) {
-                                    downloadUrl = asset.optString("browser_download_url", "")
-                                    break
-                                }
-                            }
-                        }
-                    }
-                } catch (e: Exception) {
-                    Log.w("VoiceSettingsScreen", "Failed to fetch plugin release from API", e)
-                }
-
-                if (downloadUrl.isNullOrBlank()) {
-                    withContext(Dispatchers.Main) {
-                        isDownloadingPlugin = false
-                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(Links.VOICE_PLUGIN_REPO)).apply {
-                            flags = Intent.FLAG_ACTIVITY_NEW_TASK
-                        }
-                        context.startActivity(intent)
-                        Toast.makeText(context, "Opening plugin repository in browser", Toast.LENGTH_SHORT).show()
-                    }
-                    return@launch
-                }
-
-                val updatesDir = File(context.cacheDir, "updates")
-                if (!updatesDir.exists()) updatesDir.mkdirs()
-                val targetFile = File(updatesDir, "voice_plugin.apk")
-
-                var url = URL(downloadUrl)
-                var conn = url.openConnection() as HttpURLConnection
-                conn.instanceFollowRedirects = true
-                conn.setRequestProperty("User-Agent", "LeanType-Android")
-                conn.connect()
-
-                var redirectCount = 0
-                while ((conn.responseCode == HttpURLConnection.HTTP_MOVED_PERM ||
-                            conn.responseCode == HttpURLConnection.HTTP_MOVED_TEMP ||
-                            conn.responseCode == 307 || conn.responseCode == 308) && redirectCount < 5) {
-                    val location = conn.getHeaderField("Location") ?: break
-                    url = URL(location)
-                    conn = url.openConnection() as HttpURLConnection
-                    conn.setRequestProperty("User-Agent", "LeanType-Android")
-                    conn.connect()
-                    redirectCount++
-                }
-
-                val totalBytes = conn.contentLength
-                var downloadedBytes = 0L
-
-                conn.inputStream.use { input ->
-                    FileOutputStream(targetFile).use { output ->
-                        val buffer = ByteArray(8192)
-                        var bytesRead: Int
-                        while (input.read(buffer).also { bytesRead = it } != -1) {
-                            output.write(buffer, 0, bytesRead)
-                            downloadedBytes += bytesRead
-                            if (totalBytes > 0) {
-                                val prog = downloadedBytes.toFloat() / totalBytes.toFloat()
-                                withContext(Dispatchers.Main) {
-                                    pluginDownloadProgress = prog
-                                }
-                            }
-                        }
-                    }
-                }
-
-                withContext(Dispatchers.Main) {
-                    isDownloadingPlugin = false
-                    showVoicePluginDialog = false
-                    installDownloadedPlugin(targetFile)
-                }
-            } catch (e: Exception) {
-                Log.e("VoiceSettingsScreen", "Failed to download plugin", e)
-                withContext(Dispatchers.Main) {
-                    isDownloadingPlugin = false
-                    Toast.makeText(context, "Download failed: ${e.localizedMessage}. Opening browser...", Toast.LENGTH_LONG).show()
-                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(Links.VOICE_PLUGIN_REPO)).apply {
-                        flags = Intent.FLAG_ACTIVITY_NEW_TASK
-                    }
-                    context.startActivity(intent)
-                }
             }
         }
     }
@@ -606,95 +481,70 @@ fun VoiceSettingsScreen(
 
     if (showVoicePluginDialog) {
         PreferenceDialog(
-            onDismissRequest = { if (!isDownloadingPlugin) showVoicePluginDialog = false },
+            onDismissRequest = { showVoicePluginDialog = false },
             title = "Voice Plugin",
-            showCloseButton = !isDownloadingPlugin,
+            showCloseButton = true,
             buttons = {
-                if (isDownloadingPlugin) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = 16.dp),
-                        horizontalArrangement = Arrangement.Center,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        CircularProgressIndicator(modifier = Modifier.size(28.dp))
-                        Spacer(modifier = Modifier.width(12.dp))
-                        Text(
-                            text = "Downloading... ${(pluginDownloadProgress * 100).toInt()}%",
-                            style = MaterialTheme.typography.bodyMedium
-                        )
-                    }
-                } else {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = 16.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        if (!isPluginInstalled || updateAvailable) {
-                            if (hasInternet) {
-                                Button(
-                                    onClick = { downloadAndInstallPlugin() },
-                                    modifier = Modifier.fillMaxWidth()
-                                ) {
-                                    Text(if (updateAvailable) "Update Plugin" else "Download & Install Plugin")
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    if (!isPluginInstalled || updateAvailable) {
+                        Button(
+                            onClick = {
+                                showVoicePluginDialog = false
+                                val url = if (updateAvailable) "${Links.VOICE_PLUGIN_REPO}/releases" else Links.VOICE_PLUGIN_REPO
+                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url)).apply {
+                                    flags = Intent.FLAG_ACTIVITY_NEW_TASK
                                 }
-                            } else {
-                                Button(
-                                    onClick = {
-                                        showVoicePluginDialog = false
-                                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(Links.VOICE_PLUGIN_REPO)).apply {
-                                            flags = Intent.FLAG_ACTIVITY_NEW_TASK
-                                        }
-                                        context.startActivity(intent)
-                                    },
-                                    modifier = Modifier.fillMaxWidth()
-                                ) {
-                                    Text(if (updateAvailable) "Update Plugin" else "Download Plugin")
-                                }
-                            }
+                                context.startActivity(intent)
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(if (updateAvailable) "View Update on GitHub" else "Download Plugin from GitHub")
                         }
-                        if (isPluginInstalled) {
-                            if (!isPluginConnected && !isInitialConnectionPending && !updateAvailable) {
-                                Button(
-                                    onClick = {
-                                        pluginManager.bindIfNeeded()
-                                        updatePluginStatus()
-                                    },
-                                    modifier = Modifier.fillMaxWidth()
-                                ) {
-                                    Text("Connect")
-                                }
-                            }
+                    }
+                    if (isPluginInstalled) {
+                        if (!isPluginConnected && !isInitialConnectionPending && !updateAvailable) {
                             Button(
                                 onClick = {
-                                    showVoicePluginDialog = false
-                                    val appInfoIntent = Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
-                                        data = Uri.parse("package:${VoiceConstants.VOICE_PLUGIN_PACKAGE}")
-                                        flags = Intent.FLAG_ACTIVITY_NEW_TASK
-                                    }
-                                    context.startActivity(appInfoIntent)
+                                    pluginManager.bindIfNeeded()
+                                    updatePluginStatus()
                                 },
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = MaterialTheme.colorScheme.error,
-                                    contentColor = MaterialTheme.colorScheme.onError
-                                ),
                                 modifier = Modifier.fillMaxWidth()
                             ) {
-                                Text("Uninstall")
+                                Text("Connect")
                             }
+                        }
+                        Button(
+                            onClick = {
+                                showVoicePluginDialog = false
+                                val appInfoIntent = Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                                    data = Uri.parse("package:${VoiceConstants.VOICE_PLUGIN_PACKAGE}")
+                                    flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                                }
+                                context.startActivity(appInfoIntent)
+                            },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.error,
+                                contentColor = MaterialTheme.colorScheme.onError
+                            ),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("Uninstall")
                         }
                     }
                 }
             }
         ) {
             val message = when {
-                isPluginInstalled && updateAvailable -> "An update is available for the voice plugin!\nInstalled version: $pluginVersion\nLatest version: $remoteVersion\n\nDo you want to download and update?"
+                isPluginInstalled && updateAvailable -> "An update is available for the voice plugin!\nInstalled version: $pluginVersion\nLatest version: $remoteVersion\n\nVisit the GitHub release page to download and update."
                 isPluginConnected -> "Voice plugin is active (version ${pluginVersion ?: "v1.0.0"}).\n\nLeanType Voice Plugin handles high-performance on-device Whisper speech-to-text inference."
                 isPluginInstalled -> "Voice plugin is installed on this device, but currently disconnected.\n\nTap Connect to establish connection."
-                remoteVersion != null -> "Download the latest voice plugin (version $remoteVersion) to enable private, fast offline voice typing."
-                else -> "Offline voice input requires the LeanType Voice Plugin (com.leanbitlab.leantype.voice.offline).\n\nDownload and install the voice plugin to enable private, fast offline voice typing."
+                remoteVersion != null -> "Download the latest voice plugin (version $remoteVersion) from GitHub to enable private, fast offline voice typing."
+                else -> "Offline voice input requires the LeanType Voice Plugin (com.leanbitlab.leantype.voice.offline).\n\nDownload the voice plugin from GitHub to enable private, fast offline voice typing."
             }
             Text(message)
         }
