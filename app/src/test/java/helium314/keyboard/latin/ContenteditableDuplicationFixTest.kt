@@ -90,14 +90,23 @@ class ContenteditableDuplicationFixTest {
     }
 
     @Test
-    fun testAppQuirksManager_defaultTaskerQuirk() {
-        val tasker = "net.dinglisch.android.taskerm"
-        val quirk = AppQuirksManager.defaultQuirk(tasker)
-        org.junit.Assert.assertNotNull(quirk)
-        assertTrue(quirk!!.forceDirectCommit)
-        assertTrue(quirk.disableAutoSpace)
-        assertTrue(AppQuirksManager.isDirectCommitApp(tasker))
-        assertTrue(AppQuirksManager.isAutoSpaceDisabled(tasker))
+    fun testAppQuirksManager_directCommitAndAutoSpaceUserQuirk() {
+        val testApp = "com.test.directcommit.app"
+        assertFalse(AppQuirksManager.isDirectCommitApp(testApp))
+        assertFalse(AppQuirksManager.isAutoSpaceDisabled(testApp))
+
+        AppQuirksManager.saveQuirk(AppQuirk(
+            packageName = testApp,
+            forceDirectCommit = true,
+            disableAutoSpace = true
+        ))
+
+        assertTrue(AppQuirksManager.isDirectCommitApp(testApp))
+        assertTrue(AppQuirksManager.isAutoSpaceDisabled(testApp))
+
+        AppQuirksManager.removeQuirk(testApp)
+        assertFalse(AppQuirksManager.isDirectCommitApp(testApp))
+        assertFalse(AppQuirksManager.isAutoSpaceDisabled(testApp))
     }
 
     @Test
