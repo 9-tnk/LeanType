@@ -1,0 +1,5 @@
+- Native Floating Window: Replaced overlay window with native IME window architecture (eliminating SYSTEM_ALERT_WINDOW permission), bottom control bar, and persistent mode memory.
+- Privacy Hardening: Removed READ_CONTACTS and REQUEST_INSTALL_PACKAGES permissions; unified GitHub release viewing across flavors in preparation for v4.2.6 merger.
+- App Profiles & Typing Compatibility: Added per-app Allow Symbol Composing (fixing Tasker underscore variables) and Force Non-Incognito toggles; fixed browser TYPE_NULL dropped characters.
+- Offline Translation Hardening: Cleaned thinking tags (<think>) and hardened GGUF output parsing.
+- Stability & Optimization: Atomic dictionary staging with size verification, and reduced voice plugin polling overhead.

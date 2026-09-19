@@ -63,11 +63,11 @@ import java.net.HttpURLConnection
 import java.net.URL
 
 private val currentChangelogItems = listOf(
-    "• Hardware Keyboard Overhaul: Restored suggestions, autocorrect, and typing composition on physical keyboards; resolved NumLock bypass and dead-key crashes",
-    "• App Profiles & Quirks Engine: Added offline per-app compatibility configuration with direct commit, auto-space overrides, and per-app autocorrect toggles",
-    "• Calibrated Cursor Gestures: Eliminated cursor jumping, jitter, and overshoot during vertical swipe-up and spacebar touchpad scrolling",
-    "• Settings Overhaul: Separated Suggestions and Text Correction into distinct categories with coordinated preset sliders and fine-tuning drawers",
-    "• UI Polish & Stability: Polished gesture floating preview and screenshot suggestions, unified voice routing, and fixed non-English dictionary crash"
+    "• Native Floating Window: Migrated to native IME window architecture (eliminating SYSTEM_ALERT_WINDOW permission), bottom control bar, and persistent mode memory",
+    "• Privacy Hardening: Removed READ_CONTACTS and REQUEST_INSTALL_PACKAGES permissions; unified GitHub release viewing across flavors ahead of v4.2.6 merger",
+    "• App Profiles & Compatibility: Added Allow Symbol Composing (fixing Tasker underscore variables) and Force Non-Incognito toggles; fixed web editor focus suppression",
+    "• Offline Translation Hardening: Cleaned thinking tags (<think>) and hardened local GGUF output parsing and model alias synchronization",
+    "• Stability & Optimization: Added atomic dictionary staging with size validation, and silenced repetitive voice plugin logcat polling"
 )
 
 @Composable
