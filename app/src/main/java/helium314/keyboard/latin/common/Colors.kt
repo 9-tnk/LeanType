@@ -303,7 +303,7 @@ class DynamicColors(context: Context, override val themeStyle: String, override 
             // Use 0.65 as threshold (white(1.0) on light accent > 0.65 is bad)
             // Or easier: if accent is bright, use dark icon
             androidx.core.graphics.ColorUtils.calculateLuminance(accent) > 0.5 -> colorFilter(Color.DKGRAY)
-            else -> null
+            else -> colorFilter(Color.WHITE)
         }
     }
 
@@ -350,6 +350,7 @@ class DynamicColors(context: Context, override val themeStyle: String, override 
             else -> null // use color filter
         }
         if (colorStateList == null) {
+            DrawableCompat.setTintList(drawable, null)
             drawable.colorFilter = getColorFilter(color)
             return
         }
@@ -363,6 +364,7 @@ class DynamicColors(context: Context, override val themeStyle: String, override 
             setColor(view.drawable, color)
             return
         }
+        view.drawable?.let { DrawableCompat.setTintList(it, null) }
         view.colorFilter = getColorFilter(color)
     }
 
@@ -513,7 +515,7 @@ class DefaultColors (
             themeStyle == STYLE_HOLO -> keyTextFilter
             // the white icon may not have enough contrast, and can't be adjusted by the user
             isBrightColor(accent) -> colorFilter(Color.DKGRAY)
-            else -> null
+            else -> colorFilter(Color.WHITE)
         }
     }
 
@@ -560,6 +562,7 @@ class DefaultColors (
             else -> null // use color filter
         }
         if (colorStateList == null) {
+            DrawableCompat.setTintList(drawable, null)
             drawable.colorFilter = getColorFilter(color)
             return
         }
@@ -573,6 +576,7 @@ class DefaultColors (
             setColor(view.drawable, color)
             return
         }
+        view.drawable?.let { DrawableCompat.setTintList(it, null) }
         view.colorFilter = getColorFilter(color)
     }
 
@@ -629,6 +633,7 @@ class AllColors(private val colorMap: EnumMap<ColorType, Int>, override val them
             setColor(view.drawable, color)
             return
         }
+        view.drawable?.let { DrawableCompat.setTintList(it, null) }
         view.colorFilter = getColorFilter(color)
     }
 

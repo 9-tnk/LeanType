@@ -125,6 +125,7 @@ class LatinIME : InputMethodService(),
     private var lastSettingsLocale: Locale? = null
     private var lastInputType = 0
     private var lastOrientation = 0
+    private var lastNightMode = 0
 
     val mSettings: Settings = Settings.getInstance()
     val settings: Settings get() = mSettings
@@ -255,11 +256,13 @@ class LatinIME : InputMethodService(),
         val editorInfo = currentInputEditorInfo
         val inputType = editorInfo?.inputType ?: 0
         val orientation = resources.configuration.orientation
+        val nightMode = resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK
 
         if (!sSettingsDirty &&
             locale == lastSettingsLocale &&
             inputType == lastInputType &&
-            orientation == lastOrientation
+            orientation == lastOrientation &&
+            nightMode == lastNightMode
         ) {
             return
         }
@@ -268,6 +271,7 @@ class LatinIME : InputMethodService(),
         lastSettingsLocale = locale
         lastInputType = inputType
         lastOrientation = orientation
+        lastNightMode = nightMode
 
         val inputAttributes = InputAttributes(editorInfo, isFullscreenMode, packageName)
         val currentKeyboardScript = keyboardSwitcher.currentKeyboardScript
@@ -399,6 +403,7 @@ class LatinIME : InputMethodService(),
     override fun onConfigurationChanged(conf: Configuration) {
         super.onConfigurationChanged(conf)
         ScreenProfileProvider.invalidateCache()
+        displayContext = getDisplayContext()
         loadSettings()
         
         val prefs = DeviceProtectedUtils.getSharedPreferences(this)
@@ -428,8 +433,8 @@ class LatinIME : InputMethodService(),
             }
         }
         
-        keyboardSwitcher.updateKeyboardTheme(getDisplayContext())
         keyboardSwitcher.onConfigurationChanged(conf)
+        keyboardSwitcher.updateKeyboardTheme(displayContext ?: this)
         floatingKeyboardManager?.resetDragAndResizeState()
         floatingKeyboardManager?.clampPositionToScreen()
         setNavigationBarColor()

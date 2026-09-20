@@ -7,6 +7,7 @@ import android.view.ViewGroup
 import android.widget.ImageButton
 import android.widget.ImageView
 import androidx.core.content.edit
+import androidx.core.graphics.drawable.DrawableCompat
 import android.view.View
 import android.view.MotionEvent
 import android.os.Handler
@@ -209,11 +210,14 @@ fun setToolbarButtonActivatedState(button: ImageButton) {
     if (activated && button.tag in listOf(INCOGNITO, ONE_HANDED, SPLIT, AUTOCORRECT, SELECT_MODE)) {
         colors.setColor(button.background, ColorType.TOOL_BAR_KEY_ENABLED_BACKGROUND)
         if (button.drawable != null) {
+            button.clearColorFilter()
+            DrawableCompat.setTintList(button.drawable, null)
             colors.setColor(button, ColorType.ACTION_KEY_ICON)
         }
     } else {
         colors.setColor(button.background, ColorType.TOOL_BAR_EXPAND_KEY_BACKGROUND)
         if (button.drawable != null) {
+            button.clearColorFilter()
             colors.setColor(button, ColorType.TOOL_BAR_KEY)
         }
     }
