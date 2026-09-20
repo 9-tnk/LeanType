@@ -32,6 +32,7 @@ import android.widget.ImageButton
 import android.widget.LinearLayout
 import android.widget.RelativeLayout
 import android.widget.TextView
+import androidx.core.view.forEach
 import androidx.core.view.isVisible
 import com.leanbitlab.leantype.voice.VoiceConstants
 import helium314.keyboard.compat.isDeviceLocked
@@ -833,6 +834,7 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
                 Log.d(TAG, "click toolbar key $tag")
                 listener.onCodeInput(code, Constants.SUGGESTION_STRIP_COORDINATE, Constants.SUGGESTION_STRIP_COORDINATE, false)
                 if (tag === ToolbarKey.INCOGNITO) updateKeys() // update expand key icon
+                if (tag === ToolbarKey.SELECT_MODE) updateToolbarButtonsActivatedState()
                 return
             }
         }
@@ -1250,6 +1252,11 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
             view.setOnLongClickListener(this)
         }
         setToolbarButtonActivatedState(view)
+    }
+
+    fun updateToolbarButtonsActivatedState() {
+        toolbar.forEach { if (it is ImageButton) setToolbarButtonActivatedState(it) }
+        pinnedKeys.forEach { if (it is ImageButton) setToolbarButtonActivatedState(it) }
     }
 
     private fun rebuildToolbarKeys() {

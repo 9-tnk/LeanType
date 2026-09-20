@@ -170,15 +170,14 @@ class KeyboardActionListenerImpl(private val latinIME: LatinIME, private val inp
             KeyCode.TOGGLE_SELECTION_MODE -> {
                 sPersistentSelectionModeActive = !sPersistentSelectionModeActive
                 keyboardSwitcher.mainKeyboardView?.invalidateAllKeys()
-                keyboardSwitcher.suggestionStripView?.findViewById<android.view.ViewGroup>(R.id.toolbar)?.let {
-                    helium314.keyboard.latin.utils.setToolbarButtonsActivatedStateOnPrefChange(it, Settings.PREF_AUTO_CORRECTION)
-                }
+                keyboardSwitcher.suggestionStripView?.updateToolbarButtonsActivatedState()
                 return
             }
             KeyCode.ALPHA -> {
                 sPersistentTextEditModeActive = false
                 sPersistentSelectionModeActive = false
                 keyboardSwitcher.hideTextEditView()
+                keyboardSwitcher.suggestionStripView?.updateToolbarButtonsActivatedState()
             }
             KeyCode.HANDWRITING -> {
                 if (keyboardSwitcher.isHandwritingShowing) {
@@ -244,6 +243,7 @@ class KeyboardActionListenerImpl(private val latinIME: LatinIME, private val inp
                     } else {
                         sPersistentSelectionModeActive = !sPersistentSelectionModeActive
                         keyboardSwitcher.mainKeyboardView?.invalidateAllKeys()
+                        keyboardSwitcher.suggestionStripView?.updateToolbarButtonsActivatedState()
                     }
                     return
                 }
@@ -255,6 +255,7 @@ class KeyboardActionListenerImpl(private val latinIME: LatinIME, private val inp
                     } else {
                         sPersistentSelectionModeActive = true
                         keyboardSwitcher.mainKeyboardView?.invalidateAllKeys()
+                        keyboardSwitcher.suggestionStripView?.updateToolbarButtonsActivatedState()
                     }
                     return
                 }

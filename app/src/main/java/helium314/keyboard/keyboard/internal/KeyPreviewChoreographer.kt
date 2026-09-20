@@ -85,13 +85,15 @@ class KeyPreviewChoreographer(private val mParams: KeyPreviewDrawParams) {
         val previewHeight = keyPreviewView.measuredHeight
         val keyDrawWidth = key.drawWidth
 
+        val minX = CoordinateUtils.x(originCoords)
+        val maxX = minX + fullKeyboardViewWidth - previewWidth
         val keyPreviewPosition: Int
-        var previewX = key.drawX - (previewWidth - keyDrawWidth) / 2 + CoordinateUtils.x(originCoords)
-        if (previewX < 0) {
-            previewX = 0
+        var previewX = key.drawX - (previewWidth - keyDrawWidth) / 2 + minX
+        if (previewX < minX) {
+            previewX = minX
             keyPreviewPosition = KeyPreviewView.POSITION_LEFT
-        } else if (previewX > fullKeyboardViewWidth - previewWidth) {
-            previewX = fullKeyboardViewWidth - previewWidth
+        } else if (previewX > maxX) {
+            previewX = maxX
             keyPreviewPosition = KeyPreviewView.POSITION_RIGHT
         } else {
             keyPreviewPosition = KeyPreviewView.POSITION_MIDDLE
