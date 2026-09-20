@@ -640,7 +640,6 @@ class LatinIME : InputMethodService(),
         if (mainKeyboardView == null) return
         if (isTransientFocusTypeNull(editorInfo)) {
             Log.d(TAG, "onStartInputViewInternal: suppressing transient TYPE_NULL input view for ${editorInfo.packageName}")
-            requestHideSelf(0)
             return
         }
         
@@ -1023,9 +1022,10 @@ class LatinIME : InputMethodService(),
             return true
         }
         if (isImeSuppressedByHardwareKeyboard()) return true
+        val isExplicit = (flags and (android.view.inputmethod.InputMethod.SHOW_EXPLICIT or android.view.inputmethod.InputMethod.SHOW_FORCED)) != 0
         val editorInfo = currentInputEditorInfo
-        if (isTransientFocusTypeNull(editorInfo)) {
-            Log.d(TAG, "onShowInputRequested: ignoring transient TYPE_NULL focus for ${editorInfo?.packageName}")
+        if (!isExplicit && isTransientFocusTypeNull(editorInfo)) {
+            Log.d(TAG, "onShowInputRequested: ignoring implicit transient TYPE_NULL focus for ${editorInfo?.packageName}")
             return false
         }
         return super.onShowInputRequested(flags, configChange)
@@ -1035,10 +1035,6 @@ class LatinIME : InputMethodService(),
         if (isExecutingStartShowingInputView) return true
         val settingsValues = settings.current
         if (settingsValues.mHasHardwareKeyboard && (settingsValues.mShowToolbarOnly || settingsValues.mToolbarMode != ToolbarMode.HIDDEN)) return true
-        val editorInfo = currentInputEditorInfo
-        if (isTransientFocusTypeNull(editorInfo)) {
-            return false
-        }
         return super.onEvaluateInputViewShown()
     }
 

@@ -330,6 +330,13 @@ class ContenteditableDuplicationFixTest {
         assertTrue(AppQuirksManager.isTypeNullKeyboardAllowed("com.termux"))
         assertTrue(AppQuirksManager.isTypeNullKeyboardAllowed("com.termux.test"))
 
+        // Dialer and contacts apps must allow TYPE_NULL by default
+        assertTrue(AppQuirksManager.isTypeNullKeyboardAllowed("com.android.dialer"))
+        assertTrue(AppQuirksManager.isTypeNullKeyboardAllowed("com.google.android.dialer"))
+        assertTrue(AppQuirksManager.isTypeNullKeyboardAllowed("com.android.contacts"))
+        assertTrue(AppQuirksManager.isTypeNullKeyboardAllowed("com.android.phone"))
+        assertTrue(AppQuirksManager.isTypeNullKeyboardAllowed("org.fossify.phone"))
+
         // Arbitrary non-browser app should NOT allow TYPE_NULL by default
         val nonBrowser = "com.example.regularapp"
         assertFalse(AppQuirksManager.isTypeNullKeyboardAllowed(nonBrowser))
