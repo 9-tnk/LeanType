@@ -111,8 +111,8 @@ class PopupKeysKeyboard(params: PopupKeysKeyboardParams) : Keyboard(params) {
             mColumnWidth = mDefaultAbsoluteKeyWidth + mDividerWidth
             mBaseWidth = mNumColumns * mColumnWidth - mDividerWidth
             mOccupiedWidth = mBaseWidth
-            // Need to subtract the bottom row's gutter only.
-            mBaseHeight = mNumRows * mDefaultAbsoluteRowHeight - mVerticalGap + mTopPadding + mBottomPadding
+            // Need to subtract the bottom row's gutter only. Omit mBottomPadding so popups don't inherit docked keyboard bottom padding.
+            mBaseHeight = mNumRows * mDefaultAbsoluteRowHeight - mVerticalGap + mTopPadding
             mOccupiedHeight = mBaseHeight
         }
 
@@ -244,6 +244,11 @@ class PopupKeysKeyboard(params: PopupKeysKeyboardParams) : Keyboard(params) {
             if (keyboard?.mPopupKeysTemplate != null) {
                 readAttributes(keyboard.mPopupKeysTemplate)
             }
+            // Force zero padding for popups to prevent inheriting main keyboard's scaled padding.
+            mParams.mTopPadding = 0
+            mParams.mBottomPadding = 0
+            mParams.mLeftPadding = 0
+            mParams.mRightPadding = 0
 
             // TODO: Popup keys keyboard's vertical gap is currently calculated heuristically.
             // Should revise the algorithm.

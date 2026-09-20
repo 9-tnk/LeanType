@@ -281,7 +281,7 @@ class MainKeyboardView @JvmOverloads constructor(
         tracker.getLastCoordinates(lastCoords)
         val keyPreviewEnabled = mKeyPreviewDrawParams.isPopupEnabled() && key.hasPreview()
         val pointX = if (mConfigShowPopupKeysKeyboardAtTouchedPoint && !keyPreviewEnabled) CoordinateUtils.x(lastCoords) else key.x + key.width / 2
-        val pointY = key.y + mKeyPreviewDrawParams.getVisibleOffset()
+        val pointY = key.y
         popupKeysKeyboardView.showPopupKeysPanel(this, this, pointX, pointY, mKeyboardActionListener)
         return popupKeysKeyboardView
     }

@@ -542,17 +542,36 @@ class LatinIME : InputMethodService(),
         }
     }
 
+    fun forceInsetsRefresh() {
+        val win = window?.window ?: return
+        val attrs = win.attributes ?: return
+        val origHeight = attrs.height
+        val decor = win.decorView
+        val px = decor.height.takeIf { it > 0 } ?: resources.displayMetrics.heightPixels
+        attrs.height = px - 1
+        decor.visibility = View.INVISIBLE
+        win.attributes = attrs
+        decor.post {
+            attrs.height = WindowManager.LayoutParams.MATCH_PARENT
+            win.attributes = attrs
+            decor.visibility = View.VISIBLE
+            requestInsetsUpdate()
+        }
+    }
+
     fun onFloatingKeyboardShown() {
         setNavigationBarColor()
         updateNavigationBarFrameVisibility(true)
         workaroundForHuaweiStatusBarIssue()
         requestInsetsUpdate()
+        forceInsetsRefresh()
     }
 
     fun onFloatingKeyboardHidden(showDockedKeyboard: Boolean) {
         setNavigationBarColor()
         updateNavigationBarFrameVisibility(false)
         requestInsetsUpdate()
+        forceInsetsRefresh()
     }
 
     override fun setCandidatesView(view: View) { /* To ensure that CandidatesView will never be set. */ }
@@ -768,6 +787,7 @@ class LatinIME : InputMethodService(),
         val isFloating = floatingKeyboardManager?.let { it.isFloating || (settings.current.mRememberFloatingKeyboard && it.wasFloatingLastTime()) } == true
         if (isFloating) {
             updateNavigationBarFrameVisibility(true)
+            forceInsetsRefresh()
         }
         if (isInputViewShown) {
             setNavigationBarColor()
@@ -935,13 +955,15 @@ class LatinIME : InputMethodService(),
                 ?: (displayContext ?: this).resources.displayMetrics.heightPixels
             val inputHeight = view.height
             val inputWidth = view.width
-            outInsets.contentTopInsets = decorHeight
-            outInsets.visibleTopInsets = decorHeight
+            val targetHeight = maxOf(decorHeight, inputHeight)
+            outInsets.contentTopInsets = targetHeight
+            outInsets.visibleTopInsets = targetHeight
 
             if (fkm.isDragging || fkm.isResizing) {
                 outInsets.touchableInsets = InputMethodService.Insets.TOUCHABLE_INSETS_FRAME
             } else {
                 outInsets.touchableInsets = InputMethodService.Insets.TOUCHABLE_INSETS_REGION
+                outInsets.touchableRegion.setEmpty()
                 if (fkm.getFloatingTouchableRect(mFloatingTouchableRect, inputWidth, inputHeight)) {
                     outInsets.touchableRegion.set(mFloatingTouchableRect)
 
