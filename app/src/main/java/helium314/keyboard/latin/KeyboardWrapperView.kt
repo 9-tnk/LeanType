@@ -134,7 +134,8 @@ class KeyboardWrapperView @JvmOverloads constructor(
     }
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
-        val isFloating = LatinIME.getInstance()?.floatingKeyboardManager?.isFloating == true
+        val fkm = LatinIME.getInstance()?.floatingKeyboardManager
+        val isFloating = fkm != null && (fkm.isFloating || (Settings.getValues().mRememberFloatingKeyboard && fkm.wasFloatingLastTime()))
         if (isFloating) {
             val activeChild = (0 until childCount).map { getChildAt(it) }.firstOrNull {
                 it.visibility == VISIBLE &&
@@ -169,7 +170,7 @@ class KeyboardWrapperView @JvmOverloads constructor(
             ResourceUtils.getKeyboardHeight(context.resources, settingsValues)
         }
         val keyboardView = findViewById<View>(R.id.keyboard_view)
-        val padding = if (keyboardView != null) keyboardView.paddingTop + keyboardView.paddingBottom else 0
+        val padding = if (keyboardView != null && !isFloating) keyboardView.paddingTop + keyboardView.paddingBottom else 0
         val maxExpectedHeight = baseHeight + padding
 
         if (maxExpectedHeight > 0) {

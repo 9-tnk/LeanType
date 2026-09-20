@@ -459,6 +459,17 @@ class LatinIME : InputMethodService(),
         }
         
         floatingKeyboardManager?.takeIf { it.isFloating }?.onInputViewRecreated(view)
+
+        val decor = window?.window?.decorView as? ViewGroup
+        decor?.setOnHierarchyChangeListener(object : ViewGroup.OnHierarchyChangeListener {
+            override fun onChildViewAdded(parent: View?, child: View?) {
+                val isFloatingNow = floatingKeyboardManager?.let { it.isFloating || (settings.current.mRememberFloatingKeyboard && it.wasFloatingLastTime()) } == true
+                if (isFloatingNow) {
+                    updateNavigationBarFrameVisibility(true)
+                }
+            }
+            override fun onChildViewRemoved(parent: View?, child: View?) {}
+        })
         
         voiceInputManager?.setListener(object : VoiceInputManager.VoiceInputListener {
             override fun onStateChanged(state: VoiceInputManager.VoiceState) { onVoiceStateChanged(state) }
@@ -520,7 +531,7 @@ class LatinIME : InputMethodService(),
         val decor = window?.window?.decorView as? ViewGroup ?: return
         for (i in 0 until decor.childCount) {
             val child = decor.getChildAt(i)
-            if (child.javaClass.name.contains("NavigationBarFrame")) {
+            if (child.javaClass.name.contains("NavigationBarFrame") || child.id == android.R.id.navigationBarBackground) {
                 child.visibility = if (isFloating) View.GONE else View.VISIBLE
             }
         }
@@ -548,12 +559,11 @@ class LatinIME : InputMethodService(),
     override fun onStartInputView(editorInfo: EditorInfo, restarting: Boolean) {
         handler.onStartInputView(editorInfo, restarting)
         statsUtilsManager.onStartInputView()
-        if (floatingKeyboardManager?.isFloating == true) {
+        val isFloating = floatingKeyboardManager?.let { it.isFloating || (settings.current.mRememberFloatingKeyboard && it.wasFloatingLastTime()) } == true
+        if (isFloating) {
             updateNavigationBarFrameVisibility(true)
             window?.window?.decorView?.post {
-                if (floatingKeyboardManager?.isFloating == true) {
-                    updateNavigationBarFrameVisibility(true)
-                }
+                updateNavigationBarFrameVisibility(true)
             }
         }
     }
@@ -750,6 +760,10 @@ class LatinIME : InputMethodService(),
         super.onWindowShown()
         window?.window?.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
         clipboardHistoryManager.onPrimaryClipChanged()
+        val isFloating = floatingKeyboardManager?.let { it.isFloating || (settings.current.mRememberFloatingKeyboard && it.wasFloatingLastTime()) } == true
+        if (isFloating) {
+            updateNavigationBarFrameVisibility(true)
+        }
         if (isInputViewShown) {
             setNavigationBarColor()
             workaroundForHuaweiStatusBarIssue()
@@ -909,7 +923,9 @@ class LatinIME : InputMethodService(),
         val view = inputView ?: return
 
         val fkm = floatingKeyboardManager
-        if (fkm != null && fkm.isFloating && !isFullscreenMode) {
+        val isFloating = fkm != null && (fkm.isFloating || (settings.current.mRememberFloatingKeyboard && fkm.wasFloatingLastTime()))
+        if (isFloating && !isFullscreenMode) {
+            updateNavigationBarFrameVisibility(true)
             val decorHeight = window?.window?.decorView?.height?.takeIf { it > 0 }
                 ?: (displayContext ?: this).resources.displayMetrics.heightPixels
             val inputHeight = view.height

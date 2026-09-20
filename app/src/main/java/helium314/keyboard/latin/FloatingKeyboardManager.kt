@@ -130,6 +130,12 @@ class FloatingKeyboardManager(private val context: Context, private val latinIME
         // Configure or create bottom bar inside main_keyboard_frame
         val bottomContainer = frame.findViewById<FrameLayout>(R.id.floating_bottom_bar)
         if (bottomContainer != null) {
+            val bottomLp = bottomContainer.layoutParams as? LinearLayout.LayoutParams
+                ?: LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, bottomBarHeight)
+            bottomLp.width = LinearLayout.LayoutParams.MATCH_PARENT
+            bottomLp.height = bottomBarHeight
+            bottomContainer.layoutParams = bottomLp
+            bottomContainer.setPadding(0, 0, 0, 0)
             bottomContainer.removeAllViews()
             bottomBar = createBottomBar(bottomBarHeight, bgColor, textColor, density, cornerRadius)
             bottomContainer.addView(bottomBar)
@@ -335,8 +341,8 @@ class FloatingKeyboardManager(private val context: Context, private val latinIME
         val minHeight = (120 * density).toInt()
 
         val bottomBar = FrameLayout(context).apply {
-            layoutParams = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
+            layoutParams = FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT,
                 height
             )
             background = GradientDrawable().apply {

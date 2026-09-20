@@ -35,6 +35,11 @@ class InputView @JvmOverloads constructor(
     private var mActiveForwarder: MotionEventForwarder<*, *>? = null
     private var mNavBarBottomInsets = 0
 
+    private fun isFloatingMode(): Boolean {
+        val fkm = LatinIME.getInstance()?.floatingKeyboardManager ?: return false
+        return fkm.isFloating || (Settings.getValues().mRememberFloatingKeyboard && fkm.wasFloatingLastTime())
+    }
+
     override fun onApplyWindowInsets(insets: WindowInsets): WindowInsets {
         val navInsets = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             insets.getInsets(WindowInsets.Type.navigationBars()).bottom
@@ -42,35 +47,34 @@ class InputView @JvmOverloads constructor(
             @Suppress("DEPRECATION")
             insets.systemWindowInsetBottom
         }
+        if (isFloatingMode()) {
+            resetChildrenFloatingPadding()
+            updateBottomPadding()
+            return insets
+        }
         if (mNavBarBottomInsets != navInsets) {
             mNavBarBottomInsets = navInsets
             updateBottomPadding()
-        }
-        if (LatinIME.getInstance()?.floatingKeyboardManager?.isFloating == true) {
-            resetChildrenFloatingPadding()
-            return insets
         }
         return super.onApplyWindowInsets(insets)
     }
 
     fun resetChildrenFloatingPadding() {
+        findViewById<View>(R.id.main_keyboard_frame)?.setPadding(0, 0, 0, 0)
+        findViewById<View>(R.id.keyboard_view_wrapper)?.setPadding(0, 0, 0, 0)
         findViewById<View>(R.id.keyboard_view)?.setPadding(0, 0, 0, 0)
         findViewById<View>(R.id.emoji_palettes_view)?.setPadding(0, 0, 0, 0)
         findViewById<View>(R.id.clipboard_history_view)?.setPadding(0, 0, 0, 0)
         findViewById<View>(R.id.touchpad_view)?.setPadding(0, 0, 0, 0)
+        findViewById<View>(R.id.floating_bottom_bar)?.setPadding(0, 0, 0, 0)
     }
 
     fun updateBottomPadding() {
         val mainKeyboardFrame = findViewById<View>(R.id.main_keyboard_frame) ?: return
-        if (LatinIME.getInstance()?.floatingKeyboardManager?.isFloating == true) {
+        if (isFloatingMode()) {
             resetChildrenFloatingPadding()
-            if (mainKeyboardFrame.paddingBottom != 0) {
-                mainKeyboardFrame.setPadding(
-                    mainKeyboardFrame.paddingLeft,
-                    mainKeyboardFrame.paddingTop,
-                    mainKeyboardFrame.paddingRight,
-                    0
-                )
+            if (mainKeyboardFrame.paddingBottom != 0 || mainKeyboardFrame.paddingTop != 0 || mainKeyboardFrame.paddingLeft != 0 || mainKeyboardFrame.paddingRight != 0) {
+                mainKeyboardFrame.setPadding(0, 0, 0, 0)
                 requestLayout()
             }
             return
