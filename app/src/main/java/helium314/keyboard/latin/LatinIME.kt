@@ -164,6 +164,7 @@ class LatinIME : InputMethodService(),
     private val statsUtilsManager: StatsUtilsManager = StatsUtilsManager.getInstance()
 
     private var isExecutingStartShowingInputView = false
+    private var isExplicitShowRequested = false
     private var displayContext: Context? = null
 
     private val dictionaryPackInstallReceiver: BroadcastReceiver = DictionaryPackInstallBroadcastReceiver(this)
@@ -558,6 +559,7 @@ class LatinIME : InputMethodService(),
     }
 
     override fun onFinishInputView(finishingInput: Boolean) {
+        isExplicitShowRequested = false
         StatsUtils.onFinishInputView()
         handler.onFinishInputView(finishingInput)
         statsUtilsManager.onFinishInputView()
@@ -570,6 +572,7 @@ class LatinIME : InputMethodService(),
     }
 
     override fun onFinishInput() {
+        isExplicitShowRequested = false
         handler.onFinishInput()
         floatingKeyboardManager?.resetDragAndResizeState()
         if (KeyboardActionListenerImpl.sPersistentTextEditModeActive && !Settings.getInstance().current.mPersistTextEditMode) {
@@ -638,8 +641,8 @@ class LatinIME : InputMethodService(),
             throw NullPointerException("Null EditorInfo in onStartInputView()")
         }
         if (mainKeyboardView == null) return
-        if (isTransientFocusTypeNull(editorInfo)) {
-            Log.d(TAG, "onStartInputViewInternal: suppressing transient TYPE_NULL input view for ${editorInfo.packageName}")
+        if (!isExplicitShowRequested && isTransientFocusTypeNull(editorInfo)) {
+            Log.d(TAG, "onStartInputViewInternal: suppressing implicit transient TYPE_NULL input view for ${editorInfo.packageName}")
             return
         }
         
@@ -1023,6 +1026,7 @@ class LatinIME : InputMethodService(),
         }
         if (isImeSuppressedByHardwareKeyboard()) return true
         val isExplicit = (flags and (android.view.inputmethod.InputMethod.SHOW_EXPLICIT or android.view.inputmethod.InputMethod.SHOW_FORCED)) != 0
+        isExplicitShowRequested = isExplicit
         val editorInfo = currentInputEditorInfo
         if (!isExplicit && isTransientFocusTypeNull(editorInfo)) {
             Log.d(TAG, "onShowInputRequested: ignoring implicit transient TYPE_NULL focus for ${editorInfo?.packageName}")
