@@ -182,6 +182,7 @@ open class SettingsValues(
     val mSoundDynamicVelocity: Boolean
     val mSoundMuteInSilent: Boolean
     val mSoundMuteInDnd: Boolean
+    val mSoundPlayOverBluetooth: Boolean
     val mSoundVolSpace: Float
     val mSoundVolDelete: Float
     val mSoundVolEnter: Float
@@ -337,6 +338,7 @@ open class SettingsValues(
         mSoundDynamicVelocity = prefs.getBoolean(Settings.PREF_SOUND_DYNAMIC_VELOCITY, Defaults.PREF_SOUND_DYNAMIC_VELOCITY)
         mSoundMuteInSilent = prefs.getBoolean(Settings.PREF_SOUND_MUTE_IN_SILENT, Defaults.PREF_SOUND_MUTE_IN_SILENT)
         mSoundMuteInDnd = prefs.getBoolean(Settings.PREF_SOUND_MUTE_IN_DND, Defaults.PREF_SOUND_MUTE_IN_DND)
+        mSoundPlayOverBluetooth = prefs.getBoolean(Settings.PREF_SOUND_PLAY_OVER_BLUETOOTH, Defaults.PREF_SOUND_PLAY_OVER_BLUETOOTH)
         mSoundVolSpace = prefs.getFloat(Settings.PREF_SOUND_VOL_SPACE, Defaults.PREF_SOUND_VOL_SPACE)
         mSoundVolDelete = prefs.getFloat(Settings.PREF_SOUND_VOL_DELETE, Defaults.PREF_SOUND_VOL_DELETE)
         mSoundVolEnter = prefs.getFloat(Settings.PREF_SOUND_VOL_ENTER, Defaults.PREF_SOUND_VOL_ENTER)

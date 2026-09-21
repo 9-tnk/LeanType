@@ -282,6 +282,13 @@ fun SoundSettingsScreen(
                                 key = Settings.PREF_SOUND_MUTE_IN_DND,
                                 default = Defaults.PREF_SOUND_MUTE_IN_DND
                             )
+
+                            SwitchPreference(
+                                name = stringResource(R.string.prefs_sound_play_over_bluetooth),
+                                description = stringResource(R.string.prefs_sound_play_over_bluetooth_summary),
+                                key = Settings.PREF_SOUND_PLAY_OVER_BLUETOOTH,
+                                default = Defaults.PREF_SOUND_PLAY_OVER_BLUETOOTH
+                            )
                         }
                     }
                 }
@@ -374,5 +381,8 @@ fun createSoundSettings(context: Context) = listOf(
     },
     Setting(context, Settings.PREF_SOUND_MUTE_IN_DND, R.string.prefs_sound_mute_in_dnd, R.string.prefs_sound_mute_in_dnd_summary) {
         SwitchPreference(it, Defaults.PREF_SOUND_MUTE_IN_DND)
+    },
+    Setting(context, Settings.PREF_SOUND_PLAY_OVER_BLUETOOTH, R.string.prefs_sound_play_over_bluetooth, R.string.prefs_sound_play_over_bluetooth_summary) {
+        SwitchPreference(it, Defaults.PREF_SOUND_PLAY_OVER_BLUETOOTH)
     },
 )

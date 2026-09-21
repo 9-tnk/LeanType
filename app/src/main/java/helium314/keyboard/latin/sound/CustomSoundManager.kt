@@ -3,8 +3,10 @@ package helium314.keyboard.latin.sound
 
 import android.content.Context
 import android.media.AudioAttributes
+import android.media.AudioDeviceInfo
 import android.media.AudioManager
 import android.media.SoundPool
+import android.os.Build
 import android.os.SystemClock
 import android.util.Log
 import helium314.keyboard.keyboard.internal.keyboard_parser.floris.KeyCode
@@ -41,6 +43,47 @@ class CustomSoundManager private constructor(private val appContext: Context) {
     private val previewCache = ConcurrentHashMap<String, Int>()
 
     private var isInputViewActive: Boolean = false
+    private var lastBtCheckTime: Long = 0L
+    private var isBtConnectedCached: Boolean = false
+
+    private fun isBluetoothAudioConnected(): Boolean {
+        val now = SystemClock.elapsedRealtime()
+        if (now - lastBtCheckTime < 1500L) {
+            return isBtConnectedCached
+        }
+        lastBtCheckTime = now
+        isBtConnectedCached = checkBluetoothAudioConnected()
+        return isBtConnectedCached
+    }
+
+    private fun checkBluetoothAudioConnected(): Boolean {
+        val audioManager = appContext.getSystemService(Context.AUDIO_SERVICE) as? AudioManager ?: return false
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            try {
+                audioManager.getDevices(AudioManager.GET_DEVICES_OUTPUTS).any { device ->
+                    when (device.type) {
+                        AudioDeviceInfo.TYPE_BLUETOOTH_A2DP,
+                        AudioDeviceInfo.TYPE_BLUETOOTH_SCO -> true
+                        else -> {
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                                device.type == AudioDeviceInfo.TYPE_BLE_HEADSET ||
+                                device.type == AudioDeviceInfo.TYPE_BLE_SPEAKER ||
+                                device.type == AudioDeviceInfo.TYPE_BLE_BROADCAST
+                            } else {
+                                false
+                            }
+                        }
+                    }
+                }
+            } catch (_: Throwable) {
+                @Suppress("DEPRECATION")
+                audioManager.isBluetoothA2dpOn
+            }
+        } else {
+            @Suppress("DEPRECATION")
+            audioManager.isBluetoothA2dpOn
+        }
+    }
 
     init {
         // SoundPool is loaded lazily or when keyboard opens
@@ -79,6 +122,7 @@ class CustomSoundManager private constructor(private val appContext: Context) {
 
     fun onStartInputView() {
         isInputViewActive = true
+        lastBtCheckTime = 0L
         if (activePackId != SoundPackUrls.SYSTEM_DEFAULT_ID && (soundPool == null || loadedEvents.isEmpty())) {
             loadActivePack()
         }
@@ -86,6 +130,7 @@ class CustomSoundManager private constructor(private val appContext: Context) {
 
     fun onFinishInputView() {
         isInputViewActive = false
+        lastBtCheckTime = 0L
         release()
     }
 
@@ -177,14 +222,6 @@ class CustomSoundManager private constructor(private val appContext: Context) {
         }
         lastPlayedTime["playback"] = now
 
-        val pool = soundPool ?: run {
-            if (isInputViewActive) {
-                ensureSoundPool().also { loadActivePack() }
-            } else {
-                return false
-            }
-        }
-
         val prefs = appContext.prefs()
 
         val eventName: String
@@ -218,6 +255,36 @@ class CustomSoundManager private constructor(private val appContext: Context) {
 
         if (keyVolMultiplier <= 0f) {
             return true
+        }
+
+        // Prevent custom SoundPool from triggering Bluetooth A2DP/AVRCP "Now Playing" media sessions.
+        // Car head units and headphones often treat SoundPool AudioTracks as a media app playback event,
+        // interrupting car radio and announcing "Now Playing". We fall back to native system UI clicks,
+        // which AudioService routes through a system feedback channel that AVRCP ignores.
+        val playOverBluetooth = prefs.getBoolean(Settings.PREF_SOUND_PLAY_OVER_BLUETOOTH, Defaults.PREF_SOUND_PLAY_OVER_BLUETOOTH)
+        if (!playOverBluetooth && isBluetoothAudioConnected()) {
+            val audioManager = appContext.getSystemService(Context.AUDIO_SERVICE) as? AudioManager
+            if (audioManager != null) {
+                val sound = when (code) {
+                    KeyCode.DELETE, KeyCode.DELETE_WORD, KeyCode.FORWARD_DELETE, KeyCode.FORWARD_DELETE_WORD -> AudioManager.FX_KEYPRESS_DELETE
+                    Constants.CODE_SPACE -> AudioManager.FX_KEYPRESS_SPACEBAR
+                    Constants.CODE_ENTER -> AudioManager.FX_KEYPRESS_RETURN
+                    else -> AudioManager.FX_KEYPRESS_STANDARD
+                }
+                val effectVolume = if (volume < 0f) -0.01f else (volume * keyVolMultiplier).coerceIn(0f, 1f)
+                try {
+                    audioManager.playSoundEffect(sound, effectVolume)
+                } catch (_: Throwable) {}
+            }
+            return true
+        }
+
+        val pool = soundPool ?: run {
+            if (isInputViewActive) {
+                ensureSoundPool().also { loadActivePack() }
+            } else {
+                return false
+            }
         }
 
         val event = loadedEvents[eventName]
@@ -334,6 +401,7 @@ class CustomSoundManager private constructor(private val appContext: Context) {
         loadedEvents.clear()
         cycleIndexes.clear()
         lastPlayedTime.clear()
+        lastBtCheckTime = 0L
     }
 
     companion object {

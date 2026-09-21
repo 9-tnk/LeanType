@@ -389,6 +389,7 @@ class Settings private constructor() : SharedPreferences.OnSharedPreferenceChang
         const val PREF_SOUND_DYNAMIC_VELOCITY = "sound_dynamic_velocity"
         const val PREF_SOUND_MUTE_IN_SILENT = "sound_mute_in_silent"
         const val PREF_SOUND_MUTE_IN_DND = "sound_mute_in_dnd"
+        const val PREF_SOUND_PLAY_OVER_BLUETOOTH = "sound_play_over_bluetooth"
         const val PREF_SOUND_VOL_SPACE = "sound_vol_space"
         const val PREF_SOUND_VOL_DELETE = "sound_vol_delete"
         const val PREF_SOUND_VOL_ENTER = "sound_vol_enter"

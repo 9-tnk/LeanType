@@ -161,6 +161,7 @@ object Defaults {
     const val PREF_SOUND_DYNAMIC_VELOCITY = false
     const val PREF_SOUND_MUTE_IN_SILENT = true
     const val PREF_SOUND_MUTE_IN_DND = true
+    const val PREF_SOUND_PLAY_OVER_BLUETOOTH = false
     const val PREF_SOUND_VOL_SPACE = 1.0f
     const val PREF_SOUND_VOL_DELETE = 1.0f
     const val PREF_SOUND_VOL_ENTER = 1.0f

@@ -10,6 +10,7 @@ As an open-source, community-funded project, we operate on a very limited budget
 - **`TYPE_NULL` & Dialer Search Field Input**: Resolved an issue where input fields configured with `TYPE_NULL` (such as phone dialer search inputs and generic app search boxes) dropped input or caused keyboard dismissal. Explicit user show requests are now strictly respected.
 
 ### 🛠️ Improvements & Enhancements
+- **Bluetooth Keypress Audio Interception**: Fixed an issue where custom sound pack audio tracks interrupted car stereos and Bluetooth headsets by triggering AVRCP "Now Playing" playback sessions. LeanType now automatically falls back to native system UI click effects on connected Bluetooth A2DP devices, with an optional user toggle (**Settings → Plugins → Keypress Audio → Play custom sounds over Bluetooth**).
 - **Floating Popup Keys & Preview Clamping**: Corrected horizontal bounds calculation for key preview popups to prevent screen edge overflow in floating mode, and aligned popup rows strictly to parent key space coordinates.
 - **Stray Navigation Bar Artifact Suppression**: Fixed an edge-case where a transparent navigation bar artifact could linger during floating mode transitions.
 - **Pinned Selection State Fix**: Fixed an issue where the pinned text selection mode toggle in the suggestion strip did not reflect its active state properly.
