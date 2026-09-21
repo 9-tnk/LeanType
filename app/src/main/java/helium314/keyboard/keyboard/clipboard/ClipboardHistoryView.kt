@@ -85,9 +85,15 @@ class ClipboardHistoryView @JvmOverloads constructor(
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
         super.onMeasure(widthMeasureSpec, heightMeasureSpec)
         val res = context.resources
+        val isFloating = ResourceUtils.getFloatingKeyboardWidth() > 0 ||
+                (helium314.keyboard.latin.LatinIME.getInstance()?.floatingKeyboardManager?.let {
+                    it.isFloating || (Settings.getValues().mRememberFloatingKeyboard && it.wasFloatingLastTime())
+                } == true)
+        val padH = if (isFloating) 0 else (paddingLeft + paddingRight)
+        val padV = if (isFloating) 0 else (paddingTop + paddingBottom)
         // The main keyboard expands to the entire this {@link KeyboardView}.
-        val width = ResourceUtils.getKeyboardWidth(context, Settings.getValues()) + paddingLeft + paddingRight
-        val height = ResourceUtils.getSecondaryKeyboardHeight(res, Settings.getValues()) + paddingTop + paddingBottom
+        val width = ResourceUtils.getKeyboardWidth(context, Settings.getValues()) + padH
+        val height = ResourceUtils.getSecondaryKeyboardHeight(res, Settings.getValues()) + padV
         setMeasuredDimension(width, height)
     }
 

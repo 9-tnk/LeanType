@@ -225,9 +225,15 @@ class EmojiPalettesView @JvmOverloads constructor(
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
         super.onMeasure(widthMeasureSpec, heightMeasureSpec)
         val res = context.resources
-        val width = ResourceUtils.getKeyboardWidth(context, Settings.getValues()) + paddingLeft + paddingRight
+        val isFloating = ResourceUtils.getFloatingKeyboardWidth() > 0 ||
+                (helium314.keyboard.latin.LatinIME.getInstance()?.floatingKeyboardManager?.let {
+                    it.isFloating || (Settings.getValues().mRememberFloatingKeyboard && it.wasFloatingLastTime())
+                } == true)
+        val padH = if (isFloating) 0 else (paddingLeft + paddingRight)
+        val padV = if (isFloating) 0 else (paddingTop + paddingBottom)
+        val width = ResourceUtils.getKeyboardWidth(context, Settings.getValues()) + padH
         if (!mInSearchMode) {
-            val height = ResourceUtils.getSecondaryKeyboardHeight(res, Settings.getValues()) + paddingTop + paddingBottom
+            val height = ResourceUtils.getSecondaryKeyboardHeight(res, Settings.getValues()) + padV
             setMeasuredDimension(width, height)
         } else {
             setMeasuredDimension(width, measuredHeight)

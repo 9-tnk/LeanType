@@ -41,6 +41,15 @@ class InputView @JvmOverloads constructor(
         return fkm.isFloating || (Settings.getValues().mRememberFloatingKeyboard && fkm.wasFloatingLastTime())
     }
 
+    override fun dispatchApplyWindowInsets(insets: WindowInsets): WindowInsets {
+        if (isFloatingMode()) {
+            resetChildrenFloatingPadding()
+            updateBottomPadding()
+            return insets
+        }
+        return super.dispatchApplyWindowInsets(insets)
+    }
+
     override fun onApplyWindowInsets(insets: WindowInsets): WindowInsets {
         val navInsets = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             insets.getInsets(WindowInsets.Type.navigationBars()).bottom
@@ -62,13 +71,22 @@ class InputView @JvmOverloads constructor(
 
     fun resetChildrenFloatingPadding() {
         setPadding(0, 0, 0, 0)
-        findViewById<View>(R.id.main_keyboard_frame)?.setPadding(0, 0, 0, 0)
-        findViewById<View>(R.id.keyboard_view_wrapper)?.setPadding(0, 0, 0, 0)
-        findViewById<View>(R.id.keyboard_view)?.setPadding(0, 0, 0, 0)
-        findViewById<View>(R.id.emoji_palettes_view)?.setPadding(0, 0, 0, 0)
-        findViewById<View>(R.id.clipboard_history_view)?.setPadding(0, 0, 0, 0)
-        findViewById<View>(R.id.touchpad_view)?.setPadding(0, 0, 0, 0)
-        findViewById<View>(R.id.floating_bottom_bar)?.setPadding(0, 0, 0, 0)
+        fitsSystemWindows = false
+        val viewIds = intArrayOf(
+            R.id.main_keyboard_frame,
+            R.id.keyboard_view_wrapper,
+            R.id.keyboard_view,
+            R.id.emoji_palettes_view,
+            R.id.clipboard_history_view,
+            R.id.touchpad_view,
+            R.id.floating_bottom_bar
+        )
+        for (id in viewIds) {
+            findViewById<View>(id)?.let {
+                it.setPadding(0, 0, 0, 0)
+                it.fitsSystemWindows = false
+            }
+        }
     }
 
     fun updateBottomPadding() {
@@ -80,6 +98,15 @@ class InputView @JvmOverloads constructor(
                 requestLayout()
             }
             return
+        }
+        val viewIds = intArrayOf(
+            R.id.keyboard_view,
+            R.id.emoji_palettes_view,
+            R.id.clipboard_history_view,
+            R.id.touchpad_view
+        )
+        for (id in viewIds) {
+            findViewById<View>(id)?.fitsSystemWindows = true
         }
         val wrapper = findViewById<View>(R.id.keyboard_view_wrapper)
         val showToolbarOnly = wrapper?.visibility != View.VISIBLE

@@ -7,6 +7,7 @@ import android.graphics.drawable.NinePatchDrawable
 import android.text.TextUtils
 import android.util.AttributeSet
 import android.view.View
+import android.view.WindowInsets
 import androidx.core.graphics.ColorUtils
 import androidx.core.graphics.drawable.DrawableCompat
 import helium314.keyboard.keyboard.emoji.EmojiPageKeyboardView
@@ -144,10 +145,48 @@ open class KeyboardView @JvmOverloads constructor(
         }
     }
 
+    private fun isFloatingMode(): Boolean {
+        return helium314.keyboard.latin.utils.ResourceUtils.getFloatingKeyboardWidth() > 0 ||
+                (helium314.keyboard.latin.LatinIME.getInstance()?.floatingKeyboardManager?.let {
+                    it.isFloating || (Settings.getValues().mRememberFloatingKeyboard && it.wasFloatingLastTime())
+                } == true)
+    }
+
+    override fun setPadding(left: Int, top: Int, right: Int, bottom: Int) {
+        if (isFloatingMode()) {
+            super.setPadding(0, 0, 0, 0)
+            return
+        }
+        super.setPadding(left, top, right, bottom)
+    }
+
+    override fun setPaddingRelative(start: Int, top: Int, end: Int, bottom: Int) {
+        if (isFloatingMode()) {
+            super.setPaddingRelative(0, 0, 0, 0)
+            return
+        }
+        super.setPaddingRelative(start, top, end, bottom)
+    }
+
+    override fun onApplyWindowInsets(insets: WindowInsets): WindowInsets {
+        if (isFloatingMode()) {
+            super.setPadding(0, 0, 0, 0)
+            return insets
+        }
+        return super.onApplyWindowInsets(insets)
+    }
+
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
         val kb = keyboard
         if (kb == null) { super.onMeasure(widthMeasureSpec, heightMeasureSpec); return }
-        setMeasuredDimension(kb.mOccupiedWidth + paddingLeft + paddingRight, kb.mOccupiedHeight + paddingTop + paddingBottom)
+        val floating = isFloatingMode()
+        val padTop = if (floating) 0 else paddingTop
+        val padBottom = if (floating) 0 else paddingBottom
+        val padLeft = if (floating) 0 else paddingLeft
+        val padRight = if (floating) 0 else paddingRight
+        val h = kb.mOccupiedHeight + padTop + padBottom
+        val w = kb.mOccupiedWidth + padLeft + padRight
+        setMeasuredDimension(w, h)
     }
 
     override fun onDraw(canvas: Canvas) {
