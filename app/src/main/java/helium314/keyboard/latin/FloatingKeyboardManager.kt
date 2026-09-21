@@ -198,6 +198,21 @@ class FloatingKeyboardManager(private val context: Context, private val latinIME
         (latinIME.mInputView as? InputView)?.resetChildrenFloatingPadding()
         (latinIME.mInputView as? InputView)?.updateBottomPadding()
         latinIME.onFloatingKeyboardShown()
+
+        frame.post {
+            if (!isFloating) return@post
+            (latinIME.mInputView as? InputView)?.resetChildrenFloatingPadding()
+            (latinIME.mInputView as? InputView)?.updateBottomPadding()
+            val currentLp = frame.layoutParams
+            currentLp.width = ResourceUtils.getFloatingKeyboardWidth().takeIf { it > 0 } ?: floatingWidth
+            currentLp.height = ViewGroup.LayoutParams.WRAP_CONTENT
+            frame.layoutParams = currentLp
+            (frame.findViewById<View>(R.id.keyboard_view_wrapper) as? View)?.requestLayout()
+            frame.requestLayout()
+            val kb = KeyboardSwitcher.getInstance().mainKeyboardView?.keyboard
+            Log.i(TAG, "floating geometry post: occupied=${kb?.mOccupiedHeight} base=${kb?.mBaseHeight} " +
+                    "topPad=${kb?.mTopPadding} frameH=${frame.height} viewPadBottom=${latinIME.mInputView?.paddingBottom}")
+        }
         Log.i(TAG, "Floating keyboard shown at ${floatingWidth}px width, scale $savedScale")
     }
 
@@ -537,6 +552,9 @@ class FloatingKeyboardManager(private val context: Context, private val latinIME
                     ResourceUtils.setFloatingKeyboardScale(finalScale)
                     KeyboardSwitcher.getInstance().reloadKeyboard()
                     latinIME.requestInsetsUpdate()
+                    val kb = KeyboardSwitcher.getInstance().mainKeyboardView?.keyboard
+                    Log.i(TAG, "floating geometry resize: occupied=${kb?.mOccupiedHeight} base=${kb?.mBaseHeight} " +
+                            "topPad=${kb?.mTopPadding} frameH=${frame.height} viewPadBottom=${latinIME.mInputView?.paddingBottom}")
                     true
                 }
                 else -> false

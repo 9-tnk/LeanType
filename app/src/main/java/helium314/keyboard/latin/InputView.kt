@@ -61,6 +61,7 @@ class InputView @JvmOverloads constructor(
     }
 
     fun resetChildrenFloatingPadding() {
+        setPadding(0, 0, 0, 0)
         findViewById<View>(R.id.main_keyboard_frame)?.setPadding(0, 0, 0, 0)
         findViewById<View>(R.id.keyboard_view_wrapper)?.setPadding(0, 0, 0, 0)
         findViewById<View>(R.id.keyboard_view)?.setPadding(0, 0, 0, 0)
