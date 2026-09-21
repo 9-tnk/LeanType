@@ -30,19 +30,6 @@
 
 ---
 
-## 🚀 What's New in v4.2.6 (Recent Highlights)
-
-LeanType v4.2.x represents a massive leap forward in privacy, performance, hardware keyboard productivity, and modular architecture:
-
-- 🪶 **Ultra-Lightweight Modular Plugin Architecture**: Base APK footprint is under 11 MB. Heavy AI/ML modules—such as Offline AI (`llama.cpp`), Handwriting recognition, and ML Kit OCR—are unbundled into dynamic, on-demand companion plugins.
-- ⌨️ **First-Class Hardware Keyboard Support**: Physical/Bluetooth keyboards and foldables now get full dictionary predictions, auto-correction, candidate selection shortcuts (`1`, `2`, `3`), and D-PAD navigation in the emoji picker.
-- 🛡️ **Zero-Permission Privacy Overhaul**: Completely removed `READ_CONTACTS`, `SYSTEM_ALERT_WINDOW`, and `REQUEST_INSTALL_PACKAGES`. Floating mode and OTP detection run entirely via native IME window APIs and `NotificationListenerService`.
-- 🧠 **Suggestion Engine Telemetry & Tuning**: Power users can fine-tune prediction scoring using the **Suggestion Balance** master sliders and inspect candidate scoring via built-in `SuggestTrace` / `ScoreAudit` telemetry.
-- 📱 **Per-App Profiles & Compatibility Engine**: Granular per-app quirks under **Settings → Preferences → App Profiles** fix edge cases for web-based text editors (Google Docs/Notion), Tasker symbol composing (`%var_name`), and non-editable `TYPE_NULL` search fields.
-- 🫧 **Refined Native IME Floating Mode**: Native window migration with true touch pass-through, live proportional 0.5×–1.8× resizing, dedicated bottom dock control bar, and zero dead-space layout.
-
----
-
 ## 📸 Screenshots
 
 <table>
