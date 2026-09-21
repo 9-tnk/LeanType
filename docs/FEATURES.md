@@ -18,7 +18,7 @@ LeanType combines a lightweight, privacy-focused keyboard foundation with cuttin
 | 🧭 **[Dedicated Text Editing Panel](#7-dedicated-text-editing-panel)** | Gboard-style precision DPAD arrow navigation & selection mode |
 | 📐 **[Smart Auto-Spanning Toolbar](#8-smart-auto-spanning-toolbar)** | Symmetrical dynamic toolbar key expansion across screen widths |
 | 🖱️ **[Touchpad Mode & Gestures](#9-touchpad-mode--gestures)** | Spacebar swipe gesture & full-screen laptop-style touchpad |
-| 🪟 **[Floating & Resizable Keyboard](#10-floating--resizable-keyboard)** | Draggable, resizable floating keyboard window |
+| 🪟 **[Native IME Floating & Resizable Keyboard](#10-native-ime-floating--resizable-keyboard)** | Touch-passthrough, bottom dock bar, and zero dead space floating window |
 | ⌨️ **[Dual Toolbar & Split Suggestions](#11-dual-toolbar--split-suggestions)** | Split toolbar actions and word suggestions into separate rows |
 | 📝 **[Text Expander](#12-text-expander)** | Shortcut expansion with dynamic template placeholders |
 | 📋 **[Searchable Clipboard, Editing & Gestures](#13-searchable-clipboard-editing--gestures)** | Real-time search, swipe-to-edit inline, swipe-to-delete undo, pinned folding, and sliding select |
@@ -30,11 +30,12 @@ LeanType combines a lightweight, privacy-focused keyboard foundation with cuttin
 | 👆 **[Gesture / Glide Typing](#19-gesture--glide-typing)** | Smooth swipe typing powered by native C++ library |
 | ⌨️ **[Direct Switch Target IME](#20-direct-switch-target-ime)** | Switch directly to a specific target keyboard with keycode `-10076` |
 | 🎨 **[Custom Layout Profiles](#21-custom-layout-profiles)** | Save up to 5 custom layout profiles with persistent slot tracking |
-| 🔄 **[In-App Update Checker & Release Viewer](#22-in-app-update-checker--release-viewer)** | Direct GitHub release checks and 1-tap release viewer |
-| 📦 **[Flavor Architecture & Privacy](#23-flavor-architecture--privacy)** | Breakdown of Standard, Standard Full, and Offline flavors |
+| 🔄 **[In-App Update Checker & Release Viewer](#22-in-app-update-checker--release-viewer)** | Direct GitHub release checks and 1-tap release viewer (`standard` flavor) |
+| 📦 **[Flavor Architecture & Privacy](#23-flavor-architecture--privacy)** | Breakdown of Standard and Offline flavors |
 | 📷 **[Offline Camera OCR & Screenshot Extraction](#24-offline-camera-ocr--screenshot-extraction)** | In-keyboard camera viewfinder, automated screenshot extraction pill, and advanced formatting cleaners |
 | 🔢 **[Inline Math Calculation Suggestions](#25-inline-math-calculation-suggestions)** | High-precision arithmetic expression evaluator on typing `=` with 1-tap replacement |
 | 🎵 **[Custom Sound Packs & Audio Customization](#26-custom-sound-packs--audio-customization)** | Zero-latency key audio engine, 12+ built-in presets, remote repository catalog, and `.zip` imports |
+| ⚙️ **[Per-App Profiles & Compatibility Engine](#27-per-app-profiles--compatibility-engine)** | Per-app composing rules, symbol composing for Tasker, auto-incognito, and Enter overrides |
 
 ---
 
@@ -47,14 +48,15 @@ LeanType combines a lightweight, privacy-focused keyboard foundation with cuttin
 | **Offline Proofreading (GGUF)** | Zero-network, on-device neural proofreading powered by embedded `llama.cpp`. | `Advanced > GGUF Model (.gguf)` |
 | **Multi-Mode In-Keyboard Translation** | Translate text on-device (Offline ML Kit), via Translation Plugin, or Cloud/Local AI with auto-fallback. | `Translation > Translation Mode` |
 | **Whisper Voice Typing** | On-device speech-to-text with quantized multilingual Whisper models and audio visualizer. | `Voice typing > Whisper Speech Models` |
-| **Handwriting Recognition** | Draw characters on a dedicated canvas with in-app model manager (Standard Full flavor). | `Handwriting > Handwriting recognition` |
+| **Handwriting Recognition** | Draw characters on a dedicated canvas with in-app model manager (supported across all flavors via plugin). | `Handwriting > Handwriting recognition` |
 | **Offline Camera & Screenshot OCR** | Live in-keyboard camera scanner and screenshot suggestion pill with rich text cleaners (casing, join styles, dehyphenation). | `OCR & Text Extraction` / `Plugins > OCR` |
 | **Inline Math Calculation** | Instant arithmetic calculation suggestions on typing `=` with 1-tap expression replacement. | `Text correction > Inline math calculation` |
 | **Custom Sound Packs** | Zero-latency key audio engine with 12+ built-in presets, remote catalog downloads, and `.zip` import. | `Plugins > Sound` / `Preferences > Sound on keypress` |
 | **Text Editing Panel** | Precision DPAD arrow navigation, Shift selection mode, and clipboard shortcuts. | Toolbar > Text Editing Icon |
 | **Auto-Spanning Toolbar** | Dynamically expands and balances toolbar keys symmetrically across device widths. | `Appearance > Toolbar auto-spacing` |
 | **Touchpad Mode** | Swipe up on Spacebar to activate full cursor control and laptop-style touchpad gestures. | `Gesture typing > Vertical spacebar swipe` |
-| **Floating Keyboard** | Detach keyboard into a draggable, resizable window with persistent positioning. | Toolbar > Floating Keyboard |
+| **Native IME Floating Window** | Moveable floating keyboard window with touch-passthrough, bottom dock bar, resize handle, zero dead space, and persistent memory. | Toolbar > Floating Keyboard / `Preferences > Remember floating mode` |
+| **Per-App Profiles & Quirks** | Fine-tune composing behavior per app (Tasker symbol composing, web editor compatibility, auto-incognito, and Enter action overrides). | `Preferences > App Profiles` |
 | **Split Toolbar & Suggestions** | Separates suggestions from the toolbar into a dual-row view. | `Appearance > Split toolbar & suggestions` |
 | **Versatile Text Expander** | Expand shortcuts with dynamic variables, citation stripper (`%clipboard:clean%`), and modifiers. | `Text correction > Text Expander` |
 | **Clipboard History & Inline Edit** | Search history, swipe-right to edit inline, swipe-left to delete with undo, fold pinned clips, and slide-select. | Clipboard Toolbar > Search / Swipe items |
@@ -230,13 +232,19 @@ Turn the entire keyboard space into a fluid laptop-style trackpad:
 
 ---
 
-## 10. Floating & Resizable Keyboard
+## 10. Native IME Floating & Resizable Keyboard
 
-Detach LeanType into a moveable, resizable floating window:
-- Tap the **Floating Keyboard** icon on the toolbar.
-- Drag the bottom handle to reposition anywhere on the screen.
-- Drag corner handles to resize with live real-time proportional key scaling.
-- Enable **Persistent Floating Mode** to keep the keyboard floating across app switches.
+LeanType features an advanced **Native IME Floating Window** architecture that runs directly within the Android Input Method window rather than relying on invasive `SYSTEM_ALERT_WINDOW` system overlays. This delivers seamless background touch passthrough, zero extra permissions, and robust stability across multi-window and split-screen setups.
+
+### 🪟 Key Floating Features
+- **Touch-Passthrough Window**: Touches outside the floating keyboard bubble pass directly to underlying applications, allowing simultaneous typing, reading, and scrolling.
+- **Floating Bottom Dock**: A dedicated, clean control bar anchored beneath the key rows:
+  - **`[✕]` Close / Dock Button**: 1-tap return to standard docked keyboard mode.
+  - **Center Drag Pill**: Smooth, fluid multi-touch drag handle to position the keyboard anywhere on the screen.
+  - **`[⤢]` Corner Resize Handle**: Proportional live resizing with instantaneous key scaling and zero layout jumps.
+- **Zero Dead Space Architecture**: Dynamic window inset clamping and automated padding suppression ensure zero dead background space inside the keyboard frame across all display densities.
+- **Persistent Floating Memory**: Optionally preserve floating mode and window coordinates across keyboard dismissals and app switches (**Settings → Preferences → Remember floating mode**).
+- **Instant Activation**: Tap the **Floating Keyboard** icon on the toolbar or trigger it via custom shortcuts.
 
 ---
 
@@ -463,3 +471,32 @@ LeanType includes a zero-latency native keypress audio feedback engine that deli
 - **Custom `.zip` Pack Import**: Import custom sound packs packaged as a `.zip` containing a `soundpack.json` manifest and keypress audio files (`.wav` or `.ogg`).
 - **Live Audition & Volume**: Audition sounds with live sample playback (▶️) and fine-tune keypress audio volume independently from system media volume.
 - **Dedicated Settings Screen**: Access via **Settings → Plugins → Keypress Audio / Sound** or **Settings → Preferences → Sound on keypress**.
+
+---
+
+## 27. Per-App Profiles & Compatibility Engine
+
+Certain Android apps, terminal emulators, code editors, automation tools, and web-based input fields handle text entry in non-standard ways. LeanType features a dedicated **Per-App Profiles & Compatibility Engine** that lets you customize composing, auto-correction, and key behaviors on a granular per-application basis.
+
+Access via **Settings → Preferences → App Profiles**.
+
+### ⚙️ Available Per-App Quirks & Overrides
+
+| Quirk / Setting | Description & Use Case |
+| :--- | :--- |
+| **🌐 Web Editor Compatibility** | Forces web-safe backspace, batch sync, and internal cache bypass for text fields. Ideal for web-based text editors (e.g. Google Docs in Chrome, Notion, Obsidian web clips) that suffer from duplicated or stuck text. |
+| **🕵️ Automatic Incognito** | Forces LeanType into incognito mode whenever this specific app is active. Never learns typed words, disables personal dictionary boosting, and leaves zero trace in history. |
+| **🔓 Force Non-Incognito** | Overrides aggressive system incognito flags (such as `IME_FLAG_NO_PERSONALIZED_LEARNING`) set by certain apps or search fields, restoring full personal dictionary suggestions and auto-correction. |
+| **⚡ Force Direct Text Commit** | Bypasses composing spans completely and commits characters directly to the input connection. Resolves input glitches in custom apps and games with broken `TextWatcher` implementations. |
+| **🧩 Allow Symbol Composing** | Keeps punctuation and symbols (such as `%` and `_`) inside the active composing word instead of immediately committing them. Essential for automation tools like **Tasker** where variables such as `%var_name` would otherwise break composing. |
+| **🚫 Strip No-Enter Flag** | Ignores `IME_FLAG_NO_ENTER_ACTION` set by apps (e.g. Pixel Launcher search or specific chat inputs) to ensure an Enter / Action key is always available. |
+| **🔘 Action Key Override** | Overrides the bottom-right Enter key action for the target app. Options include **System Default**, **Force Newline (None)**, **Force Send**, **Force Search**, **Force Go**, **Force Next**, or **Force Done**. |
+| **✏️ Auto-Correction Overrides** | Force-enable or force-disable auto-correction specifically for an app (e.g. always disabled for terminal emulators like Termux, always enabled for messaging apps). |
+| **␣ Disable Auto-Spacing** | Prevents automatic space insertion before or after punctuation and symbols in sensitive coding or terminal environments. |
+| **📄 Allow on Non-Editable Fields** | Keeps the keyboard available and interactable even when an app specifies a non-editable text field (`InputType.TYPE_NULL`). |
+
+### 🔍 App Profiles Management
+- **Instant Search & Filter**: Filter apps by name or package identifier, or toggle **Configured only** to review your active overrides.
+- **Visual Status Badges**: Each application card displays colored status chips (`Web`, `Incognito`, `Direct Commit`, `Symbol Composing`, `Action`, `Auto-Correct`) for immediate at-a-glance auditing.
+- **1-Tap Reset**: Easily revert any custom profile back to default with the **Reset to Default** option.
+

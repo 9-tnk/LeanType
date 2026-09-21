@@ -47,27 +47,27 @@
 
 ## 📦 Flavor Comparison
 
-LeanType is available in flavors designed to match your exact privacy preferences, hardware specifications, and feature requirements:
+LeanType is available in two purpose-built flavors designed to match your exact privacy preferences, hardware specifications, and feature requirements:
 
-> [!IMPORTANT]
-> **Flavor Transition Notice (v4.2.6 Merger)**:  
-> Starting in **v4.2.6**, `standardfull` will be merged into `standard`. In preparation, both flavors now share a unified release viewing mechanism and have zero `REQUEST_INSTALL_PACKAGES` permission overhead. Users currently using `standardfull` can update directly to `standard` with full data and settings compatibility.
+> [!NOTE]
+> **Flavor Consolidation (v4.2.6)**:  
+> As announced in v4.2.5, `standardfull` has been completely merged into `standard`. Both editions operate with zero sensitive permissions (no `READ_CONTACTS`, `SYSTEM_ALERT_WINDOW`, or `REQUEST_INSTALL_PACKAGES`). Users previously using `standardfull` can update directly to `standard` with full data and settings preservation.
 
-| Feature / Capability | 🌿 Standard (Recommended)<br>`-standard-release.apk` | 🌟 Standard Full (Merging in v4.2.6)<br>`-standardfull-release.apk` | 🛡️ Offline<br>`-offline-release.apk` |
-| :--- | :---: | :---: | :---: |
-| **Target Audience** | **Recommended** (F-Droid & Direct users) | Transitioning users | Privacy purists & Offline users |
-| **Cloud AI** *(Gemini, Groq, OpenAI)* | ✅ Yes | ✅ Yes | ❌ No |
-| **Offline AI** *(Local GGUF via llama.cpp)* | ❌ No | ❌ No | ✅ **Yes** *(Android 8.0+ via plugin)* |
-| **Translation** *(Offline & AI)* | ✅ **Yes** *(Plugin or AI)* | ✅ **Yes** *(Plugin or AI)* | ✅ **Yes** *(via Plugin)* |
-| **Voice Typing** *(On-device Whisper)* | ✅ **Yes** *(via plugin)* | ✅ **Yes** *(via plugin)* | ✅ **Yes** *(via plugin)* |
-| **Handwriting Input** | ✅ **Yes** *(via plugin)* | ✅ **Yes** *(via plugin)* | ✅ **Yes** *(via plugin)* |
-| **OCR Text Extraction** *(Camera & Screenshots)* | ✅ **Yes** *(via plugin)* | ✅ **Yes** *(via plugin)* | ✅ **Yes** *(via plugin)* |
-| **Release Update Checker** | ✅ **Yes** *(GitHub Releases / View Release)* | ✅ **Yes** *(GitHub Releases / View Release)* | ❌ No |
-| **Plugins & Models Setup** | In-app download or File import | In-app download or File import | Browser download + File import |
-| **Internet Permission** | 🌐 Optional *(Cloud AI / Updates)* | 🌐 Optional *(Cloud AI / Updates)* | 🚫 **None** *(OS-level blocked)* |
-| **Package ID** | `com.leanbitlab.leantype` | `com.leanbitlab.leantype` | `com.leanbitlab.leantype.offline` |
-| **Min Android Version** | Android 6.0+ *(SDK 23)* | Android 6.0+ *(SDK 23)* | Android 5.0+ *(SDK 21)* |
-| **Approximate APK Size** | **~10.8 MB** | **~10.8 MB** | **~9.8 MB** |
+| Feature / Capability | 🌿 Standard (Recommended)<br>`-standard-release.apk` | 🛡️ Offline<br>`-offline-release.apk` |
+| :--- | :---: | :---: |
+| **Target Audience** | **Recommended** (F-Droid & Direct users) | Privacy purists & Air-gapped devices |
+| **Cloud AI** *(Gemini, Groq, OpenAI)* | ✅ Yes | ❌ No |
+| **Offline AI** *(Local GGUF via llama.cpp)* | ❌ No | ✅ **Yes** *(Android 8.0+ via plugin)* |
+| **Translation** *(Offline & AI)* | ✅ **Yes** *(Plugin or AI)* | ✅ **Yes** *(via Plugin)* |
+| **Voice Typing** *(On-device Whisper)* | ✅ **Yes** *(via plugin)* | ✅ **Yes** *(via plugin)* |
+| **Handwriting Input** | ✅ **Yes** *(via plugin)* | ✅ **Yes** *(via plugin)* |
+| **OCR Text Extraction** *(Camera & Screenshots)* | ✅ **Yes** *(via plugin)* | ✅ **Yes** *(via plugin)* |
+| **Release Update Checker** | ✅ **Yes** *(GitHub Releases / View Release)* | ❌ No |
+| **Plugins & Models Setup** | In-app download or File import | Browser download + File import |
+| **Internet Permission** | 🌐 Optional *(Cloud AI / Updates)* | 🚫 **None** *(OS-level blocked)* |
+| **Package ID** | `com.leanbitlab.leantype` | `com.leanbitlab.leantype.offline` |
+| **Min Android Version** | Android 6.0+ *(SDK 23)* | Android 5.0+ *(SDK 21)* |
+| **Approximate APK Size** | **~10.8 MB** | **~9.8 MB** |
 
 > [!TIP]
 > **APK Installation Notice**: Google Play Protect or your browser may block direct APK installations downloaded from web browsers. If you experience installation issues, install via [Obtainium](https://apps.obtainium.imranr.dev/redirect.html?r=obtainium://add/https://github.com/LeanBitLab/HeliboardL) or a package manager like [App Manager](https://github.com/MuntashirAkon/AppManager).
@@ -100,7 +100,8 @@ LeanType is available in flavors designed to match your exact privacy preference
 - **📐 Smart Auto-Spanning Toolbar**: Dynamically expands and balances toolbar keys symmetrically to prevent awkward gaps across portrait, landscape, and tablet widths.
 - **🧭 Dedicated Text Editing Panel**: Gboard-style precision DPAD arrow navigation, selection mode (Shift + arrows), select word, select all, and editing shortcuts.
 - **🖱️ Touchpad Mode**: Swipe up on the spacebar to control the cursor freely across the screen, including full-screen laptop-style touchpad mode.
-- **🪟 Floating & Resizable Keyboard**: Detach into a moveable floating window with persistent positioning for multitasking.
+- **🪟 Native IME Floating Window**: Seamless native IME window architecture with zero sensitive permissions (no `SYSTEM_ALERT_WINDOW`), pass-through background touches, bottom control bar (close, center-drag pill, resize drag handle), multi-touch tracking, zero dead space, and persistent mode memory.
+- **⚙️ Per-App Profiles & Compatibility Engine**: Tailor keyboard behavior per application (**Settings → Preferences → App Profiles**)—enable web editor compatibility, automatic incognito, force non-incognito, direct commit mode, symbol composing (preserving underscores `_` in Tasker variables), and custom Enter action overrides.
 - **⌨️ Dual Toolbar / Split Suggestions**: Option to split suggestions from the quick-action toolbar.
 - **🎨 Custom Layout Profiles**: Save up to 5 custom layout profiles with persistent slot index tracking.
 - **⌨️ Direct Switch Target IME**: Bind keycode `-10076` to any toolbar key to switch directly to a specific target keyboard (e.g. Japanese, Korean, or Chinese IME).
@@ -114,7 +115,7 @@ LeanType is available in flavors designed to match your exact privacy preference
 - **📚 Smart Learning & Session Boost**: Adaptive personal dictionary learning threshold (1 to 5 times) and dynamic session word boosting.
 - **🚫 Blacklist & Regex Filtering**: Filter offensive words or unwanted suggestions with custom regex pattern support.
 - **🔄 Google Dictionary Import**: Seamlessly import personal dictionary words exported from Gboard.
-- **🔄 In-App Update Checker**: Direct GitHub release checks with single-version changelogs and 1-tap "View Release" redirection (`standard` & `standardfull` flavors).
+- **🔄 In-App Update Checker**: Direct GitHub release checks with single-version changelogs and 1-tap "View Release" redirection (`standard` flavor).
 
 ---
 
@@ -159,14 +160,14 @@ LeanType is available in flavors designed to match your exact privacy preference
 5. Tap the microphone icon on the keyboard toolbar to start speech-to-text!
 
 ### 3. Translation Setup (Offline & Online)
-1. **Online Flavors (`Standard` / `Standard Full`)**: Open **Settings → Translation** and tap **Download Plugin** to install the [LeanType Translation Plugin](https://github.com/LeanBitLab/LeanType-Translation-Plugin/releases/latest) automatically.
-2. **Offline Flavors (`Offline` / `Offline Lite`)**: Download `translation_plugin-arm64-v8a.apk` from [GitHub Releases](https://github.com/LeanBitLab/LeanType-Translation-Plugin/releases/latest) and load it in **Settings → Plugins → Translation**.
+1. **Online Flavor (`Standard`)**: Open **Settings → Translation** and tap **Download Plugin** to install the [LeanType Translation Plugin](https://github.com/LeanBitLab/LeanType-Translation-Plugin/releases/latest) automatically.
+2. **Offline Flavor (`Offline`)**: Download `translation_plugin-arm64-v8a.apk` from [GitHub Releases](https://github.com/LeanBitLab/LeanType-Translation-Plugin/releases/latest) and load it in **Settings → Plugins → Translation**.
 3. Download or import your required language translation models (~30 MB per language).
 4. Tap the **Translate** icon on the keyboard toolbar to translate selected text or input fields instantly.
 
 ### 4. Handwriting Recognition Setup
-1. **Online Flavors**: Open **Settings → Handwriting** and tap **Download Plugin** to fetch the [LeanType Handwriting Plugin](https://github.com/LeanBitLab/Leantype-Handwriting-Plugin/releases/latest).
-2. **Offline Flavors**: Download `handwriting_plugin-arm64-v8a.apk` from [GitHub Releases](https://github.com/LeanBitLab/Leantype-Handwriting-Plugin/releases/latest) and load it in **Settings → Plugins → Handwriting**.
+1. **Online Flavor (`Standard`)**: Open **Settings → Handwriting** and tap **Download Plugin** to fetch the [LeanType Handwriting Plugin](https://github.com/LeanBitLab/Leantype-Handwriting-Plugin/releases/latest).
+2. **Offline Flavor (`Offline`)**: Download `handwriting_plugin-arm64-v8a.apk` from [GitHub Releases](https://github.com/LeanBitLab/Leantype-Handwriting-Plugin/releases/latest) and load it in **Settings → Plugins → Handwriting**.
 3. Download or import handwriting recognition models for your languages.
 4. Tap the **Handwriting key** on the toolbar or long-press spacebar to draw characters on the writing canvas.
 
