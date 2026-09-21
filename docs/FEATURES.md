@@ -66,7 +66,7 @@ LeanType combines a lightweight, privacy-focused keyboard foundation with cuttin
 | **Gesture Typing** | Swipe typing powered by native C++ spatial scoring engine. | `Gesture typing > Enable gesture typing` |
 | **Direct Switch Target IME** | Fast 1-tap switching to another configured IME using custom keycode `-10076`. | `Preferences > Direct Switch Target IME` |
 | **Custom Layout Profiles** | Store up to 5 custom keyboard layouts with persistent slot tracking. | `Languages > Custom layouts` |
-| **In-App Update Checker** | Checks GitHub releases with changelogs and 1-tap release viewing (`standard` & `standardfull`; merging in v4.2.6). | `Settings > Updates` |
+| **In-App Update Checker** | Checks GitHub releases with changelogs and 1-tap release viewing (`standard` flavor). | `Settings > Updates` |
 
 ---
 
@@ -342,7 +342,7 @@ LeanType learns your vocabulary organically as you type:
 
 - Smooth swipe typing powered by native C++ spatial scoring (`libjni_latinime.so`).
 - Supports floating preview text, customizable trail colors, and space-aware gesture input.
-- In `standard` and `standardfull` builds, the gesture library is downloaded automatically via **Settings → Gesture typing**.
+- In `standard` builds, the gesture library is downloaded automatically via **Settings → Gesture typing**.
 
 ---
 
@@ -365,32 +365,30 @@ Map the custom keycode `-10076` (`SWITCH_TO_USER_IME`) to any toolbar key:
 ## 22. In-App Update Checker & Release Viewer
 
 > [!NOTE]
-> Available in the **Standard** (`-standard-release.apk`) and **Standard Full** (`-standardfull-release.apk`) build flavors.
+> Available in the **Standard** (`-standard-release.apk`) build flavor.
 
 - Automatically checks GitHub releases for updates in the background.
 - Eliminates sensitive package installation permissions (`REQUEST_INSTALL_PACKAGES`) by redirecting to official GitHub Releases for safe and verified APK updates.
 - View single-version changelogs directly inside the update screen.
 - Configure check frequency under **Settings → Updates**.
-- **Upcoming Merger**: In v4.2.6, `standardfull` is merging into `standard`, and updates point directly to the unified standard release.
 
 ---
 
 ## 23. Flavor Architecture & Privacy
  
-LeanType is published in purpose-built flavors to balance cloud AI capabilities and strict air-gapped offline operation:
+LeanType is published in two purpose-built flavors to balance cloud AI capabilities and strict air-gapped offline operation:
 
-> [!IMPORTANT]
-> **Upcoming Flavor Merger (v4.2.6)**:  
-> In version **v4.2.5**, `standard` and `standardfull` have been unified to use the same permission model (zero `REQUEST_INSTALL_PACKAGES`) and release viewing mechanism. Starting in **v4.2.6**, `standardfull` will be merged completely into `standard`. Users on `standardfull` can transition directly to `standard`.
+> [!NOTE]
+> **Flavor Consolidation**:  
+> In **v4.2.6**, `standardfull` has been completely merged into `standard`. Users previously using `standardfull` can transition directly to `standard`.
  
 | Flavor | Cloud AI | Offline AI | Voice Input | Handwriting | OCR Extraction | Translation | Update Checker | Internet Permission | Min SDK | Approx Size |
 | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
 | **Standard (Recommended)** | ✅ | ❌ | ✅ *(Plugin)* | ✅ *(Plugin)* | ✅ *(Plugin)* | ✅ *(Plugin/AI)* | ✅ *(View Release)* | 🌐 Optional *(Opt-in)* | SDK 23 (6.0+) | **~10.8 MB** |
-| **Standard Full (Merging in v4.2.6)** | ✅ | ❌ | ✅ *(Plugin)* | ✅ *(Plugin)* | ✅ *(Plugin)* | ✅ *(Plugin/AI)* | ✅ *(View Release)* | 🌐 Optional *(Opt-in)* | SDK 23 (6.0+) | **~10.8 MB** |
 | **Offline** | ❌ | ✅ *(Plugin on 8.0+)* | ✅ *(Plugin)* | ✅ *(Plugin)* | ✅ *(Plugin)* | ✅ *(Plugin)* | ❌ | 🚫 **None** | SDK 21 (5.0+) | **~9.8 MB** |
 
 > [!TIP]
-> **Concurrent Installation**: The `offline` (`com.leanbitlab.leantype.offline`) build uses a unique package ID, allowing you to install it alongside `standard` / `standardfull` on the same device!
+> **Concurrent Installation**: The `offline` (`com.leanbitlab.leantype.offline`) build uses a unique package ID, allowing you to install it alongside `standard` on the same device!
 
 ---
 

@@ -5,8 +5,6 @@ import re
 def extract_flavor(text):
     """Extracts the specific flavor name from an APK filename or markdown row."""
     lower = text.lower()
-    if 'standardfull' in lower:
-        return 'standardfull'
     if 'offlinelite' in lower:
         return 'offlinelite'
     if 'standard' in lower:

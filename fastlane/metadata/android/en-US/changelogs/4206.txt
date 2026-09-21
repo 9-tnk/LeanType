@@ -1,0 +1,5 @@
+- Floating Window Layout Fix: Eliminated persistent bottom dead space in floating mode by intercepting framework insets, toggling fitsSystemWindows, and performing clean deferred re-measurement.
+- Flavor Consolidation: Fully merged standardfull into standard, delivering a streamlined two-flavor lineup (standard & offline) with zero sensitive permission overhead.
+- Input Compatibility & Dialer Search: Fixed TYPE_NULL fields in generic search bars and dialer apps by properly respecting explicit show requests from users.
+- Popup & Preview Alignment: Corrected horizontal preview bounds clamping and aligned popup key rows precisely to parent key coordinates in floating mode.
+- UI & Selection Polish: Fixed pinned text selection mode state in suggestion strip, enhanced toolbar key icon contrast, and improved system theme reloads.

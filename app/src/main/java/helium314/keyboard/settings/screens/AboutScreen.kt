@@ -93,8 +93,7 @@ fun createAboutSettings(context: Context) = listOf(
         var count by rememberSaveable { mutableIntStateOf(0) }
         val ctx = LocalContext.current
         val prefs = ctx.prefs()
-        val versionDescription = stringResource(R.string.version_text, BuildConfig.VERSION_NAME) +
-            if (BuildConfig.FLAVOR == "standardfull") " (merging to standard in v4.2.6)" else ""
+        val versionDescription = stringResource(R.string.version_text, BuildConfig.VERSION_NAME)
         Preference(
             name = it.title,
             description = versionDescription,

@@ -63,11 +63,11 @@ import java.net.HttpURLConnection
 import java.net.URL
 
 private val currentChangelogItems = listOf(
-    "• Native Floating Window: Migrated to native IME window architecture (eliminating SYSTEM_ALERT_WINDOW permission), bottom control bar, and persistent mode memory",
-    "• Privacy Hardening: Removed READ_CONTACTS and REQUEST_INSTALL_PACKAGES permissions; unified GitHub release viewing across flavors ahead of v4.2.6 merger",
-    "• App Profiles & Compatibility: Added Allow Symbol Composing (fixing Tasker underscore variables) and Force Non-Incognito toggles; fixed web editor focus suppression",
-    "• Offline Translation Hardening: Cleaned thinking tags (<think>) and hardened local GGUF output parsing and model alias synchronization",
-    "• Stability & Optimization: Added atomic dictionary staging with size validation, and silenced repetitive voice plugin logcat polling"
+    "• Floating Window Layout Fix: Eliminated persistent bottom dead space in floating mode by intercepting framework insets, toggling fitsSystemWindows, and performing clean deferred re-measurement",
+    "• Flavor Consolidation: Fully merged standardfull into standard, delivering a streamlined two-flavor lineup (standard & offline) with zero sensitive permission overhead",
+    "• Input Compatibility & Dialer Search: Fixed TYPE_NULL fields in generic search bars and dialer apps by properly respecting explicit show requests from users",
+    "• Popup & Preview Alignment: Corrected horizontal preview bounds clamping and aligned popup key rows precisely to parent key coordinates in floating mode",
+    "• UI & Selection Polish: Fixed pinned text selection mode state in suggestion strip, enhanced toolbar key icon contrast, and improved system theme reloads"
 )
 
 @Composable
@@ -78,8 +78,7 @@ fun UpdatesScreen(
     val scope = rememberCoroutineScope()
     val prefs = context.prefs()
 
-    val isOnlineFlavor = BuildConfig.FLAVOR == "standard" || BuildConfig.FLAVOR == "standardfull"
-    val isStandardFull = BuildConfig.FLAVOR == "standardfull"
+    val isOnlineFlavor = BuildConfig.FLAVOR == "standard"
 
     var isCheckingUpdates by remember { mutableStateOf(false) }
     var updateCheckStatus by remember { mutableStateOf<String?>(null) }
@@ -181,34 +180,6 @@ fun UpdatesScreen(
             ) {
                 // Section 1: App Updates (OMITTED entirely on offline flavor)
                 if (isOnlineFlavor) {
-                    if (isStandardFull) {
-                        Surface(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 16.dp, vertical = 6.dp),
-                            shape = RoundedCornerShape(12.dp),
-                            color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.7f)
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(12.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(10.dp)
-                            ) {
-                                Icon(
-                                    painter = painterResource(R.drawable.ic_settings_about),
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.onSecondaryContainer,
-                                    modifier = Modifier.size(20.dp)
-                                )
-                                Text(
-                                    text = "Notice: 'standardfull' is merging into 'standard' starting in v4.2.6. Updates now direct to the unified standard release.",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSecondaryContainer
-                                )
-                            }
-                        }
-                    }
-
                     // Minimal Update Indicator Banner if update is available
                     if (isUpdateAvailable && latestVersionTag != null) {
                         Card(
@@ -269,11 +240,7 @@ fun UpdatesScreen(
                         )
                     ) {
                         Column(modifier = Modifier.padding(vertical = 4.dp)) {
-                            val currentVersionText = if (isStandardFull) {
-                                "Installed: v${BuildConfig.VERSION_NAME} (standardfull — merging to standard in v4.2.6)"
-                            } else {
-                                "Installed: v${BuildConfig.VERSION_NAME} (${BuildConfig.FLAVOR})"
-                            }
+                            val currentVersionText = "Installed: v${BuildConfig.VERSION_NAME} (${BuildConfig.FLAVOR})"
                             val status = updateCheckStatus
                             val checkDescription = when {
                                 isCheckingUpdates -> stringResource(R.string.updates_checking)

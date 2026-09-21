@@ -17,7 +17,7 @@ A clear and concise description of what you expected to happen.
 Add screenshots only if they help explain the problem (keep file size small).
 
 **App version & Flavor**
-Specify the version (e.g. v3.9.9) or build commit, and the flavor (e.g. standardfull, standard, offline, offlinelite).
+Specify the version (e.g. v4.2.6) or build commit, and the flavor (e.g. standard, offline).
 
 **Device Info**
 - Model:

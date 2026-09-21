@@ -17,4 +17,4 @@ Explain how you would use this feature and why it is useful.
 Any alternative solutions or workarounds you've considered.
 
 **App version & Flavor**
-Specify the version and the flavor you are using (e.g. standardfull, standard, offline, offlinelite).
+Specify the version and the flavor you are using (e.g. standard, offline).

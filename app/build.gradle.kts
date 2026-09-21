@@ -23,9 +23,9 @@ android {
         applicationId = "com.leanbitlab.leantype"
         minSdk = 21
         targetSdk = 35
-        // ponytail: release version 4.2.5
-        versionCode = 4205
-        versionName = "4.2.5"
+        // ponytail: release version 4.2.6
+        versionCode = 4206
+        versionName = "4.2.6"
 
         proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         
@@ -39,10 +39,6 @@ android {
     flavorDimensions += "privacy"
     productFlavors {
         create("standard") {
-            dimension = "privacy"
-            minSdk = 23
-        }
-        create("standardfull") {
             dimension = "privacy"
             minSdk = 23
         }
@@ -106,7 +102,6 @@ android {
             val flavor = productFlavors.firstOrNull()?.name ?: ""
             val number = when(flavor) {
                 "standard" -> "1"
-                "standardfull" -> "1"
                 "offline" -> "2"
                 else -> ""
             }
@@ -209,12 +204,6 @@ android {
         // these orphaned strings are harmlessly stripped by R8 during minification.
         disable += "ExtraTranslation"
     }
-
-    sourceSets {
-        getByName("standardfull") {
-            java.srcDirs("src/standard/java")
-        }
-    }
 }
 
 dependencies {
@@ -243,8 +232,6 @@ dependencies {
     // gemini ai proofreading
     "standardImplementation"("com.google.ai.client.generativeai:generativeai:0.9.0")
     "standardImplementation"("androidx.security:security-crypto:1.1.0-alpha06") // for encrypted API key storage
-    "standardfullImplementation"("com.google.ai.client.generativeai:generativeai:0.9.0")
-    "standardfullImplementation"("androidx.security:security-crypto:1.1.0-alpha06")
 
     // local llm proofreading is now dynamically provided by LeanType-Offline-AI-Plugin
 
