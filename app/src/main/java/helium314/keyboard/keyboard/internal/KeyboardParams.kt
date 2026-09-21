@@ -170,9 +170,9 @@ open class KeyboardParams {
             mOccupiedHeight = height
             mOccupiedWidth = width
             mTopPadding = keyboardAttr.getFraction(R.styleable.Keyboard_keyboardTopPadding, height, height, 0f).toInt()
-            val isFloating = helium314.keyboard.latin.LatinIME.getInstance()?.floatingKeyboardManager?.let {
+            val isFloating = ResourceUtils.getFloatingKeyboardWidth() > 0 || (helium314.keyboard.latin.LatinIME.getInstance()?.floatingKeyboardManager?.let {
                 it.isFloating || (Settings.getValues().mRememberFloatingKeyboard && it.wasFloatingLastTime())
-            } == true
+            } == true)
             mBottomPadding = if (isFloating) 0 else (keyboardAttr.getFraction(R.styleable.Keyboard_keyboardBottomPadding, height, height, 0f) * Settings.getValues().mBottomPaddingScale).toInt()
             mLeftPadding = (keyboardAttr.getFraction(R.styleable.Keyboard_keyboardLeftPadding, width, width, 0f) * Settings.getValues().mSidePaddingScale).toInt()
             mRightPadding = (keyboardAttr.getFraction(R.styleable.Keyboard_keyboardRightPadding, width, width, 0f) * Settings.getValues().mSidePaddingScale).toInt()

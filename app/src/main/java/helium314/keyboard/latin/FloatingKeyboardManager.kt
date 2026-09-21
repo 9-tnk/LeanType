@@ -15,6 +15,7 @@ import android.view.ViewOutlineProvider
 import android.widget.FrameLayout
 import android.widget.ImageButton
 import android.widget.LinearLayout
+import helium314.keyboard.keyboard.KeyboardLayoutSet
 import helium314.keyboard.keyboard.KeyboardSwitcher
 import helium314.keyboard.latin.common.ColorType
 import helium314.keyboard.latin.settings.Settings
@@ -121,6 +122,15 @@ class FloatingKeyboardManager(private val context: Context, private val latinIME
         val floatingWidth = (if (savedWidth != -1) savedWidth else defaultWidth).coerceIn(minWidth, maxWidth)
         val savedScale = prefs.getFloat(PREF_SCALE, 1.0f).coerceIn(0.5f, 1.8f)
 
+        // Set floating state and geometry overrides FIRST before view hierarchy layout passes
+        isFloating = true
+        if (Settings.getValues().mRememberFloatingKeyboard) {
+            prefs.edit().putBoolean(PREF_IS_ACTIVE, true).apply()
+        }
+        ResourceUtils.setFloatingKeyboardWidth(floatingWidth)
+        ResourceUtils.setFloatingKeyboardScale(savedScale)
+        KeyboardLayoutSet.clearKeyboardCache()
+
         val colors = Settings.getValues().mColors
         val bgColor = colors.get(ColorType.MAIN_BACKGROUND)
         val textColor = colors.get(ColorType.KEY_TEXT)
@@ -181,16 +191,10 @@ class FloatingKeyboardManager(private val context: Context, private val latinIME
             frame.elevation = 8f * density
         }
 
-        isFloating = true
-        if (Settings.getValues().mRememberFloatingKeyboard) {
-            prefs.edit().putBoolean(PREF_IS_ACTIVE, true).apply()
-        }
-
-        // Set floating overrides and reload keyboard to recalculate key geometry
-        ResourceUtils.setFloatingKeyboardWidth(floatingWidth)
-        ResourceUtils.setFloatingKeyboardScale(savedScale)
         KeyboardSwitcher.getInstance().reloadKeyboard()
 
+        (frame.findViewById<View>(R.id.keyboard_view_wrapper) as? View)?.requestLayout()
+        frame.requestLayout()
         (latinIME.mInputView as? InputView)?.resetChildrenFloatingPadding()
         (latinIME.mInputView as? InputView)?.updateBottomPadding()
         latinIME.onFloatingKeyboardShown()
@@ -210,6 +214,7 @@ class FloatingKeyboardManager(private val context: Context, private val latinIME
 
         ResourceUtils.setFloatingKeyboardWidth(0)
         ResourceUtils.setFloatingKeyboardScale(0.0f)
+        KeyboardLayoutSet.clearKeyboardCache()
 
         val frame = getKeyboardFrame()
         if (frame != null) {

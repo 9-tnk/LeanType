@@ -36,6 +36,7 @@ class InputView @JvmOverloads constructor(
     private var mNavBarBottomInsets = 0
 
     private fun isFloatingMode(): Boolean {
+        if (helium314.keyboard.latin.utils.ResourceUtils.getFloatingKeyboardWidth() > 0) return true
         val fkm = LatinIME.getInstance()?.floatingKeyboardManager ?: return false
         return fkm.isFloating || (Settings.getValues().mRememberFloatingKeyboard && fkm.wasFloatingLastTime())
     }

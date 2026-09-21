@@ -805,6 +805,7 @@ class KeyboardSwitcher private constructor() : KeyboardState.SwitchActions {
 
     fun reloadKeyboard() {
         if (mCurrentInputView == null) return
+        KeyboardLayoutSet.clearKeyboardCache()
         mEmojiPalettesView?.clearKeyboardCache()
         mSuggestionStripView?.onFloatingKeyboardScaleChanged()
         reloadMainKeyboard()

@@ -135,7 +135,7 @@ class KeyboardWrapperView @JvmOverloads constructor(
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
         val fkm = LatinIME.getInstance()?.floatingKeyboardManager
-        val isFloating = fkm != null && (fkm.isFloating || (Settings.getValues().mRememberFloatingKeyboard && fkm.wasFloatingLastTime()))
+        val isFloating = ResourceUtils.getFloatingKeyboardWidth() > 0 || (fkm != null && (fkm.isFloating || (Settings.getValues().mRememberFloatingKeyboard && fkm.wasFloatingLastTime())))
         if (isFloating) {
             val activeChild = (0 until childCount).map { getChildAt(it) }.firstOrNull {
                 it.visibility == VISIBLE &&

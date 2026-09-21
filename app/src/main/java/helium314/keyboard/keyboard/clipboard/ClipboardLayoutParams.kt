@@ -56,9 +56,9 @@ class ClipboardLayoutParams(ctx: Context) {
             keyVerticalGap = verticalGapStandard.toInt()
             keyHorizontalGap = horizontalGapStandard.toInt()
         }
-        val isFloating = helium314.keyboard.latin.LatinIME.getInstance()?.floatingKeyboardManager?.let {
+        val isFloating = helium314.keyboard.latin.utils.ResourceUtils.getFloatingKeyboardWidth() > 0 || (helium314.keyboard.latin.LatinIME.getInstance()?.floatingKeyboardManager?.let {
             it.isFloating || (sv.mRememberFloatingKeyboard && it.wasFloatingLastTime())
-        } == true
+        } == true)
         val bottomPadding = if (isFloating) 0 else (res.getFraction(R.fraction.config_keyboard_bottom_padding_holo,
                 defaultKeyboardHeight, defaultKeyboardHeight) * sv.mBottomPaddingScale).toInt()
         val topPadding = res.getFraction(R.fraction.config_keyboard_top_padding_holo,

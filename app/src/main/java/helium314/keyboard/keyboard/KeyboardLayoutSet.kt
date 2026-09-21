@@ -302,7 +302,7 @@ class KeyboardLayoutSet internal constructor(
             clearKeyboardCache()
         }
 
-        private fun clearKeyboardCache() {
+        fun clearKeyboardCache() {
             sKeyboardCache.clear()
             sUniqueKeysCache.clear()
             LayoutParser.clearCache()
