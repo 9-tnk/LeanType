@@ -36,6 +36,8 @@ LeanType combines a lightweight, privacy-focused keyboard foundation with cuttin
 | 🔢 **[Inline Math Calculation Suggestions](#25-inline-math-calculation-suggestions)** | High-precision arithmetic expression evaluator on typing `=` with 1-tap replacement |
 | 🎵 **[Custom Sound Packs & Audio Customization](#26-custom-sound-packs--audio-customization)** | Zero-latency key audio engine, 12+ built-in presets, remote repository catalog, and `.zip` imports |
 | ⚙️ **[Per-App Profiles & Compatibility Engine](#27-per-app-profiles--compatibility-engine)** | Per-app composing rules, symbol composing for Tasker, auto-incognito, and Enter overrides |
+| ⌨️ **[Hardware & Physical Keyboard Support](#28-hardware--physical-keyboard-support)** | External Bluetooth/USB keyboard suggestions, shortcuts (`1`,`2`,`3`), D-PAD emoji navigation |
+| 🎨 **[Advanced Appearance & Key Ergonomics](#29-advanced-appearance--key-ergonomics)** | Independent corner radii (normal, functional, action), key gaps, padding scales, Shift icons |
 
 ---
 
@@ -57,6 +59,8 @@ LeanType combines a lightweight, privacy-focused keyboard foundation with cuttin
 | **Touchpad Mode** | Swipe up on Spacebar to activate full cursor control and laptop-style touchpad gestures. | `Gesture typing > Vertical spacebar swipe` |
 | **Native IME Floating Window** | Moveable floating keyboard window with touch-passthrough, bottom dock bar, resize handle, zero dead space, and persistent memory. | Toolbar > Floating Keyboard / `Preferences > Remember floating mode` |
 | **Per-App Profiles & Quirks** | Fine-tune composing behavior per app (Tasker symbol composing, web editor compatibility, auto-incognito, and Enter action overrides). | `Preferences > App Profiles` |
+| **Hardware Keyboard Support** | Full predictive suggestions, auto-correction, candidate shortcuts (`1`, `2`, `3`), and D-PAD emoji navigation for external keyboards. | `Languages > Physical keyboard` / Auto-detected |
+| **Appearance & Key Ergonomics** | Independent key corner radius sliders, adjustable key gaps, customizable padding scales, and distinct Shift/Caps visual indicators. | `Appearance > Key borders` / `Theme` |
 | **Split Toolbar & Suggestions** | Separates suggestions from the toolbar into a dual-row view. | `Appearance > Split toolbar & suggestions` |
 | **Versatile Text Expander** | Expand shortcuts with dynamic variables, citation stripper (`%clipboard:clean%`), and modifiers. | `Text correction > Text Expander` |
 | **Clipboard History & Inline Edit** | Search history, swipe-right to edit inline, swipe-left to delete with undo, fold pinned clips, and slide-select. | Clipboard Toolbar > Search / Swipe items |
@@ -237,12 +241,12 @@ Turn the entire keyboard space into a fluid laptop-style trackpad:
 LeanType features an advanced **Native IME Floating Window** architecture that runs directly within the Android Input Method window rather than relying on invasive `SYSTEM_ALERT_WINDOW` system overlays. This delivers seamless background touch passthrough, zero extra permissions, and robust stability across multi-window and split-screen setups.
 
 ### 🪟 Key Floating Features
-- **Touch-Passthrough Window**: Touches outside the floating keyboard bubble pass directly to underlying applications, allowing simultaneous typing, reading, and scrolling.
+- **Native Window Migration (v4.2.5)**: Floating mode operates directly inside the native Android Input Method window using `TOUCHABLE_INSETS_REGION`. Touches outside the floating keyboard bubble pass directly to underlying applications (allowing simultaneous typing, reading, and scrolling) with zero `SYSTEM_ALERT_WINDOW` permission overhead.
 - **Floating Bottom Dock**: A dedicated, clean control bar anchored beneath the key rows:
   - **`[✕]` Close / Dock Button**: 1-tap return to standard docked keyboard mode.
   - **Center Drag Pill**: Smooth, fluid multi-touch drag handle to position the keyboard anywhere on the screen.
-  - **`[⤢]` Corner Resize Handle**: Proportional live resizing with instantaneous key scaling and zero layout jumps.
-- **Zero Dead Space Architecture**: Dynamic window inset clamping and automated padding suppression ensure zero dead background space inside the keyboard frame across all display densities.
+  - **`[⤢]` Corner Resize Handle**: Proportional live resizing (0.5×–1.8× scale) with instantaneous key scaling and zero layout jumps.
+- **Zero Dead-Space Layout (v4.2.6)**: Insets interception, deferred layout recalculation, and dynamic padding clamping completely eliminate docked-mode vertical dead space in apps like Telegram, ensuring the keyboard frame tightly wraps keys and controls across all display densities.
 - **Persistent Floating Memory**: Optionally preserve floating mode and window coordinates across keyboard dismissals and app switches (**Settings → Preferences → Remember floating mode**).
 - **Instant Activation**: Tap the **Floating Keyboard** icon on the toolbar or trigger it via custom shortcuts.
 
@@ -336,13 +340,15 @@ Prevent offensive, sensitive, or unwanted words from ever appearing in the sugge
 
 ---
 
-## 18. Adaptive Personal Dictionary Learning
+## 18. Adaptive Personal Dictionary Learning & Suggestion Engine Tuning
 
-LeanType learns your vocabulary organically as you type:
+LeanType learns your vocabulary organically as you type while providing deep granular control over the suggestion scoring pipeline:
 - **Adjustable Learning Threshold**: Choose how many times a new word must be typed (1 to 5 times) before it is automatically added to your personal dictionary.
 - **Session Word Boost**: Temporarily boosts recently typed, verified words for immediate next-word ranking during active typing sessions.
+- **Suggestion Balance Master Sliders**: Fine-tune the exact scoring weights between unigram frequency, bigram/ngram context, and dictionary matches (**Settings → Suggestions → Suggestion Balance**).
+- **SuggestTrace & ScoreAudit Telemetry**: Built-in developer/power-user instrumentation to audit why specific words are being predicted or auto-corrected, backed by early beam pruning (`BEAM_DELTA = 60`) for optimal typing latency.
 - **Google Dictionary Import**: Import existing user dictionaries exported from Gboard.
-- Configure via **Settings → Text correction → Dictionary learning threshold**.
+- Configure via **Settings → Suggestions** and **Settings → Text correction → Dictionary learning threshold**.
 
 ---
 
@@ -397,6 +403,10 @@ LeanType is published in two purpose-built flavors to balance cloud AI capabilit
 
 > [!TIP]
 > **Concurrent Installation**: The `offline` (`com.leanbitlab.leantype.offline`) build uses a unique package ID, allowing you to install it alongside `standard` on the same device!
+
+### 🛡️ Privacy & Engineering Highlights
+- **Zero-Permission Privacy Overhaul (v4.2.5)**: LeanType removed `READ_CONTACTS` (contact dictionary eliminated entirely), `SYSTEM_ALERT_WINDOW` (floating mode runs natively in the IME window), and `REQUEST_INSTALL_PACKAGES` (update checks link directly to verified GitHub releases). The `offline` flavor contains zero network permissions in its manifest.
+- **Ultra-Lightweight Modular Plugin Architecture (v4.1.4 / v4.1.6)**: Heavy machine learning dependencies—including ML Kit (Handwriting, OCR, Translation) and on-device LLM inference (`llama.cpp`)—are completely unbundled into standalone companion plugins. This preserves a sub-11 MB core APK footprint while granting users total on-demand control over local AI models.
 
 ---
 
@@ -496,7 +506,39 @@ Access via **Settings → Preferences → App Profiles**.
 | **📄 Allow on Non-Editable Fields** | Keeps the keyboard available and interactable even when an app specifies a non-editable text field (`InputType.TYPE_NULL`). |
 
 ### 🔍 App Profiles Management
+- **`TYPE_NULL` Out-of-the-Box Support (v4.2.6)**: Explicit show-request tracking allows LeanType to commit text seamlessly in dialer search bars, launchers, and custom non-editable views that normally block soft keyboards.
+- **Tasker & Macro Integration**: "Allow Symbol Composing" enables `%var_name` dynamic placeholders for Tasker automation without prematurely breaking composing spans.
 - **Instant Search & Filter**: Filter apps by name or package identifier, or toggle **Configured only** to review your active overrides.
 - **Visual Status Badges**: Each application card displays colored status chips (`Web`, `Incognito`, `Direct Commit`, `Symbol Composing`, `Action`, `Auto-Correct`) for immediate at-a-glance auditing.
 - **1-Tap Reset**: Easily revert any custom profile back to default with the **Reset to Default** option.
+
+---
+
+## 28. Hardware & Physical Keyboard Support
+
+LeanType provides a premium, fully-integrated experience for external Bluetooth keyboards, USB keyboards, tablet folio keyboards, and foldable devices. Unlike standard IMEs that disable their UI when a physical keyboard is attached, LeanType adapts intelligently:
+
+### ⌨️ Key Hardware Keyboard Features
+- **Persistent Suggestion Pipeline**: Full predictive text, auto-correction, and next-word suggestions remain active and visible on the candidate strip.
+- **Candidate Shortcuts**: Rapidly select predictions using physical keyboard number keys (`1`, `2`, `3`).
+- **Full D-PAD Navigation**: Seamlessly navigate and select emojis, clipboard history entries, and toolbar actions using physical arrow keys and Enter/Space.
+- **Smart Toolbar Elevation**: The smart toolbar automatically elevates above the system navigation bar and IME switcher buttons when a physical keyboard is detected.
+- **Advanced Keycode Resolution**: Native support for physical numpad keycodes, NumLock modifier composing, and dead-key combining for complex international layouts.
+- **Language Switching Shortcuts**: Seamless Ctrl+Space and Shift+Space keyboard shortcut handling to toggle active subtypes without UI interruptions.
+
+---
+
+## 29. Advanced Appearance & Key Ergonomics
+
+Go beyond simple color themes with granular, user-level control over the keyboard's physical geometry, border radiuses, and visual feedback:
+
+### 🎨 Ergonomic & Appearance Controls
+- **Independent Corner Radii**: Independent sliders to control the corner rounding of **Normal Keys**, **Functional Keys** (Shift / Backspace / Symbols), and **Action Keys** (Enter / Search / Go) when key borders are active (**Settings → Appearance → Key borders**).
+- **Dynamic Key Gaps & Padding**: Adjust horizontal and vertical key gaps, as well as independent side and bottom padding scales to match your hand ergonomics and screen dimensions.
+- **Shift & Caps State Distinction**: Enhanced visual clarity through three distinct icon states for the Shift key:
+  - **Outline Arrow**: Inactive / lowercase.
+  - **Filled Arrow**: Single Shift active.
+  - **Underlined Arrow**: Caps Lock locked.
+- **Auto-Spanning Key Balance**: Proportionately expands toolbar keys symmetrically across wider displays and landscape orientations (**Settings → Appearance → Toolbar auto-spacing**).
+
 

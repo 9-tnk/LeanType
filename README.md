@@ -30,6 +30,19 @@
 
 ---
 
+## 🚀 What's New in v4.2.6 (Recent Highlights)
+
+LeanType v4.2.x represents a massive leap forward in privacy, performance, hardware keyboard productivity, and modular architecture:
+
+- 🪶 **Ultra-Lightweight Modular Plugin Architecture**: Base APK footprint is under 11 MB. Heavy AI/ML modules—such as Offline AI (`llama.cpp`), Handwriting recognition, and ML Kit OCR—are unbundled into dynamic, on-demand companion plugins.
+- ⌨️ **First-Class Hardware Keyboard Support**: Physical/Bluetooth keyboards and foldables now get full dictionary predictions, auto-correction, candidate selection shortcuts (`1`, `2`, `3`), and D-PAD navigation in the emoji picker.
+- 🛡️ **Zero-Permission Privacy Overhaul**: Completely removed `READ_CONTACTS`, `SYSTEM_ALERT_WINDOW`, and `REQUEST_INSTALL_PACKAGES`. Floating mode and OTP detection run entirely via native IME window APIs and `NotificationListenerService`.
+- 🧠 **Suggestion Engine Telemetry & Tuning**: Power users can fine-tune prediction scoring using the **Suggestion Balance** master sliders and inspect candidate scoring via built-in `SuggestTrace` / `ScoreAudit` telemetry.
+- 📱 **Per-App Profiles & Compatibility Engine**: Granular per-app quirks under **Settings → Preferences → App Profiles** fix edge cases for web-based text editors (Google Docs/Notion), Tasker symbol composing (`%var_name`), and non-editable `TYPE_NULL` search fields.
+- 🫧 **Refined Native IME Floating Mode**: Native window migration with true touch pass-through, live proportional 0.5×–1.8× resizing, dedicated bottom dock control bar, and zero dead-space layout.
+
+---
+
 ## 📸 Screenshots
 
 <table>
@@ -102,6 +115,8 @@ LeanType is available in two purpose-built flavors designed to match your exact 
 - **🖱️ Touchpad Mode**: Swipe up on the spacebar to control the cursor freely across the screen, including full-screen laptop-style touchpad mode.
 - **🪟 Native IME Floating Window**: Seamless native IME window architecture with zero sensitive permissions (no `SYSTEM_ALERT_WINDOW`), pass-through background touches, bottom control bar (close, center-drag pill, resize drag handle), multi-touch tracking, zero dead space, and persistent mode memory.
 - **⚙️ Per-App Profiles & Compatibility Engine**: Tailor keyboard behavior per application (**Settings → Preferences → App Profiles**)—enable web editor compatibility, automatic incognito, force non-incognito, direct commit mode, symbol composing (preserving underscores `_` in Tasker variables), and custom Enter action overrides.
+- **⌨️ First-Class Hardware Keyboard Support**: Full predictive text, auto-correction, candidate selection shortcuts (`1`, `2`, `3`), and D-PAD navigation in emoji palettes for external Bluetooth/USB keyboards, with smart toolbar elevation above the navigation bar.
+- **🎨 Advanced Appearance & Key Ergonomics**: Independent corner radius sliders for Normal Keys, Functional Keys (Shift/Backspace), and Action Keys (Enter/Space), adjustable key gaps, customizable padding scales, and distinct Shift/Caps visual state indicators (outline, filled, underlined).
 - **⌨️ Dual Toolbar / Split Suggestions**: Option to split suggestions from the quick-action toolbar.
 - **🎨 Custom Layout Profiles**: Save up to 5 custom layout profiles with persistent slot index tracking.
 - **⌨️ Direct Switch Target IME**: Bind keycode `-10076` to any toolbar key to switch directly to a specific target keyboard (e.g. Japanese, Korean, or Chinese IME).
