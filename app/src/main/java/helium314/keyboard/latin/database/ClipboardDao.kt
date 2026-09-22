@@ -61,7 +61,13 @@ class ClipboardDao private constructor(private val db: Database) {
     @Synchronized
     fun addClip(timestamp: Long, pinned: Boolean, text: String, imageUri: String? = null) {
         clearOldClips()
-        val existingIndex = cache.indexOfFirst { it.text == text && it.imageUri == imageUri }
+        val existingIndex = cache.indexOfFirst { existing ->
+            when {
+                imageUri != null -> existing.imageUri == imageUri
+                existing.imageUri != null -> false
+                else -> existing.text == text
+            }
+        }
         if (existingIndex >= 0 && cache[existingIndex].timeStamp == timestamp)
             return // nothing to do
         if (existingIndex >= 0) {

@@ -2,6 +2,8 @@
 
 package helium314.keyboard.latin
 
+import android.content.ClipData
+import android.content.ClipDescription
 import android.content.ClipboardManager
 import android.content.Context
 import android.os.Build
@@ -76,6 +78,10 @@ class ClipboardHistoryManager(
     private var cachedScreenshotInfo: ScreenshotInfo? = null
 
     private var screenshotObserver: ContentObserver? = null
+    private val clipProcessingLock = Any()
+    private val pendingClipSnapshots = ArrayDeque<ClipData>()
+    private var isProcessingClipSnapshots = false
+    private val imageCacheLock = Any()
 
     private fun registerScreenshotObserver() {
         if (screenshotObserver != null) return
@@ -256,8 +262,14 @@ class ClipboardHistoryManager(
         } catch (e: Exception) {
             // Ignore
         }
-        if (latinIME.mSettings.current.mClipboardHistoryEnabled)
-            ExecutorUtils.getBackgroundExecutor(ExecutorUtils.KEYBOARD).execute { fetchPrimaryClip() }
+        if (latinIME.mSettings.current.mClipboardHistoryEnabled) {
+            val clipSnapshot = try {
+                clipboardManager.primaryClip?.let(::ClipData)
+            } catch (e: Exception) {
+                null
+            }
+            if (clipSnapshot != null) enqueuePrimaryClipSnapshot(clipSnapshot)
+        }
         ExecutorUtils.getBackgroundExecutor(ExecutorUtils.KEYBOARD).execute { cleanUpImageCache() }
         if (latinIME.mSettings.current.mSuggestScreenshots) {
             registerScreenshotObserver()
@@ -296,14 +308,19 @@ class ClipboardHistoryManager(
 
     private fun cleanUpImageCache() {
         try {
-            val cacheDir = java.io.File(latinIME.cacheDir, "clipboard_images")
-            if (!cacheDir.exists()) return
-            
-            val validUris = clipboardDao?.getClips()?.mapNotNull { it.imageUri }?.toSet() ?: emptySet()
-            
-            cacheDir.listFiles()?.forEach { file ->
-                if (!validUris.contains(file.absolutePath)) {
-                    file.delete()
+            synchronized(imageCacheLock) {
+                val cacheDir = java.io.File(latinIME.cacheDir, "clipboard_images")
+                if (!cacheDir.exists()) return
+
+                val validUris = clipboardDao?.getClips()?.mapNotNull { it.imageUri }?.toSet() ?: emptySet()
+                val safeThreshold = System.currentTimeMillis() - 30_000L
+
+                cacheDir.listFiles()?.forEach { file ->
+                    if (file.name.endsWith(".tmp")) {
+                        file.delete()
+                    } else if (!validUris.contains(file.absolutePath) && file.lastModified() < safeThreshold) {
+                        file.delete()
+                    }
                 }
             }
         } catch (e: Exception) {
@@ -336,13 +353,24 @@ class ClipboardHistoryManager(
             } else {
                 null
             }
+            val isImageLikeClip = if (clipData != null && clipData.itemCount > 0) {
+                val description = clipData.description
+                val clipUri = clipData.getItemAt(0)?.uri
+                description?.hasMimeType("image/*") == true ||
+                        (clipUri != null
+                                && description?.hasMimeType(ClipDescription.MIMETYPE_TEXT_URILIST) == true
+                                && kotlin.runCatching { latinIME.contentResolver.getType(clipUri) }.getOrNull()?.startsWith("image/") == true)
+            } else {
+                false
+            }
             val currentTimestamp = if (clipData != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 clipData.description.timestamp
             } else {
                 0L
             }
 
-            val hasChanged = currentText != lastPrimaryClipText
+            val hasChanged = isImageLikeClip
+                    || currentText != lastPrimaryClipText
                     || currentUri != lastPrimaryClipUri
                     || (currentTimestamp != 0L && currentTimestamp != lastPrimaryClipTimestamp)
 
@@ -361,47 +389,70 @@ class ClipboardHistoryManager(
                     }
                 }
 
-                if (latinIME.mSettings.current.mClipboardHistoryEnabled) {
-                    ExecutorUtils.getBackgroundExecutor(ExecutorUtils.KEYBOARD).execute {
-                        fetchPrimaryClip()
+                if (latinIME.mSettings.current.mClipboardHistoryEnabled && clipData != null) {
+                    val clipSnapshot = try {
+                        ClipData(clipData)
+                    } catch (e: Exception) {
+                        null
+                    }
+                    if (clipSnapshot != null) {
+                        enqueuePrimaryClipSnapshot(clipSnapshot)
                     }
                 }
             }
         }
     }
 
-    private fun fetchPrimaryClip() {
-        val clipData = try {
-            clipboardManager.primaryClip
-        } catch (e: Exception) {
-            null
-        }
-        
-        if (clipData == null || clipData.itemCount == 0) return
-        
-        var hasText = clipData.description?.hasMimeType("text/*") == true || clipData.description?.hasMimeType("text/plain") == true || clipData.description?.hasMimeType("text/html") == true
-        var hasImage = clipData.description?.hasMimeType("image/*") == true
-        
-        if (!hasImage && clipData.itemCount > 0) {
-            val uri = clipData.getItemAt(0)?.uri
-            if (uri != null) {
-                val type = latinIME.contentResolver.getType(uri)
-                if (type?.startsWith("image/") == true) {
-                    hasImage = true
-                }
+    private fun enqueuePrimaryClipSnapshot(clipData: ClipData) {
+        var shouldSchedule = false
+        synchronized(clipProcessingLock) {
+            pendingClipSnapshots.addLast(clipData)
+            if (!isProcessingClipSnapshots) {
+                isProcessingClipSnapshots = true
+                shouldSchedule = true
             }
         }
-        
-        if (!hasText && !hasImage) return
-        
+        if (!shouldSchedule) return
+        ExecutorUtils.getBackgroundExecutor(ExecutorUtils.KEYBOARD).execute {
+            while (true) {
+                val nextClip = synchronized(clipProcessingLock) {
+                    if (pendingClipSnapshots.isEmpty()) {
+                        isProcessingClipSnapshots = false
+                        null
+                    } else {
+                        pendingClipSnapshots.removeFirst()
+                    }
+                } ?: return@execute
+                fetchPrimaryClip(nextClip)
+            }
+        }
+    }
+
+    private fun fetchPrimaryClip(clipData: ClipData) {
+        if (clipData.itemCount == 0) return
+
+        val description = clipData.description
+        val hasText = description?.hasMimeType("text/*") == true
+                || description?.hasMimeType("text/plain") == true
+                || description?.hasMimeType("text/html") == true
+        var hasImage = description?.hasMimeType("image/*") == true
+
         clipData.getItemAt(0)?.let { clipItem ->
             val timeStamp = ClipboardManagerCompat.getClipTimestamp(clipData)
             var content = ""
             var imageUri: String? = null
-            
-            if (hasImage && clipItem.uri != null) {
-                // Determine mime type and copy to local cache
-                imageUri = cacheImage(clipItem.uri)
+
+            val clipUri = clipItem.uri
+            if (!hasImage && clipUri != null
+                && description?.hasMimeType(ClipDescription.MIMETYPE_TEXT_URILIST) == true
+            ) {
+                val type = kotlin.runCatching { latinIME.contentResolver.getType(clipUri) }.getOrNull()
+                hasImage = type?.startsWith("image/") == true
+            }
+            if (!hasText && !hasImage) return
+
+            if (hasImage && clipUri != null) {
+                imageUri = cacheImage(clipUri)
                 if (imageUri != null) {
                     content = "[Image]"
                 }
@@ -417,61 +468,81 @@ class ClipboardHistoryManager(
 
     private fun cacheImage(uri: android.net.Uri): String? {
         try {
-            val resolver = latinIME.contentResolver
-            val cacheDir = java.io.File(latinIME.cacheDir, "clipboard_images")
-            if (!cacheDir.exists()) cacheDir.mkdirs()
-            
-            val md = java.security.MessageDigest.getInstance("MD5")
-            val digest = md.digest(uri.toString().toByteArray())
-            val hash = digest.joinToString("") { "%02x".format(it) }
-            val suffix = if (latinIME.mSettings.current.mCompressScreenshots) "_compressed" else ""
-            val file = java.io.File(cacheDir, "img_${hash}${suffix}.jpg")
-            if (file.exists() && file.length() > 0) {
-                return file.absolutePath
-            }
-            
-            if (!latinIME.mSettings.current.mCompressScreenshots) {
-                resolver.openInputStream(uri)?.use { input ->
-                    file.outputStream().use { output ->
-                        input.copyTo(output)
-                    }
+            synchronized(imageCacheLock) {
+                val resolver = latinIME.contentResolver
+                val cacheDir = java.io.File(latinIME.cacheDir, "clipboard_images")
+                if (!cacheDir.exists()) cacheDir.mkdirs()
+
+                val tempFile = kotlin.runCatching {
+                    java.io.File.createTempFile("clipboard_img_", ".tmp", cacheDir)
+                }.getOrNull() ?: return null
+
+                val hash = try {
+                    val md = java.security.MessageDigest.getInstance("SHA-256")
+                    resolver.openInputStream(uri)?.use { input ->
+                        tempFile.outputStream().use { output ->
+                            val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
+                            while (true) {
+                                val read = input.read(buffer)
+                                if (read <= 0) break
+                                md.update(buffer, 0, read)
+                                output.write(buffer, 0, read)
+                            }
+                        }
+                    } ?: return null
+                    md.digest().joinToString("") { "%02x".format(it) }
+                } catch (e: Exception) {
+                    tempFile.delete()
+                    return null
+                }
+
+                val suffix = if (latinIME.mSettings.current.mCompressScreenshots) "_compressed" else ""
+                val file = java.io.File(cacheDir, "img_${hash}${suffix}.jpg")
+                if (file.exists() && file.length() > 0) {
+                    tempFile.delete()
                     return file.absolutePath
                 }
-                return null
-            }
-            
-            resolver.openInputStream(uri)?.use { input ->
+
+                if (!latinIME.mSettings.current.mCompressScreenshots) {
+                    if (!tempFile.renameTo(file)) {
+                        tempFile.inputStream().use { input ->
+                            file.outputStream().use { output -> input.copyTo(output) }
+                        }
+                        tempFile.delete()
+                    }
+                    return if (file.exists() && file.length() > 0) file.absolutePath else null
+                }
+
                 val options = android.graphics.BitmapFactory.Options().apply {
                     inJustDecodeBounds = true
                 }
-                android.graphics.BitmapFactory.decodeStream(input, null, options)
-                
-                resolver.openInputStream(uri)?.use { actualInput ->
-                    val reqWidth = 1024
-                    val reqHeight = 1024
-                    var inSampleSize = 1
-                    if (options.outHeight > reqHeight || options.outWidth > reqWidth) {
-                        val halfHeight = options.outHeight / 2
-                        val halfWidth = options.outWidth / 2
-                        while (halfHeight / inSampleSize >= reqHeight && halfWidth / inSampleSize >= reqWidth) {
-                            inSampleSize *= 2
-                        }
-                    }
-                    
-                    val decodeOptions = android.graphics.BitmapFactory.Options().apply {
-                        this.inSampleSize = inSampleSize
-                    }
-                    val bitmap = android.graphics.BitmapFactory.decodeStream(actualInput, null, decodeOptions)
-                    if (bitmap != null) {
-                        file.outputStream().use { output ->
-                            bitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, 80, output)
-                        }
-                        bitmap.recycle()
-                        return file.absolutePath
+                android.graphics.BitmapFactory.decodeFile(tempFile.absolutePath, options)
+
+                val reqWidth = 1024
+                val reqHeight = 1024
+                var inSampleSize = 1
+                if (options.outHeight > reqHeight || options.outWidth > reqWidth) {
+                    val halfHeight = options.outHeight / 2
+                    val halfWidth = options.outWidth / 2
+                    while (halfHeight / inSampleSize >= reqHeight && halfWidth / inSampleSize >= reqWidth) {
+                        inSampleSize *= 2
                     }
                 }
+
+                val decodeOptions = android.graphics.BitmapFactory.Options().apply {
+                    this.inSampleSize = inSampleSize
+                }
+                val bitmap = android.graphics.BitmapFactory.decodeFile(tempFile.absolutePath, decodeOptions)
+                tempFile.delete()
+                if (bitmap != null) {
+                    file.outputStream().use { output ->
+                        bitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, 80, output)
+                    }
+                    bitmap.recycle()
+                    if (file.exists() && file.length() > 0) return file.absolutePath
+                }
+                return null
             }
-            return null
         } catch (e: Exception) {
             return null
         }
